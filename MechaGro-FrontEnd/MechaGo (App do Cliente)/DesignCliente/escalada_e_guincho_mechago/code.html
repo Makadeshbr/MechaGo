@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary": "#635200",
+              "inverse-on-surface": "#565554",
+              "background": "#0e0e0e",
+              "tertiary": "#f6ffc2",
+              "surface": "#0e0e0e",
+              "secondary-fixed-dim": "#e4d844",
+              "on-primary-fixed-variant": "#645300",
+              "surface-container-high": "#201f1f",
+              "on-tertiary": "#576500",
+              "surface-variant": "#262626",
+              "primary-fixed-dim": "#edc600",
+              "on-primary-container": "#594a00",
+              "inverse-primary": "#715d00",
+              "secondary-container": "#676000",
+              "surface-container": "#1a1919",
+              "secondary": "#f3e651",
+              "on-surface": "#ffffff",
+              "surface-container-lowest": "#000000",
+              "on-tertiary-container": "#4f5d00",
+              "outline": "#777575",
+              "on-error-container": "#ffd2c8",
+              "on-error": "#450900",
+              "on-secondary-container": "#fff9d2",
+              "surface-bright": "#2c2c2c",
+              "surface-container-highest": "#262626",
+              "secondary-fixed": "#f3e651",
+              "primary-fixed": "#fdd404",
+              "inverse-surface": "#fcf8f8",
+              "surface-tint": "#ffe484",
+              "on-secondary-fixed": "#454100",
+              "on-tertiary-fixed": "#414d00",
+              "on-secondary": "#595300",
+              "primary": "#ffe484",
+              "error": "#ff7351",
+              "on-secondary-fixed-variant": "#645d00",
+              "error-dim": "#d53d18",
+              "tertiary-fixed": "#e4fc73",
+              "tertiary-container": "#dff66e",
+              "secondary-dim": "#e4d844",
+              "error-container": "#b92902",
+              "tertiary-fixed-dim": "#d6ee67",
+              "on-tertiary-fixed-variant": "#5c6b00",
+              "primary-container": "#fdd404",
+              "on-background": "#ffffff",
+              "tertiary-dim": "#d6ee67",
+              "on-surface-variant": "#adaaaa",
+              "surface-dim": "#0e0e0e",
+              "surface-container-low": "#131313",
+              "on-primary-fixed": "#433700",
+              "primary-dim": "#edc600",
+              "outline-variant": "#494847"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bg-kinetic-gradient {
+            background: linear-gradient(135deg, #ffe484 0%, #fdd404 100%);
+        }
+        body {
+            background-color: #0e0e0e;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body text-on-surface antialiased">
+<!-- Shell: TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-[#131313] flat no shadows">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#fdd404] hover:opacity-80 transition-opacity active:scale-90 transition-transform">menu</span>
+<span class="text-2xl font-black italic tracking-tighter text-[#fdd404] uppercase font-headline">MechaGo</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden active:scale-90 transition-transform">
+<img class="w-full h-full object-cover" data-alt="User profile photo avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdkpdlB-j0tg1Zal4YVDqlJ-uAcVV7H2FI2JrqqqvQCLhZHUQRX-UUnq6TYqQZgaf9S4wyVcXAzbGLyK5LioZd4T_akueTiXiSde3g7-XsjVACCpwC_uPzjh08-DKcCRfcvf3aXbY9dZZgJJOV-RE3PaTZcyImEZjsBZQ7-UQn01kO7ZPnrJeQBDKflqDmlq1puhq6-lyP7Waogt7zOrWk12dtu_CfGetr3FfsG8ak5lE02ySsd64ZaNfjSKi-R_K8AYVsqBY6vz_B"/>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-24 pb-32 px-6 max-w-[420px] mx-auto min-h-screen">
+<!-- Hero Section: Editorial Typography -->
+<section class="mb-10">
+<h1 class="font-headline text-[32px] font-bold leading-tight tracking-tight uppercase mb-3">
+                PROBLEMA NÃO RESOLVIDO?
+            </h1>
+<p class="text-on-surface-variant text-base font-medium leading-relaxed">
+                Iniciando protocolo de escalada. Escolha como deseja prosseguir.
+            </p>
+</section>
+<!-- Red Diagnostic Card: Emergency Focus -->
+<div class="bg-error-container p-5 rounded-xl flex items-start gap-4 mb-10 shadow-[0_20px_40px_rgba(185,41,2,0.2)]">
+<div class="bg-on-error-container/20 p-2 rounded-lg">
+<span class="material-symbols-outlined text-on-error-container text-3xl" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="text-on-error-container font-headline font-bold text-xs tracking-widest uppercase">Diagnóstico Final</span>
+<p class="text-on-error-container font-semibold leading-tight">
+                    Falha crítica no sistema de arrefecimento detectada. Movimentação do veículo não recomendada.
+                </p>
+</div>
+</div>
+<!-- Call to Action Section: Towing -->
+<section class="space-y-6">
+<div class="flex items-center justify-between">
+<h2 class="font-headline font-black text-xl tracking-tight uppercase">SOLICITAR GUINCHO</h2>
+<span class="material-symbols-outlined text-primary">auto_towing</span>
+</div>
+<button class="w-full bg-kinetic-gradient py-5 rounded-xl flex items-center justify-center gap-3 shadow-2xl active:scale-95 transition-transform">
+<span class="text-on-primary font-headline font-black text-lg tracking-tighter uppercase">CHAMAR AGORA</span>
+<span class="material-symbols-outlined text-on-primary">bolt</span>
+</button>
+<!-- Destination Options: Tonal Layering (No Borders) -->
+<div class="space-y-3 pt-4">
+<h3 class="text-on-surface-variant font-headline font-bold text-[10px] tracking-[0.2em] uppercase mb-4">Destinos Recomendados</h3>
+<!-- Option 1 -->
+<div class="bg-surface-container-low p-4 rounded-xl flex items-center justify-between hover:bg-surface-container-high transition-colors group cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-surface-container rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">home_repair_service</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Oficina do Carlos</p>
+<p class="text-xs text-on-surface-variant">3.2 km de distância</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-black text-primary font-headline">R$ 146</p>
+<p class="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest">Estimado</p>
+</div>
+</div>
+<!-- Option 2 -->
+<div class="bg-surface-container-low p-4 rounded-xl flex items-center justify-between hover:bg-surface-container-high transition-colors group cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-surface-container rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">near_me</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Oficina mais próxima</p>
+<p class="text-xs text-on-surface-variant">1.8 km de distância</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-black text-primary font-headline">R$ 109</p>
+<p class="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest">Estimado</p>
+</div>
+</div>
+<!-- Option 3: Highway Towing (Free) -->
+<div class="bg-tertiary-container/10 p-4 rounded-xl flex items-center justify-between hover:bg-tertiary-container/20 transition-colors group cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-tertiary-container/20 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary group-hover:scale-110 transition-transform">add_road</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Guincho da rodovia</p>
+<p class="text-xs text-on-surface-variant">Serviço da concessionária</p>
+</div>
+</div>
+<div class="text-right">
+<span class="inline-block px-2 py-1 bg-tertiary-container rounded-md text-on-tertiary font-black font-headline text-[10px] tracking-widest uppercase">GRATUITO</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Map Snippet: Asymmetric Layout -->
+<section class="mt-10 rounded-2xl overflow-hidden h-32 relative bg-surface-container-low group">
+<img class="w-full h-full object-cover opacity-40 grayscale group-hover:scale-105 transition-transform duration-700" data-alt="Abstract dark stylized map of a city grid" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCTh3Awp_mtc3uZTuOmkDDu5hZOTx_9tUAgIKTZy4_EwFVLx3-GGTXy4EXYmKrcrbhLwWGr9FNlkGa4irvo7hHCimSsqbEDtEyKqKDCLhcybCELB0rAxIMU6f55GLKfxPiffxBIiXgKAanIxrz7SGdFciUgvHznGNxLNiHUgEvToTnFlVKuZPib95cs1g2fJ2EXSBCUmwYVRLYW6AmRDZhJpaabhGqs08QUxpguEF53MpMWn-sR_su5tr1FwjKLtvr_Xj0yVyr9xOoJ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background to-transparent"></div>
+<div class="absolute bottom-4 left-4 flex items-center gap-2">
+<span class="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+<span class="text-[10px] font-bold tracking-[0.2em] uppercase text-on-surface-variant">Localizando veículos próximos...</span>
+</div>
+</section>
+</main>
+<!-- Shell: BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-2 bg-[#0e0e0e]/70 backdrop-blur-xl border-t border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.4)] md:hidden">
+<div class="flex flex-col items-center justify-center text-[#fdd404] bg-[#fdd404]/10 rounded-xl px-3 py-1 active:scale-95 transition-all duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">emergency_share</span>
+<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest">SOS</span>
+</div>
+<div class="flex flex-col items-center justify-center text-gray-500 hover:text-[#ffe484] transition-colors active:scale-95 transition-all duration-200">
+<span class="material-symbols-outlined">directions_car</span>
+<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest">Vehicles</span>
+</div>
+<div class="flex flex-col items-center justify-center text-gray-500 hover:text-[#ffe484] transition-colors active:scale-95 transition-all duration-200">
+<span class="material-symbols-outlined">history</span>
+<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest">History</span>
+</div>
+<div class="flex flex-col items-center justify-center text-gray-500 hover:text-[#ffe484] transition-colors active:scale-95 transition-all duration-200">
+<span class="material-symbols-outlined">person</span>
+<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest">Profile</span>
+</div>
+</nav>
+</body></html>

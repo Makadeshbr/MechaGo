@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary": "#635200",
+              "inverse-on-surface": "#565554",
+              "background": "#0e0e0e",
+              "tertiary": "#f6ffc2",
+              "surface": "#0e0e0e",
+              "secondary-fixed-dim": "#e4d844",
+              "on-primary-fixed-variant": "#645300",
+              "surface-container-high": "#201f1f",
+              "on-tertiary": "#576500",
+              "surface-variant": "#262626",
+              "primary-fixed-dim": "#edc600",
+              "on-primary-container": "#594a00",
+              "inverse-primary": "#715d00",
+              "secondary-container": "#676000",
+              "surface-container": "#1a1919",
+              "secondary": "#f3e651",
+              "on-surface": "#ffffff",
+              "surface-container-lowest": "#000000",
+              "on-tertiary-container": "#4f5d00",
+              "outline": "#777575",
+              "on-error-container": "#ffd2c8",
+              "on-error": "#450900",
+              "on-secondary-container": "#fff9d2",
+              "surface-bright": "#2c2c2c",
+              "surface-container-highest": "#262626",
+              "secondary-fixed": "#f3e651",
+              "primary-fixed": "#fdd404",
+              "inverse-surface": "#fcf8f8",
+              "surface-tint": "#ffe484",
+              "on-secondary-fixed": "#454100",
+              "on-tertiary-fixed": "#414d00",
+              "on-secondary": "#595300",
+              "primary": "#ffe484",
+              "error": "#ff7351",
+              "on-secondary-fixed-variant": "#645d00",
+              "error-dim": "#d53d18",
+              "tertiary-fixed": "#e4fc73",
+              "tertiary-container": "#dff66e",
+              "secondary-dim": "#e4d844",
+              "error-container": "#b92902",
+              "tertiary-fixed-dim": "#d6ee67",
+              "on-tertiary-fixed-variant": "#5c6b00",
+              "primary-container": "#fdd404",
+              "on-background": "#ffffff",
+              "tertiary-dim": "#d6ee67",
+              "on-surface-variant": "#adaaaa",
+              "surface-dim": "#0e0e0e",
+              "surface-container-low": "#131313",
+              "on-primary-fixed": "#433700",
+              "primary-dim": "#edc600",
+              "outline-variant": "#494847"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #0e0e0e;
+            color: #ffffff;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .kinetic-gradient {
+            background: linear-gradient(135deg, #ffe484 0%, #fdd404 100%);
+        }
+        .mono-timer {
+            font-family: 'Space Grotesk', monospace;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="flex justify-center min-h-screen">
+<!-- Main Canvas -->
+<main class="w-full max-w-[420px] bg-background relative flex flex-col min-h-screen pb-24">
+<!-- TopAppBar (JSON Instruction Applied) -->
+<header class="fixed top-0 w-full max-w-[420px] z-50 flex justify-between items-center px-6 h-16 bg-[#0e0e0e]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#fdd404]">menu</span>
+<h1 class="text-2xl font-black italic tracking-tighter text-[#fdd404] uppercase font-['Space_Grotesk']">MechaGo</h1>
+</div>
+<div class="flex items-center gap-2">
+<div class="bg-[#1a1919] px-2 py-1 rounded-md border border-white/5">
+<span class="text-[10px] font-bold text-[#fdd404] uppercase tracking-widest font-['Space_Grotesk']">PRO</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-container-high overflow-hidden border border-white/10">
+<img class="w-full h-full object-cover" data-alt="Professional technician profile photo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZAdctPucS9g0o7Sgbab4IulNpYRwd7PBhdnYSe8GE0pG96kuyjd41oLivx4cpwHfqfDB0g0DfqPSA2FjI5oYRWgM5MXDCdh1Vs52RFDZ8qXqycX_svSwN726xzCY2HLMFEe9beDbLXL5Z188ktqrnodKEnWRgJcou7uTbQOyKNRrx-9OiHuBBBt4qMXm4Ha-Tb6sreV3HYuLK1VuwQzMhNBGEJHwEkssc19yQjucwXY_2eZmi995gAqR2WLA72P4I2PWJWaNzP2s_"/>
+</div>
+</div>
+</header>
+<!-- Content Area -->
+<div class="mt-20 px-6 flex flex-col gap-6">
+<!-- Status Card: "Você está no local" -->
+<div class="kinetic-gradient rounded-xl p-5 shadow-[0_10px_30px_rgba(253,212,4,0.15)] flex justify-between items-center">
+<div class="flex items-center gap-4">
+<div class="bg-black/10 p-2 rounded-lg">
+<span class="material-symbols-outlined text-black" style="font-variation-settings: 'FILL' 1;">location_on</span>
+</div>
+<div>
+<p class="text-black text-[10px] font-bold uppercase tracking-wider opacity-60">Status Atual</p>
+<h2 class="text-black font-bold text-lg leading-tight">Você está no local</h2>
+</div>
+</div>
+<div class="bg-black/90 px-3 py-2 rounded-lg">
+<span class="mono-timer text-[#fdd404] text-xl font-bold tracking-tighter">05:23</span>
+</div>
+</div>
+<!-- Call Info Card (Surface Layering) -->
+<section class="bg-surface-container rounded-xl overflow-hidden">
+<div class="p-5 border-b border-white/5">
+<h3 class="text-on-surface-variant text-[10px] font-bold uppercase tracking-widest mb-4">Informações do Chamado</h3>
+<div class="space-y-4">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary-fixed mt-0.5">directions_car</span>
+<div>
+<p class="text-[10px] text-on-surface-variant uppercase font-medium">Veículo</p>
+<p class="text-on-surface font-bold">Honda Civic 2019</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary-fixed mt-0.5">report_problem</span>
+<div>
+<p class="text-[10px] text-on-surface-variant uppercase font-medium">Problema Relatado</p>
+<p class="text-on-surface font-bold">Bateria</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary-fixed mt-0.5">assignment_late</span>
+<div>
+<p class="text-[10px] text-on-surface-variant uppercase font-medium">Triagem Inicial</p>
+<p class="text-on-surface font-bold">Painel não acende</p>
+</div>
+</div>
+</div>
+</div>
+<div class="p-5 bg-surface-container-high/50">
+<h3 class="font-headline text-lg font-bold mb-4 tracking-tight">Resultado do diagnóstico:</h3>
+<textarea class="w-full bg-surface-container-lowest border-none rounded-lg text-sm text-on-surface p-4 focus:ring-1 focus:ring-primary/40 placeholder:text-on-surface-variant/40 min-h-[100px]" placeholder="Descreva aqui a falha técnica encontrada após a análise física..."></textarea>
+</div>
+</section>
+<!-- Action Buttons -->
+<div class="flex flex-col gap-3 pt-2">
+<button class="w-full bg-tertiary-container hover:bg-tertiary py-4 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined text-on-tertiary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-on-tertiary-container font-black text-sm uppercase tracking-widest">RESOLVIDO NO LOCAL</span>
+</button>
+<button class="w-full bg-error-container/20 border border-error-container/30 hover:bg-error-container/30 py-4 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 0;">cancel</span>
+<span class="text-error font-bold text-sm uppercase tracking-widest">NÃO É POSSÍVEL RESOLVER AQUI</span>
+</button>
+</div>
+</div>
+<!-- NavigationDrawer Content Hint (Semantic Shell) -->
+<!-- In a real app, this would be hidden by default -->
+<!-- BottomNavBar (JSON Instruction Applied) -->
+<nav class="fixed bottom-0 left-0 w-full max-w-[420px] z-50 flex justify-around items-center px-4 pb-6 pt-2 bg-[#0e0e0e]/70 backdrop-blur-xl border-t border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.4)] rounded-t-2xl">
+<div class="flex flex-col items-center justify-center text-gray-500 hover:text-[#ffe484] transition-colors active:scale-95 transition-all duration-200 cursor-pointer">
+<span class="material-symbols-outlined">emergency_share</span>
+<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest mt-1">SOS</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#fdd404] bg-[#fdd404]/10 rounded-xl px-3 py-1 active:scale-95 transition-all duration-200 cursor-pointer">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">directions_car</span>
+<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest mt-1">Vehicles</span>
+</div>
+<div class="flex flex-col items-center justify-center text-gray-500 hover:text-[#ffe484] transition-colors active:scale-95 transition-all duration-200 cursor-pointer">
+<span class="material-symbols-outlined">history</span>
+<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest mt-1">History</span>
+</div>
+<div class="flex flex-col items-center justify-center text-gray-500 hover:text-[#ffe484] transition-colors active:scale-95 transition-all duration-200 cursor-pointer">
+<span class="material-symbols-outlined">person</span>
+<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest mt-1">Profile</span>
+</div>
+</nav>
+</main>
+</body></html>

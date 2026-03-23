@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary": "#635200",
+              "inverse-on-surface": "#565554",
+              "background": "#0e0e0e",
+              "tertiary": "#f6ffc2",
+              "surface": "#0e0e0e",
+              "secondary-fixed-dim": "#e4d844",
+              "on-primary-fixed-variant": "#645300",
+              "surface-container-high": "#201f1f",
+              "on-tertiary": "#576500",
+              "surface-variant": "#262626",
+              "primary-fixed-dim": "#edc600",
+              "on-primary-container": "#594a00",
+              "inverse-primary": "#715d00",
+              "secondary-container": "#676000",
+              "surface-container": "#1a1919",
+              "secondary": "#f3e651",
+              "on-surface": "#ffffff",
+              "surface-container-lowest": "#000000",
+              "on-tertiary-container": "#4f5d00",
+              "outline": "#777575",
+              "on-error-container": "#ffd2c8",
+              "on-error": "#450900",
+              "on-secondary-container": "#fff9d2",
+              "surface-bright": "#2c2c2c",
+              "surface-container-highest": "#262626",
+              "secondary-fixed": "#f3e651",
+              "primary-fixed": "#fdd404",
+              "inverse-surface": "#fcf8f8",
+              "surface-tint": "#ffe484",
+              "on-secondary-fixed": "#454100",
+              "on-tertiary-fixed": "#414d00",
+              "on-secondary": "#595300",
+              "primary": "#ffe484",
+              "error": "#ff7351",
+              "on-secondary-fixed-variant": "#645d00",
+              "error-dim": "#d53d18",
+              "tertiary-fixed": "#e4fc73",
+              "tertiary-container": "#dff66e",
+              "secondary-dim": "#e4d844",
+              "error-container": "#b92902",
+              "tertiary-fixed-dim": "#d6ee67",
+              "on-tertiary-fixed-variant": "#5c6b00",
+              "primary-container": "#fdd404",
+              "on-background": "#ffffff",
+              "tertiary-dim": "#d6ee67",
+              "on-surface-variant": "#adaaaa",
+              "surface-dim": "#0e0e0e",
+              "surface-container-low": "#131313",
+              "on-primary-fixed": "#433700",
+              "primary-dim": "#edc600",
+              "outline-variant": "#494847"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #0e0e0e;
+            color: #ffffff;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .kinetic-gradient {
+            background: linear-gradient(135deg, #ffe484 0%, #fdd404 100%);
+        }
+        .glass-panel {
+            background: rgba(38, 38, 38, 0.7);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="flex justify-center min-h-screen bg-surface overflow-x-hidden">
+<main class="w-full max-w-[420px] bg-surface min-h-screen flex flex-col pb-32">
+<!-- TopAppBar (JSON Mapping) -->
+<header class="fixed top-0 w-full max-w-[420px] z-50 flex justify-between items-center px-6 h-16 bg-[#131313]">
+<div class="flex items-center gap-4">
+<button class="hover:opacity-80 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-primary-fixed">arrow_back</span>
+</button>
+<span class="text-2xl font-black italic tracking-tighter text-[#fdd404] uppercase font-headline">MechaGo</span>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center overflow-hidden border border-white/5">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="User profile photo avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDlkXA1_uAByw4_ZtYWZ2-1BAv4bc23ZHhwoaEPQblregTC97YWUslB_2YjpMhjV7lDwlnvnyy5PviFtws5LSuaclkvnkMA0wpn1M6Rc2UJ7bYAO9eCjK6pcWzuzXqUicFufwv6CJfjlyC1EjNyTWH0tL1ew2QpJkHA51KSKr7WJ6_fpVgo1YTX6Op57p4vhXJvptyp155VL2OmmCg-xIsJHyNEmQg73g_TZRFSnFvl9JPNXr5w5K9tPFm16Olcnhx0pkTG24vALYC"/>
+</div>
+</header>
+<div class="mt-20 px-6 space-y-8">
+<!-- Section Header -->
+<div class="space-y-1">
+<span class="font-headline text-[10px] uppercase tracking-[0.2em] text-primary-fixed/60 font-bold">04. CHECKOUT</span>
+<h1 class="font-headline text-4xl font-black tracking-tight text-on-surface italic">Estimativa</h1>
+</div>
+<!-- Main Estimate Card -->
+<section class="surface-container-low rounded-xl p-6 border-l-4 border-primary-fixed space-y-4">
+<div class="space-y-1">
+<p class="text-[10px] uppercase tracking-[0.2em] font-bold text-on-surface-variant">VALOR ESTIMADO DO SERVIÇO</p>
+<div class="flex items-baseline gap-2">
+<span class="font-headline text-[38px] font-black italic text-primary-fixed leading-none">R$ 80 - 150</span>
+</div>
+</div>
+<p class="text-xs text-on-surface-variant font-medium leading-relaxed">
+                    O valor final será definido pelo profissional no local (+/-25%) com base na complexidade do reparo.
+                </p>
+</section>
+<!-- Diagnostic Tax Highlight Card -->
+<section class="kinetic-gradient rounded-xl p-5 shadow-[0_10px_30px_rgba(253,212,4,0.15)] relative overflow-hidden">
+<div class="relative z-10 flex flex-col gap-3">
+<div class="flex justify-between items-start">
+<div class="space-y-1">
+<h3 class="font-headline font-black text-on-primary text-lg leading-tight">TAXA DE DIAGNÓSTICO: R$ 35</h3>
+<p class="text-xs font-bold text-on-primary/80">Pré-pagamento — garante seu atendimento</p>
+</div>
+<span class="bg-tertiary-container text-on-tertiary text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-widest">PIX</span>
+</div>
+</div>
+<!-- Abstract Texture overlay -->
+<div class="absolute right-[-20px] top-[-20px] opacity-10">
+<span class="material-symbols-outlined text-[120px]" style="font-variation-settings: 'FILL' 1;">precision_manufacturing</span>
+</div>
+</section>
+<!-- Order Summary -->
+<section class="space-y-4">
+<h4 class="font-headline text-sm font-bold tracking-widest uppercase text-on-surface-variant">Resumo do Pedido</h4>
+<div class="bg-surface-container-low rounded-xl overflow-hidden">
+<div class="p-4 space-y-3">
+<div class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Troca de Pneu (Socorro)</span>
+<span class="font-headline font-bold">Incluso</span>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Deslocamento (5.2 km)</span>
+<span class="font-headline font-bold">R$ 0,00</span>
+</div>
+</div>
+<div class="h-[1px] bg-white/5 mx-4"></div>
+<div class="p-4 flex justify-between items-center">
+<span class="font-bold text-on-surface">Total Imediato</span>
+<span class="font-headline text-xl font-black text-primary-fixed">R$ 35,00</span>
+</div>
+</div>
+</section>
+<!-- Payment Method Selection -->
+<section class="space-y-4">
+<h4 class="font-headline text-sm font-bold tracking-widest uppercase text-on-surface-variant">Método de Pagamento</h4>
+<div class="grid grid-cols-2 gap-4">
+<!-- PIX Option (Selected) -->
+<button class="flex flex-col items-center justify-center p-5 rounded-xl bg-primary-container text-on-primary border-2 border-primary-container transition-all active:scale-95">
+<span class="material-symbols-outlined mb-2" style="font-variation-settings: 'FILL' 1;">qr_code_2</span>
+<span class="font-headline font-bold text-xs uppercase tracking-widest">Pix</span>
+</button>
+<!-- Card Option -->
+<button class="flex flex-col items-center justify-center p-5 rounded-xl bg-surface-container-high text-on-surface-variant border-2 border-transparent transition-all hover:bg-surface-container-highest active:scale-95">
+<span class="material-symbols-outlined mb-2">credit_card</span>
+<span class="font-headline font-bold text-xs uppercase tracking-widest">Cartão</span>
+</button>
+</div>
+</section>
+</div>
+<!-- Footer Action (Shell Floating) -->
+<footer class="fixed bottom-0 w-full max-w-[420px] p-6 bg-gradient-to-t from-surface via-surface/95 to-transparent">
+<button class="w-full kinetic-gradient text-on-primary font-headline font-black py-5 rounded-xl flex items-center justify-center gap-3 shadow-[0_15px_40px_rgba(0,0,0,0.5)] hover:opacity-90 transition-all active:scale-[0.98]">
+                CONFIRMAR E PAGAR TAXA
+                <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</footer>
+</main>
+<!-- BottomNavBar Suppression Rule: Hidden due to transactional flow -->
+</body></html>

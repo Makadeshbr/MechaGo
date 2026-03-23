@@ -1,0 +1,35 @@
+import {
+  pgTable,
+  uuid,
+  varchar,
+  integer,
+  timestamp,
+  pgEnum,
+} from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+import { users } from "./users";
+
+export const vehicleTypeEnum = pgEnum("vehicle_type", [
+  "car",
+  "moto",
+  "suv",
+  "truck",
+]);
+
+export const vehicles = pgTable("vehicles", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  type: vehicleTypeEnum("type").notNull(),
+  plate: varchar("plate", { length: 10 }).notNull().unique(),
+  brand: varchar("brand", { length: 50 }).notNull(),
+  model: varchar("model", { length: 100 }).notNull(),
+  year: integer("year").notNull(),
+  color: varchar("color", { length: 30 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const vehiclesRelations = relations(vehicles, ({ one }) => ({
+  user: one(users, { fields: [vehicles.userId], references: [users.id] }),
+}));

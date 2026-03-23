@@ -1,0 +1,20 @@
+{
+  "name": "mechago",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "db:generate": "cd apps/api && npx drizzle-kit generate",
+    "db:migrate": "cd apps/api && npx drizzle-kit migrate",
+    "db:studio": "cd apps/api && npx drizzle-kit studio",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.0"
+  },
+  "packageManager": "npm@10.0.0"
+}

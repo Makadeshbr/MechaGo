@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MechaGo - Login</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary": "#635200",
+              "inverse-on-surface": "#565554",
+              "background": "#0e0e0e",
+              "tertiary": "#f6ffc2",
+              "surface": "#0e0e0e",
+              "secondary-fixed-dim": "#e4d844",
+              "on-primary-fixed-variant": "#645300",
+              "surface-container-high": "#201f1f",
+              "on-tertiary": "#576500",
+              "surface-variant": "#262626",
+              "primary-fixed-dim": "#edc600",
+              "on-primary-container": "#594a00",
+              "inverse-primary": "#715d00",
+              "secondary-container": "#676000",
+              "surface-container": "#1a1919",
+              "secondary": "#f3e651",
+              "on-surface": "#ffffff",
+              "surface-container-lowest": "#000000",
+              "on-tertiary-container": "#4f5d00",
+              "outline": "#777575",
+              "on-error-container": "#ffd2c8",
+              "on-error": "#450900",
+              "on-secondary-container": "#fff9d2",
+              "surface-bright": "#2c2c2c",
+              "surface-container-highest": "#262626",
+              "secondary-fixed": "#f3e651",
+              "primary-fixed": "#fdd404",
+              "inverse-surface": "#fcf8f8",
+              "surface-tint": "#ffe484",
+              "on-secondary-fixed": "#454100",
+              "on-tertiary-fixed": "#414d00",
+              "on-secondary": "#595300",
+              "primary": "#ffe484",
+              "error": "#ff7351",
+              "on-secondary-fixed-variant": "#645d00",
+              "error-dim": "#d53d18",
+              "tertiary-fixed": "#e4fc73",
+              "tertiary-container": "#dff66e",
+              "secondary-dim": "#e4d844",
+              "error-container": "#b92902",
+              "tertiary-fixed-dim": "#d6ee67",
+              "on-tertiary-fixed-variant": "#5c6b00",
+              "primary-container": "#fdd404",
+              "on-background": "#ffffff",
+              "tertiary-dim": "#d6ee67",
+              "on-surface-variant": "#adaaaa",
+              "surface-dim": "#0e0e0e",
+              "surface-container-low": "#131313",
+              "on-primary-fixed": "#433700",
+              "primary-dim": "#edc600",
+              "outline-variant": "#494847"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #0e0e0e;
+            color: #ffffff;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar for clean aesthetics */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #0e0e0e; }
+        ::-webkit-scrollbar-thumb { background: #262626; border-radius: 10px; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="flex flex-col min-h-screen items-center justify-center px-6 selection:bg-primary/30">
+<!-- Login Container -->
+<main class="w-full max-w-[420px] py-12 flex flex-col gap-10">
+<!-- Header Section -->
+<header class="flex flex-col items-center gap-2">
+<div class="text-primary-container text-4xl font-black italic tracking-tighter uppercase font-headline leading-none">
+                MechaGo
+            </div>
+<p class="text-on-surface-variant text-sm font-body tracking-wide opacity-80">
+                Acesse sua conta para continuar
+            </p>
+</header>
+<!-- Form Section -->
+<form class="flex flex-col gap-6">
+<!-- Email Input Group -->
+<div class="flex flex-col gap-2">
+<label class="text-xs font-bold uppercase tracking-widest text-on-surface-variant ml-1">E-mail ou telefone</label>
+<div class="relative group">
+<input class="w-full h-14 bg-surface-container-low border border-surface-container-highest rounded-[12px] px-5 text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all duration-300 font-body" placeholder="nome@exemplo.com" type="text"/>
+</div>
+</div>
+<!-- Password Input Group -->
+<div class="flex flex-col gap-2">
+<label class="text-xs font-bold uppercase tracking-widest text-on-surface-variant ml-1">Senha</label>
+<div class="relative group">
+<input class="w-full h-14 bg-surface-container-low border border-surface-container-highest rounded-[12px] pl-5 pr-12 text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all duration-300 font-body" placeholder="••••••••" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+<!-- Forgot Password Link -->
+<div class="flex justify-end -mt-2">
+<a class="text-sm font-semibold text-primary hover:opacity-80 transition-opacity" href="#">
+                    Esqueci minha senha
+                </a>
+</div>
+<!-- Action Button -->
+<button class="w-full h-14 bg-primary-container text-on-primary font-headline font-black uppercase tracking-widest rounded-[16px] active:scale-95 transition-all duration-200 shadow-lg shadow-primary-container/10" type="submit">
+                Entrar
+            </button>
+</form>
+<!-- Divider -->
+<div class="flex items-center gap-4">
+<div class="h-[1px] flex-1 bg-surface-container-highest"></div>
+<span class="text-outline text-xs font-bold uppercase tracking-tighter">ou</span>
+<div class="h-[1px] flex-1 bg-surface-container-highest"></div>
+</div>
+<!-- Secondary Action -->
+<div class="flex flex-col gap-4">
+<button class="w-full h-14 border border-primary/40 text-primary font-headline font-bold uppercase tracking-widest rounded-[16px] hover:bg-primary/5 active:scale-95 transition-all duration-200" type="button">
+                Criar conta
+            </button>
+</div>
+<!-- Footer Legal -->
+<footer class="text-center px-4">
+<p class="text-[11px] text-on-surface-variant leading-relaxed opacity-60">
+                Ao entrar, você concorda com nossos <a class="underline underline-offset-2 hover:text-on-surface" href="#">Termos de Uso</a> e <a class="underline underline-offset-2 hover:text-on-surface" href="#">Política de Privacidade</a>.
+            </p>
+</footer>
+</main>
+<!-- Background Decorative Element -->
+<div class="fixed top-0 right-0 -z-10 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full pointer-events-none"></div>
+<div class="fixed bottom-0 left-0 -z-10 w-[300px] h-[300px] bg-primary/5 blur-[100px] rounded-full pointer-events-none"></div>
+</body></html>

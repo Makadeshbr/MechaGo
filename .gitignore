@@ -1,0 +1,22 @@
+node_modules/
+dist/
+.turbo/
+.env
+.env.local
+*.log
+
+# Expo
+.expo/
+ios/
+android/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# OS
+.DS_Store
+Thumbs.db
+nul

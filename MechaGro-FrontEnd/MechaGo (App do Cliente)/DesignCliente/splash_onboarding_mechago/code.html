@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-br"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary": "#635200",
+              "inverse-on-surface": "#565554",
+              "background": "#0e0e0e",
+              "tertiary": "#f6ffc2",
+              "surface": "#0e0e0e",
+              "secondary-fixed-dim": "#e4d844",
+              "on-primary-fixed-variant": "#645300",
+              "surface-container-high": "#201f1f",
+              "on-tertiary": "#576500",
+              "surface-variant": "#262626",
+              "primary-fixed-dim": "#edc600",
+              "on-primary-container": "#594a00",
+              "inverse-primary": "#715d00",
+              "secondary-container": "#676000",
+              "surface-container": "#1a1919",
+              "secondary": "#f3e651",
+              "on-surface": "#ffffff",
+              "surface-container-lowest": "#000000",
+              "on-tertiary-container": "#4f5d00",
+              "outline": "#777575",
+              "on-error-container": "#ffd2c8",
+              "on-error": "#450900",
+              "on-secondary-container": "#fff9d2",
+              "surface-bright": "#2c2c2c",
+              "surface-container-highest": "#262626",
+              "secondary-fixed": "#f3e651",
+              "primary-fixed": "#fdd404",
+              "inverse-surface": "#fcf8f8",
+              "surface-tint": "#ffe484",
+              "on-secondary-fixed": "#454100",
+              "on-tertiary-fixed": "#414d00",
+              "on-secondary": "#595300",
+              "primary": "#ffe484",
+              "error": "#ff7351",
+              "on-secondary-fixed-variant": "#645d00",
+              "error-dim": "#d53d18",
+              "tertiary-fixed": "#e4fc73",
+              "tertiary-container": "#dff66e",
+              "secondary-dim": "#e4d844",
+              "error-container": "#b92902",
+              "tertiary-fixed-dim": "#d6ee67",
+              "on-tertiary-fixed-variant": "#5c6b00",
+              "primary-container": "#fdd404",
+              "on-background": "#ffffff",
+              "tertiary-dim": "#d6ee67",
+              "on-surface-variant": "#adaaaa",
+              "surface-dim": "#0e0e0e",
+              "surface-container-low": "#131313",
+              "on-primary-fixed": "#433700",
+              "primary-dim": "#edc600",
+              "outline-variant": "#494847"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .kinetic-gradient {
+            background: linear-gradient(135deg, #ffe484 0%, #fdd404 100%);
+        }
+        .obsidian-depth {
+            background: radial-gradient(circle at top right, #1a1919 0%, #0e0e0e 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body antialiased selection:bg-primary selection:text-on-primary">
+<!-- Main Canvas: Max Width 420px Mobile Focused -->
+<main class="relative mx-auto min-h-screen max-w-[420px] obsidian-depth flex flex-col overflow-hidden">
+<!-- Background Decorative Element (Kinetic Noir Style) -->
+<div class="absolute top-[-10%] right-[-10%] w-64 h-64 bg-primary/5 rounded-full blur-[80px]"></div>
+<!-- Header / Logo Section (Splash Transition State) -->
+<div class="flex-1 flex flex-col items-center justify-center px-8">
+<div class="mb-12 flex flex-col items-center">
+<!-- Large Yellow Pin Logo -->
+<div class="relative mb-4 group">
+<div class="absolute inset-0 bg-primary/20 blur-2xl rounded-full scale-150 transition-transform duration-700 group-hover:scale-110"></div>
+<span class="material-symbols-outlined text-primary text-8xl relative z-10" style="font-variation-settings: 'FILL' 1;">location_on</span>
+</div>
+<!-- Brand Text -->
+<h1 class="font-headline text-5xl font-black italic tracking-tighter text-primary-container uppercase">
+                    MechaGo
+                </h1>
+</div>
+<!-- Content Area: Slide 1 Focus -->
+<div class="w-full text-center space-y-6">
+<div class="inline-flex items-center justify-center w-20 h-20 bg-surface-container-high rounded-full mb-2">
+<span class="material-symbols-outlined text-primary text-4xl" data-icon="location_on" style="font-variation-settings: 'FILL' 1;">location_on</span>
+</div>
+<div class="space-y-3">
+<h2 class="font-headline text-3xl font-bold tracking-tight text-on-surface leading-tight">
+                        Socorro na palma da mão
+                    </h2>
+<p class="text-on-surface-variant text-base leading-relaxed max-w-[280px] mx-auto">
+                        Mecânicos certificados prontos para te atender onde quer que você esteja.
+                    </p>
+</div>
+</div>
+</div>
+<!-- Onboarding Controls & Footer -->
+<footer class="p-8 pb-12 space-y-8">
+<!-- Indicator Dots -->
+<div class="flex justify-center gap-2">
+<div class="h-1.5 w-8 rounded-full bg-primary-container"></div>
+<div class="h-1.5 w-2 rounded-full bg-surface-container-highest"></div>
+<div class="h-1.5 w-2 rounded-full bg-surface-container-highest"></div>
+</div>
+<!-- Primary Action -->
+<div class="space-y-4">
+<button class="w-full kinetic-gradient text-on-primary font-headline font-bold py-5 rounded-xl uppercase tracking-widest text-sm shadow-xl active:scale-95 transition-all duration-200">
+                    Começar
+                </button>
+<div class="text-center">
+<a class="inline-block text-primary font-medium hover:text-primary-dim transition-colors py-2" href="#">
+                        Já tenho conta
+                    </a>
+</div>
+</div>
+</footer>
+<!-- Glass Overlay Gradient (Bottom Depth) -->
+<div class="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent pointer-events-none"></div>
+</main>
+<!-- Visual Identity Check: Ensure No 1px Borders Used -->
+<!-- Typography Hierarchy Check: 4:1 scale ratio maintained between Title and Body -->
+<!-- Color Integrity: Using Primary #fdd404 and Dark Background #0e0e0e -->
+</body></html>

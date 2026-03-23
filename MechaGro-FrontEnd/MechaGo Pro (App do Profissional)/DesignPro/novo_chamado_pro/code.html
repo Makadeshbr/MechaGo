@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary": "#635200",
+              "inverse-on-surface": "#565554",
+              "background": "#0e0e0e",
+              "tertiary": "#f6ffc2",
+              "surface": "#0e0e0e",
+              "secondary-fixed-dim": "#e4d844",
+              "on-primary-fixed-variant": "#645300",
+              "surface-container-high": "#201f1f",
+              "on-tertiary": "#576500",
+              "surface-variant": "#262626",
+              "primary-fixed-dim": "#edc600",
+              "on-primary-container": "#594a00",
+              "inverse-primary": "#715d00",
+              "secondary-container": "#676000",
+              "surface-container": "#1a1919",
+              "secondary": "#f3e651",
+              "on-surface": "#ffffff",
+              "surface-container-lowest": "#000000",
+              "on-tertiary-container": "#4f5d00",
+              "outline": "#777575",
+              "on-error-container": "#ffd2c8",
+              "on-error": "#450900",
+              "on-secondary-container": "#fff9d2",
+              "surface-bright": "#2c2c2c",
+              "surface-container-highest": "#262626",
+              "secondary-fixed": "#f3e651",
+              "primary-fixed": "#fdd404",
+              "inverse-surface": "#fcf8f8",
+              "surface-tint": "#ffe484",
+              "on-secondary-fixed": "#454100",
+              "on-tertiary-fixed": "#414d00",
+              "on-secondary": "#595300",
+              "primary": "#ffe484",
+              "error": "#ff7351",
+              "on-secondary-fixed-variant": "#645d00",
+              "error-dim": "#d53d18",
+              "tertiary-fixed": "#e4fc73",
+              "tertiary-container": "#dff66e",
+              "secondary-dim": "#e4d844",
+              "error-container": "#b92902",
+              "tertiary-fixed-dim": "#d6ee67",
+              "on-tertiary-fixed-variant": "#5c6b00",
+              "primary-container": "#fdd404",
+              "on-background": "#ffffff",
+              "tertiary-dim": "#d6ee67",
+              "on-surface-variant": "#adaaaa",
+              "surface-dim": "#0e0e0e",
+              "surface-container-low": "#131313",
+              "on-primary-fixed": "#433700",
+              "primary-dim": "#edc600",
+              "outline-variant": "#494847"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"],
+              "mono": ["JetBrains Mono"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "3xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface flex justify-center items-start min-h-screen">
+<div class="w-full max-w-[420px] bg-surface min-h-screen relative flex flex-col pb-24 overflow-hidden">
+<!-- TopAppBar Shared Component -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-[#0e0e0e]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#fdd404]">menu</span>
+<span class="text-2xl font-black italic tracking-tighter text-[#fdd404] uppercase">MechaGo</span>
+</div>
+<div class="w-10 h-10 rounded-full border-2 border-[#fdd404]/20 overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="Close up profile photo of a certified service technician" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgtg8RBELZ4RNYFzZqt53Pxt9eMc628Gr5KlNNdINafV10hia_rGMqvlxGwMZp2TzkXaQrkRFnVYh3OlX5mi5S_J3TkYXMaVpDGA8NyUq-ROA5yol3_qC8ikkqKvmrcUDFh09RRg_o_Hopo2dlGzzDYGX5aw1wy-CXb9Vs2fPUKqoZ9v-8mxSVkDBkRKs9luzemi0G5kWBqlLjEUgfwFhP4CBDE7JJ6j5vnVtMCtZFWOQheR4mkRLHzIquKYpIYtntPQs3oux36x26"/>
+</div>
+</header>
+<!-- Main Content (Canvas) -->
+<main class="mt-20 px-4 space-y-6">
+<!-- Highlight Card: Novo Chamado -->
+<section class="bg-primary-container rounded-3xl p-6 relative overflow-hidden flex flex-col items-center text-on-primary-container shadow-[0_20px_50px_rgba(253,212,4,0.15)]">
+<!-- Background visual noise -->
+<div class="absolute top-0 right-0 opacity-10 translate-x-4 -translate-y-4">
+<span class="material-symbols-outlined text-[120px]" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<div class="flex flex-col items-center gap-1 z-10">
+<span class="material-symbols-outlined text-4xl mb-1" style="font-variation-settings: 'FILL' 1;">notifications_active</span>
+<h2 class="text-[22px] font-bold tracking-tight leading-none">NOVO CHAMADO!</h2>
+</div>
+<div class="mt-6 mb-2 z-10">
+<p class="font-mono text-[48px] font-bold tracking-tighter leading-none">2:47</p>
+</div>
+<p class="text-[10px] uppercase font-bold tracking-widest opacity-70">Aguardando Resposta</p>
+</section>
+<!-- Map Context Section (Asymmetric Editorial Style) -->
+<section class="rounded-2xl overflow-hidden h-40 bg-surface-container-low relative border border-white/5">
+<img alt="Map view" class="w-full h-full object-cover grayscale brightness-75 contrast-125" data-alt="Dark stylized map showing a route to the customer location" data-location="São Paulo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZEhvJpqBmg7xf-NO6Wlu9r2ncmlKq03QLEQCbAQyvpqjt1KV_YmSnNfTFJZQ_kxrjl9xNbXA8zq3f8SEHaXoHG9KtoPjYPNhQzaHoU-6newhuIAA0QFa4Pbtvs-nJAn6PcsVRCHYblOkf8Cvf75u1xb_LLMP0Pb2iediZXnbd7pJiK_Pp1LJYyBsLXJrCwbUFjddbNafzy--oGhbfrKClIWdIE3VB8yBVJVmRJ0F9OT72ZHRev2qEsM7w7q_IgvItUt1wyiW3UMMC"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent opacity-60"></div>
+<div class="absolute bottom-3 left-4 flex items-center gap-2">
+<div class="bg-primary-container text-on-primary-container px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">near_me</span> 2.3 km de você
+                    </div>
+</div>
+</section>
+<!-- Details Card -->
+<section class="bg-surface-container-low rounded-3xl p-6 space-y-6">
+<!-- Header Info -->
+<div class="flex justify-between items-start">
+<div class="space-y-1">
+<p class="text-gray-500 text-[10px] uppercase font-bold tracking-widest">Veículo do Cliente</p>
+<h3 class="text-xl font-bold text-on-surface">Honda Civic 2019</h3>
+</div>
+<div class="bg-surface-container-high p-3 rounded-2xl">
+<span class="material-symbols-outlined text-primary-container text-3xl" style="font-variation-settings: 'FILL' 1;">directions_car</span>
+</div>
+</div>
+<!-- Problem / Diagnosis -->
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container rounded-2xl p-4 border border-white/5">
+<p class="text-gray-500 text-[10px] uppercase font-bold tracking-widest mb-1">Problema</p>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-error text-lg">battery_alert</span>
+<span class="font-semibold text-sm">Bateria</span>
+</div>
+</div>
+<div class="bg-surface-container rounded-2xl p-4 border border-white/5">
+<p class="text-gray-500 text-[10px] uppercase font-bold tracking-widest mb-1">Chegada</p>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg">schedule</span>
+<span class="font-bold text-sm text-primary">~12 min</span>
+</div>
+</div>
+</div>
+<!-- Financials -->
+<div class="flex items-center justify-between pt-2 border-t border-white/5">
+<div>
+<p class="text-gray-500 text-[10px] uppercase font-bold tracking-widest">Estimativa</p>
+<p class="text-2xl font-black text-on-surface tracking-tight">R$ 80-150</p>
+</div>
+<div class="text-right">
+<p class="text-gray-500 text-[10px] uppercase font-bold tracking-widest">Serviço</p>
+<p class="text-sm font-medium">Troca/Carga</p>
+</div>
+</div>
+</section>
+<!-- Action Area -->
+<div class="pt-4 px-2">
+<button class="w-full bg-[#fdd404] hover:bg-[#ffe484] active:scale-[0.98] transition-all duration-200 py-6 rounded-2xl flex items-center justify-center gap-3 group shadow-[0_15px_30px_rgba(253,212,4,0.1)]">
+<span class="text-on-primary text-lg font-black uppercase tracking-widest font-headline">Aceitar Chamado</span>
+<span class="material-symbols-outlined text-on-primary group-hover:translate-x-1 transition-transform">arrow_forward_ios</span>
+</button>
+<button class="w-full mt-4 py-4 text-gray-500 font-bold uppercase tracking-widest text-xs hover:text-error transition-colors">
+                    Recusar Chamado
+                </button>
+</div>
+</main>
+<!-- BottomNavBar Shared Component -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-2 bg-[#0e0e0e]/70 backdrop-blur-xl border-t border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.4)]">
+<div class="flex flex-col items-center justify-center text-gray-500 hover:text-[#ffe484] transition-colors active:scale-95 transition-all duration-200">
+<span class="material-symbols-outlined" data-icon="emergency_share">emergency_share</span>
+<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest mt-1">SOS</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#fdd404] bg-[#fdd404]/10 rounded-xl px-3 py-1 active:scale-95 transition-all duration-200">
+<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
+<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest mt-1">Vehicles</span>
+</div>
+<div class="flex flex-col items-center justify-center text-gray-500 hover:text-[#ffe484] transition-colors active:scale-95 transition-all duration-200">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest mt-1">History</span>
+</div>
+<div class="flex flex-col items-center justify-center text-gray-500 hover:text-[#ffe484] transition-colors active:scale-95 transition-all duration-200">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest mt-1">Profile</span>
+</div>
+</nav>
+</div>
+</body></html>

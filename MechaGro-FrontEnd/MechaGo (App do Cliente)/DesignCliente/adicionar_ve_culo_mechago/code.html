@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-br"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary": "#635200",
+              "inverse-on-surface": "#565554",
+              "background": "#0e0e0e",
+              "tertiary": "#f6ffc2",
+              "surface": "#0e0e0e",
+              "secondary-fixed-dim": "#e4d844",
+              "on-primary-fixed-variant": "#645300",
+              "surface-container-high": "#201f1f",
+              "on-tertiary": "#576500",
+              "surface-variant": "#262626",
+              "primary-fixed-dim": "#edc600",
+              "on-primary-container": "#594a00",
+              "inverse-primary": "#715d00",
+              "secondary-container": "#676000",
+              "surface-container": "#1a1919",
+              "secondary": "#f3e651",
+              "on-surface": "#ffffff",
+              "surface-container-lowest": "#000000",
+              "on-tertiary-container": "#4f5d00",
+              "outline": "#777575",
+              "on-error-container": "#ffd2c8",
+              "on-error": "#450900",
+              "on-secondary-container": "#fff9d2",
+              "surface-bright": "#2c2c2c",
+              "surface-container-highest": "#262626",
+              "secondary-fixed": "#f3e651",
+              "primary-fixed": "#fdd404",
+              "inverse-surface": "#fcf8f8",
+              "surface-tint": "#ffe484",
+              "on-secondary-fixed": "#454100",
+              "on-tertiary-fixed": "#414d00",
+              "on-secondary": "#595300",
+              "primary": "#ffe484",
+              "error": "#ff7351",
+              "on-secondary-fixed-variant": "#645d00",
+              "error-dim": "#d53d18",
+              "tertiary-fixed": "#e4fc73",
+              "tertiary-container": "#dff66e",
+              "secondary-dim": "#e4d844",
+              "error-container": "#b92902",
+              "tertiary-fixed-dim": "#d6ee67",
+              "on-tertiary-fixed-variant": "#5c6b00",
+              "primary-container": "#fdd404",
+              "on-background": "#ffffff",
+              "tertiary-dim": "#d6ee67",
+              "on-surface-variant": "#adaaaa",
+              "surface-dim": "#0e0e0e",
+              "surface-container-low": "#131313",
+              "on-primary-fixed": "#433700",
+              "primary-dim": "#edc600",
+              "outline-variant": "#494847"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #0e0e0e;
+            color: #ffffff;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="flex items-center justify-center min-h-screen p-4">
+<!-- Mobile Shell Emulator -->
+<div class="w-full max-w-[420px] bg-background min-h-[844px] relative flex flex-col shadow-2xl">
+<!-- TopAppBar (Based on Shared Components JSON) -->
+<header class="fixed top-0 w-full max-w-[420px] z-50 flex justify-between items-center px-6 h-16 bg-[#0e0e0e]">
+<div class="flex items-center gap-4">
+<button class="text-on-surface hover:opacity-80 active:scale-90 transition-all">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<span class="text-2xl font-black italic tracking-tighter text-[#fdd404] uppercase font-['Space_Grotesk']">MechaGo</span>
+</div>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-white/10">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="Profile photo of a professional mechanic technician" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDaNGqBgwWCcPzmlwzmWb9dtX1jtSn7RXpNaAF_02XPDWLHRq4ebZCBvoN619i_uExRVWmzMf60sHI_9YeKHLeCXuOuIid2p6AVos_AxtMB-5k58zPyi4RYUWA52DfeqAKFvSsVsfMZx8nuLaVJhSF-Ux6bItFqdZQWR_TLPub2foo_0t4oH1WFuBYaD2DZ84k-DNVMhZo4an0y9bHw2RTdv7SGkMGqEpLWhH-VyeI2G1g9ZQBrmu1ModUfMR_NR5v5BtINaQRwRNyI"/>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 mt-16 px-6 pt-8 pb-32">
+<!-- Headline -->
+<h1 class="font-['Space_Grotesk'] text-[28px] font-bold tracking-tight text-on-surface mb-8">
+                Adicionar veículo
+            </h1>
+<!-- Vehicle Type Selector (Grid 2x2) -->
+<section class="mb-10">
+<label class="block font-['Space_Grotesk'] text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">Tipo de Veículo</label>
+<div class="grid grid-cols-2 gap-4">
+<!-- Selected Card -->
+<button class="flex flex-col items-center justify-center p-6 rounded-xl bg-primary-container text-on-primary-container transition-all scale-95 active:scale-90">
+<span class="material-symbols-outlined text-3xl mb-2" data-icon="directions_car">directions_car</span>
+<span class="font-['Space_Grotesk'] font-bold text-sm">Carro</span>
+</button>
+<!-- Inactive Card -->
+<button class="flex flex-col items-center justify-center p-6 rounded-xl bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high transition-all">
+<span class="material-symbols-outlined text-3xl mb-2" data-icon="moped">moped</span>
+<span class="font-['Space_Grotesk'] font-bold text-sm">Moto</span>
+</button>
+<!-- Inactive Card -->
+<button class="flex flex-col items-center justify-center p-6 rounded-xl bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high transition-all">
+<span class="material-symbols-outlined text-3xl mb-2" data-icon="minor_crash">minor_crash</span>
+<span class="font-['Space_Grotesk'] font-bold text-sm">SUV/Picape</span>
+</button>
+<!-- Inactive Card -->
+<button class="flex flex-col items-center justify-center p-6 rounded-xl bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high transition-all">
+<span class="material-symbols-outlined text-3xl mb-2" data-icon="local_shipping">local_shipping</span>
+<span class="font-['Space_Grotesk'] font-bold text-sm">Caminhão</span>
+</button>
+</div>
+</section>
+<!-- Form Fields -->
+<section class="space-y-6">
+<!-- Marca Dropdown -->
+<div class="space-y-2">
+<label class="block font-['Space_Grotesk'] text-xs font-bold uppercase tracking-widest text-on-surface-variant">Marca</label>
+<div class="relative group">
+<select class="w-full h-14 bg-surface-container-lowest text-on-surface rounded-xl px-4 appearance-none focus:ring-1 focus:ring-primary/40 border-none font-medium">
+<option disabled="" selected="">Selecione a marca</option>
+<option>Volkswagen</option>
+<option>Toyota</option>
+<option>Fiat</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- Modelo Dropdown -->
+<div class="space-y-2">
+<label class="block font-['Space_Grotesk'] text-xs font-bold uppercase tracking-widest text-on-surface-variant">Modelo</label>
+<div class="relative group">
+<select class="w-full h-14 bg-surface-container-lowest text-on-surface rounded-xl px-4 appearance-none focus:ring-1 focus:ring-primary/40 border-none font-medium">
+<option disabled="" selected="">Selecione o modelo</option>
+<option>Golf</option>
+<option>Corolla</option>
+<option>Strada</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- Two Column Row: Ano & Placa -->
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-2">
+<label class="block font-['Space_Grotesk'] text-xs font-bold uppercase tracking-widest text-on-surface-variant">Ano</label>
+<div class="relative group">
+<select class="w-full h-14 bg-surface-container-lowest text-on-surface rounded-xl px-4 appearance-none focus:ring-1 focus:ring-primary/40 border-none font-medium">
+<option>2024</option>
+<option>2023</option>
+<option>2022</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" data-icon="calendar_today">calendar_today</span>
+</div>
+</div>
+<div class="space-y-2">
+<label class="block font-['Space_Grotesk'] text-xs font-bold uppercase tracking-widest text-on-surface-variant">Placa</label>
+<input class="w-full h-14 bg-surface-container-lowest text-on-surface rounded-xl px-4 focus:ring-1 focus:ring-primary/40 border-none font-medium placeholder:text-outline-variant uppercase tracking-wider" placeholder="ABC-1D23" type="text"/>
+</div>
+</div>
+</section>
+<!-- Submit Button (Fixed at Bottom for Focus) -->
+<div class="mt-12">
+<button class="w-full h-16 bg-primary text-on-primary font-['Space_Grotesk'] font-black uppercase tracking-widest rounded-xl hover:opacity-90 active:scale-[0.98] transition-all shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
+                    Salvar veículo
+                </button>
+</div>
+</main>
+<!-- Navigation Placeholder (Hidden per "Task-Focused" rule but defined by Shell visibility logic) -->
+<!-- Suppressing Nav Shell as this is a focused transactional screen -->
+</div>
+</body></html>

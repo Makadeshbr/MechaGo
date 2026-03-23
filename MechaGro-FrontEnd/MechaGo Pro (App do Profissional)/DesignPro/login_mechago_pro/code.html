@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-primary": "#635200",
+                        "inverse-on-surface": "#565554",
+                        "background": "#0e0e0e",
+                        "tertiary": "#f6ffc2",
+                        "surface": "#0e0e0e",
+                        "secondary-fixed-dim": "#e4d844",
+                        "on-primary-fixed-variant": "#645300",
+                        "surface-container-high": "#201f1f",
+                        "on-tertiary": "#576500",
+                        "surface-variant": "#262626",
+                        "primary-fixed-dim": "#edc600",
+                        "on-primary-container": "#594a00",
+                        "inverse-primary": "#715d00",
+                        "secondary-container": "#676000",
+                        "surface-container": "#1a1919",
+                        "secondary": "#f3e651",
+                        "on-surface": "#ffffff",
+                        "surface-container-lowest": "#000000",
+                        "on-tertiary-container": "#4f5d00",
+                        "outline": "#777575",
+                        "on-error-container": "#ffd2c8",
+                        "on-error": "#450900",
+                        "on-secondary-container": "#fff9d2",
+                        "surface-bright": "#2c2c2c",
+                        "surface-container-highest": "#262626",
+                        "secondary-fixed": "#f3e651",
+                        "primary-fixed": "#fdd404",
+                        "inverse-surface": "#fcf8f8",
+                        "surface-tint": "#ffe484",
+                        "on-secondary-fixed": "#454100",
+                        "on-tertiary-fixed": "#414d00",
+                        "on-secondary": "#595300",
+                        "primary": "#ffe484",
+                        "error": "#ff7351",
+                        "on-secondary-fixed-variant": "#645d00",
+                        "error-dim": "#d53d18",
+                        "tertiary-fixed": "#e4fc73",
+                        "tertiary-container": "#dff66e",
+                        "secondary-dim": "#e4d844",
+                        "error-container": "#b92902",
+                        "tertiary-fixed-dim": "#d6ee67",
+                        "on-tertiary-fixed-variant": "#5c6b00",
+                        "primary-container": "#fdd404",
+                        "on-background": "#ffffff",
+                        "tertiary-dim": "#d6ee67",
+                        "on-surface-variant": "#adaaaa",
+                        "surface-dim": "#0e0e0e",
+                        "surface-container-low": "#131313",
+                        "on-primary-fixed": "#433700",
+                        "primary-dim": "#edc600",
+                        "outline-variant": "#494847"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #0e0e0e;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col items-center justify-center p-6">
+<!-- Login Container -->
+<main class="w-full max-w-[420px] flex flex-col gap-12">
+<!-- Header Section -->
+<header class="flex flex-col items-start gap-4">
+<div class="flex items-center gap-2">
+<h1 class="font-headline text-3xl font-black tracking-tighter uppercase italic text-primary-container">
+                    MechaGo <span class="text-outline">PRO</span>
+</h1>
+</div>
+<div class="flex flex-col gap-1">
+<h2 class="font-headline text-4xl font-bold tracking-tight text-on-surface leading-none">
+                    Acesso Profissional
+                </h2>
+<p class="text-on-surface-variant font-body text-sm">
+                    Gerencie seus atendimentos e ganhos em tempo real.
+                </p>
+</div>
+</header>
+<!-- Form Section -->
+<section class="flex flex-col gap-6">
+<form class="flex flex-col gap-5">
+<!-- Field: Identifier -->
+<div class="flex flex-col gap-2">
+<label class="font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant ml-1">E-mail ou CPF/CNPJ</label>
+<div class="relative group">
+<div class="absolute inset-y-0 left-4 flex items-center pointer-events-none text-on-surface-variant group-focus-within:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">person</span>
+</div>
+<input class="w-full h-14 bg-surface-container-low border border-transparent focus:border-primary/40 focus:ring-0 rounded-xl px-12 text-on-surface placeholder:text-on-surface-variant/50 font-body transition-all" placeholder="nome@empresa.com ou 00.000.000/0001-00" type="text"/>
+</div>
+</div>
+<!-- Field: Password -->
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center px-1">
+<label class="font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant">Senha</label>
+<a class="font-label text-xs font-semibold text-primary/80 hover:text-primary transition-colors" href="#">Esqueceu a senha?</a>
+</div>
+<div class="relative group">
+<div class="absolute inset-y-0 left-4 flex items-center pointer-events-none text-on-surface-variant group-focus-within:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">lock</span>
+</div>
+<input class="w-full h-14 bg-surface-container-low border border-transparent focus:border-primary/40 focus:ring-0 rounded-xl px-12 text-on-surface placeholder:text-on-surface-variant/50 font-body transition-all" placeholder="••••••••" type="password"/>
+<button class="absolute inset-y-0 right-4 flex items-center text-on-surface-variant hover:text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+</div>
+</div>
+<!-- Action Button -->
+<button class="w-full h-14 mt-4 bg-primary-container hover:bg-primary-dim active:scale-[0.98] transition-all rounded-xl flex items-center justify-center gap-3 shadow-[0_10px_20px_rgba(253,212,4,0.15)]" type="submit">
+<span class="font-headline font-black uppercase tracking-widest text-on-primary">Entrar</span>
+<span class="material-symbols-outlined text-on-primary">arrow_forward</span>
+</button>
+</form>
+<!-- Bottom Links -->
+<div class="flex flex-col items-center gap-8 mt-4">
+<div class="flex items-center gap-4 w-full">
+<div class="h-[1px] flex-1 bg-surface-container-highest"></div>
+<span class="text-[10px] font-bold uppercase tracking-[0.2em] text-outline">ou continue com</span>
+<div class="h-[1px] flex-1 bg-surface-container-highest"></div>
+</div>
+<div class="grid grid-cols-2 gap-4 w-full">
+<button class="h-12 bg-surface-container border border-white/5 hover:bg-surface-container-high rounded-xl flex items-center justify-center gap-2 transition-colors">
+<span class="material-symbols-outlined text-lg">google</span>
+<span class="font-body text-xs font-bold">Google</span>
+</button>
+<button class="h-12 bg-surface-container border border-white/5 hover:bg-surface-container-high rounded-xl flex items-center justify-center gap-2 transition-colors">
+<span class="material-symbols-outlined text-lg">ios</span>
+<span class="font-body text-xs font-bold">Apple</span>
+</button>
+</div>
+<div class="flex flex-col items-center gap-2">
+<p class="text-on-surface-variant text-sm font-body">Ainda não é um parceiro?</p>
+<a class="font-headline text-primary font-bold uppercase tracking-widest text-sm hover:underline decoration-2 underline-offset-8" href="#">
+                        Criar conta de profissional
+                    </a>
+</div>
+</div>
+</section>
+<!-- Decorative Footer / Branding -->
+<footer class="mt-8 flex flex-col items-center gap-6 opacity-30">
+<div class="flex gap-4">
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+</div>
+<p class="text-[10px] uppercase tracking-[0.3em] font-headline text-center">
+                Kinetic Precision Engineering © 2024
+             </p>
+</footer>
+</main>
+<!-- Background Accents (Visual Soul) -->
+<div class="fixed top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+<div class="fixed bottom-[-10%] left-[-10%] w-[30%] h-[30%] bg-primary/5 rounded-full blur-[100px] pointer-events-none -z-10"></div>
+</body></html>

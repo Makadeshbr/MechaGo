@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MechaGo PRO - Splash</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-primary": "#635200",
+                        "inverse-on-surface": "#565554",
+                        "background": "#0e0e0e",
+                        "tertiary": "#f6ffc2",
+                        "surface": "#0e0e0e",
+                        "secondary-fixed-dim": "#e4d844",
+                        "on-primary-fixed-variant": "#645300",
+                        "surface-container-high": "#201f1f",
+                        "on-tertiary": "#576500",
+                        "surface-variant": "#262626",
+                        "primary-fixed-dim": "#edc600",
+                        "on-primary-container": "#594a00",
+                        "inverse-primary": "#715d00",
+                        "secondary-container": "#676000",
+                        "surface-container": "#1a1919",
+                        "secondary": "#f3e651",
+                        "on-surface": "#ffffff",
+                        "surface-container-lowest": "#000000",
+                        "on-tertiary-container": "#4f5d00",
+                        "outline": "#777575",
+                        "on-error-container": "#ffd2c8",
+                        "on-error": "#450900",
+                        "on-secondary-container": "#fff9d2",
+                        "surface-bright": "#2c2c2c",
+                        "surface-container-highest": "#262626",
+                        "secondary-fixed": "#f3e651",
+                        "primary-fixed": "#fdd404",
+                        "inverse-surface": "#fcf8f8",
+                        "surface-tint": "#ffe484",
+                        "on-secondary-fixed": "#454100",
+                        "on-tertiary-fixed": "#414d00",
+                        "on-secondary": "#595300",
+                        "primary": "#ffe484",
+                        "error": "#ff7351",
+                        "on-secondary-fixed-variant": "#645d00",
+                        "error-dim": "#d53d18",
+                        "tertiary-fixed": "#e4fc73",
+                        "tertiary-container": "#dff66e",
+                        "secondary-dim": "#e4d844",
+                        "error-container": "#b92902",
+                        "tertiary-fixed-dim": "#d6ee67",
+                        "on-tertiary-fixed-variant": "#5c6b00",
+                        "primary-container": "#fdd404",
+                        "on-background": "#ffffff",
+                        "tertiary-dim": "#d6ee67",
+                        "on-surface-variant": "#adaaaa",
+                        "surface-dim": "#0e0e0e",
+                        "surface-container-low": "#131313",
+                        "on-primary-fixed": "#433700",
+                        "primary-dim": "#edc600",
+                        "outline-variant": "#494847"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #000000;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .kinetic-gradient {
+            background: linear-gradient(135deg, #ffe484 0%, #fdd404 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body text-on-surface">
+<!-- Mobile-First Container (Max 420px as requested) -->
+<main class="w-full max-w-[420px] min-h-screen bg-surface flex flex-col items-center justify-between p-8 relative overflow-hidden">
+<!-- Background Accents (Kinetic Noir Depth) -->
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[100px] -mr-32 -mt-32"></div>
+<div class="absolute bottom-0 left-0 w-48 h-48 bg-primary/10 rounded-full blur-[80px] -ml-24 -mb-24"></div>
+<!-- Hero Section: Logo & Identity -->
+<div class="flex-1 flex flex-col items-center justify-center w-full space-y-8">
+<!-- Brand Logo Mark -->
+<div class="relative flex items-center justify-center">
+<div class="text-[#fdd404] text-8xl">
+<span class="material-symbols-outlined text-9xl" style="font-variation-settings: 'FILL' 1;">location_on</span>
+</div>
+<div class="absolute inset-0 flex items-center justify-center pb-4">
+<span class="font-headline font-black text-4xl text-black">M</span>
+</div>
+</div>
+<!-- Brand Name & Tagline -->
+<div class="text-center space-y-2">
+<div class="flex items-baseline justify-center gap-2">
+<h1 class="font-headline text-5xl font-black italic tracking-tighter text-primary uppercase">MechaGo</h1>
+<span class="font-headline text-3xl font-bold tracking-tighter text-outline-variant uppercase">PRO</span>
+</div>
+<p class="font-body text-on-surface-variant text-lg tracking-wide">App para profissionais</p>
+</div>
+</div>
+<!-- Action Section: Buttons & Links -->
+<div class="w-full space-y-6 pb-8">
+<!-- Primary Action -->
+<button class="w-full kinetic-gradient py-5 rounded-xl text-on-primary font-headline font-bold text-lg uppercase tracking-widest shadow-lg shadow-black/20 active:scale-[0.98] transition-all">
+                Entrar
+            </button>
+<!-- Secondary Action -->
+<div class="text-center space-y-4">
+<a class="inline-block font-body text-primary font-semibold text-base hover:text-white transition-colors" href="#">
+                    Criar conta
+                </a>
+</div>
+<!-- Subtle Metadata for Professionals -->
+<div class="pt-4 flex items-center justify-center gap-4 text-outline-variant/40">
+<div class="h-[1px] flex-1 bg-outline-variant/20"></div>
+<span class="font-label text-[10px] uppercase tracking-[0.2em]">Versão 2.4.0</span>
+<div class="h-[1px] flex-1 bg-outline-variant/20"></div>
+</div>
+</div>
+<!-- Decorative "Kinetic" Accent -->
+<div class="absolute bottom-2 right-8 opacity-20 pointer-events-none">
+<span class="font-headline text-8xl font-black italic text-outline-variant/10 select-none">M_</span>
+</div>
+</main>
+<!-- Content Suppression Check: Splash screens do not require BottomNavBar or SideNav per Protocol -->
+</body></html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary": "#635200",
+              "inverse-on-surface": "#565554",
+              "background": "#0e0e0e",
+              "tertiary": "#f6ffc2",
+              "surface": "#0e0e0e",
+              "secondary-fixed-dim": "#e4d844",
+              "on-primary-fixed-variant": "#645300",
+              "surface-container-high": "#201f1f",
+              "on-tertiary": "#576500",
+              "surface-variant": "#262626",
+              "primary-fixed-dim": "#edc600",
+              "on-primary-container": "#594a00",
+              "inverse-primary": "#715d00",
+              "secondary-container": "#676000",
+              "surface-container": "#1a1919",
+              "secondary": "#f3e651",
+              "on-surface": "#ffffff",
+              "surface-container-lowest": "#000000",
+              "on-tertiary-container": "#4f5d00",
+              "outline": "#777575",
+              "on-error-container": "#ffd2c8",
+              "on-error": "#450900",
+              "on-secondary-container": "#fff9d2",
+              "surface-bright": "#2c2c2c",
+              "surface-container-highest": "#262626",
+              "secondary-fixed": "#f3e651",
+              "primary-fixed": "#fdd404",
+              "inverse-surface": "#fcf8f8",
+              "surface-tint": "#ffe484",
+              "on-secondary-fixed": "#454100",
+              "on-tertiary-fixed": "#414d00",
+              "on-secondary": "#595300",
+              "primary": "#ffe484",
+              "error": "#ff7351",
+              "on-secondary-fixed-variant": "#645d00",
+              "error-dim": "#d53d18",
+              "tertiary-fixed": "#e4fc73",
+              "tertiary-container": "#dff66e",
+              "secondary-dim": "#e4d844",
+              "error-container": "#b92902",
+              "tertiary-fixed-dim": "#d6ee67",
+              "on-tertiary-fixed-variant": "#5c6b00",
+              "primary-container": "#fdd404",
+              "on-background": "#ffffff",
+              "tertiary-dim": "#d6ee67",
+              "on-surface-variant": "#adaaaa",
+              "surface-dim": "#0e0e0e",
+              "surface-container-low": "#131313",
+              "on-primary-fixed": "#433700",
+              "primary-dim": "#edc600",
+              "outline-variant": "#494847"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0e0e0e; color: #ffffff; }
+        .font-headline { font-family: 'Space Grotesk', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background min-h-screen flex flex-col items-center">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-[#0e0e0e] max-w-[420px]">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-[#fdd404] scale-95 active:scale-90 transition-transform cursor-pointer" data-icon="menu">menu</span>
+<h1 class="text-2xl font-black italic tracking-tighter text-[#fdd404] uppercase font-headline">MechaGo PRO</h1>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden border border-white/10">
+<img class="w-full h-full object-cover" data-alt="User profile photo avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEvKCZM75dGFw1O7nb3ybI0EIEy1eNaHykOkmdkHMSEh4RiUXRNqct8h03YQ9qPYk3uDW2P5gpsBtOt7kB0_7rdWlOOYY7IClOdH9GsBuMvNlj1B5En7BvRMkcIwzR4TP2_dqq6IvGUpfDUzbMqUkZOrD69n7rWJJT_6W4jWkyCTR87u029ox5YSRqLwoXYZobB6jA8rV28SGu0OqnwOs33T81JfYanhZdnSu8XS1YFjRHMy4ZqAEv0360dBTUx2WVeEL1c_EN9QnE"/>
+</div>
+</header>
+<main class="w-full max-w-[420px] pt-20 pb-24 px-5 space-y-6">
+<!-- Status Header (Kinetic Noir Style) -->
+<div class="space-y-1">
+<span class="text-[10px] font-bold tracking-[0.2em] text-[#fdd404] uppercase font-headline">Serviço em Encerramento</span>
+<h2 class="text-3xl font-black font-headline tracking-tighter leading-none">NÃO RESOLVIDO</h2>
+</div>
+<!-- Notification Card (Error Tonal) -->
+<div class="bg-error-container rounded-xl p-5 space-y-2 border-l-4 border-error">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-error-container" data-icon="report">report</span>
+<span class="font-headline font-bold text-on-error-container text-lg">Não foi possível resolver</span>
+</div>
+<p class="text-on-error-container/80 text-sm leading-relaxed">
+                Você recebe a taxa de diagnóstico normalmente. O caso será escalado para o guincho ou oficina especializada.
+            </p>
+</div>
+<!-- Form Section -->
+<section class="space-y-6">
+<!-- Detailed Diagnosis -->
+<div class="space-y-3">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant ml-1">
+                    Diagnóstico detalhado (obrigatório)
+                </label>
+<textarea class="w-full h-32 bg-surface-container-lowest text-on-surface p-4 rounded-xl border-0 focus:ring-1 focus:ring-primary/40 placeholder:text-outline text-sm resize-none" placeholder="Descreva o motivo da impossibilidade de reparo no local..." required=""></textarea>
+</div>
+<!-- Mandatory Photo Area -->
+<div class="space-y-3">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant ml-1">
+                    Registro Visual (obrigatório)
+                </label>
+<div class="grid grid-cols-2 gap-3">
+<button class="flex flex-col items-center justify-center gap-2 aspect-square bg-surface-container rounded-xl border-2 border-dashed border-outline-variant hover:bg-surface-container-high transition-colors group">
+<span class="material-symbols-outlined text-3xl text-primary" data-icon="add_a_photo">add_a_photo</span>
+<span class="text-[10px] font-bold uppercase text-outline group-hover:text-primary transition-colors">Foto do Defeito</span>
+</button>
+<div class="aspect-square bg-surface-container rounded-xl overflow-hidden relative group">
+<img class="w-full h-full object-cover opacity-60" data-alt="Engine diagnostic photo example" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwUGkd8zWE_VnciAy1d_nw_8NSClkMw3YxDgVzh9vOVOIk4RxsMK3r8zYzPw_zRc4nYreTWZwe6VlsKUbJHq5R8oLywZ-cmqdtml0p6wKurhtS-Zi7PJxqo3nujTOAVXhseS4gu2s1NStDyZF0zIaAAKv5Pi3MpcypZY3J8YzIH2TDAdxGjBhyVNKenGvOeawdMxj7uZNytV5vfuaLToh_3burzs1IzCEiCXxZ_i41vauPCfiNCp24UjbJuLTyKOP_xMngZM1StFjw"/>
+<div class="absolute inset-0 flex items-center justify-center bg-black/40">
+<span class="material-symbols-outlined text-white" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Suggest Destination (Bento Grid Style) -->
+<div class="space-y-4">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant ml-1">
+                    Sugerir destino
+                </label>
+<div class="grid grid-cols-1 gap-3">
+<!-- Option: My Workshop -->
+<div class="bg-primary-container p-4 rounded-xl flex items-center justify-between cursor-pointer border-2 border-primary active:scale-[0.98] transition-all">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-on-primary-container/10 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container text-2xl" data-icon="garage">garage</span>
+</div>
+<div>
+<h4 class="font-headline font-black text-on-primary-container text-base">Minha oficina</h4>
+<p class="text-[10px] text-on-primary-container/70 uppercase font-bold tracking-tight">Oficina Mecânica Precision</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-primary-container" data-icon="radio_button_checked">radio_button_checked</span>
+</div>
+<!-- Option: No Suggestion -->
+<div class="bg-surface-container-low p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-surface-container transition-colors active:scale-[0.98]">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-surface-container-highest rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-outline text-2xl" data-icon="block">block</span>
+</div>
+<div>
+<h4 class="font-headline font-bold text-on-surface text-base">Sem sugestão</h4>
+<p class="text-[10px] text-outline uppercase font-bold tracking-tight">O cliente escolhe o destino</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline" data-icon="radio_button_unchecked">radio_button_unchecked</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Final Action -->
+<div class="pt-4">
+<button class="w-full bg-error text-on-error py-4 rounded-xl font-headline font-black uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-transform shadow-lg shadow-error/20">
+<span class="material-symbols-outlined" data-icon="pumping_station">charging_station</span>
+                ENVIAR DIAGNÓSTICO E ESCALAR
+            </button>
+<p class="text-center text-[10px] text-outline uppercase mt-4 font-bold tracking-tighter">
+                Atenção: Esta ação é irreversível e o chamado será finalizado.
+            </p>
+</div>
+</main>
+<!-- Navigation Shell Placeholder Logic (Suppressed for focused task) -->
+<!-- BottomNavBar would normally be here, but suppressed due to "Task-Focused" exclusion rule -->
+</body></html>

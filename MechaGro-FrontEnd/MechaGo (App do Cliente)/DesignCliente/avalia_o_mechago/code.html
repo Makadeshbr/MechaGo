@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-primary": "#635200",
+                        "inverse-on-surface": "#565554",
+                        "background": "#0e0e0e",
+                        "tertiary": "#f6ffc2",
+                        "surface": "#0e0e0e",
+                        "secondary-fixed-dim": "#e4d844",
+                        "on-primary-fixed-variant": "#645300",
+                        "surface-container-high": "#201f1f",
+                        "on-tertiary": "#576500",
+                        "surface-variant": "#262626",
+                        "primary-fixed-dim": "#edc600",
+                        "on-primary-container": "#594a00",
+                        "inverse-primary": "#715d00",
+                        "secondary-container": "#676000",
+                        "surface-container": "#1a1919",
+                        "secondary": "#f3e651",
+                        "on-surface": "#ffffff",
+                        "surface-container-lowest": "#000000",
+                        "on-tertiary-container": "#4f5d00",
+                        "outline": "#777575",
+                        "on-error-container": "#ffd2c8",
+                        "on-error": "#450900",
+                        "on-secondary-container": "#fff9d2",
+                        "surface-bright": "#2c2c2c",
+                        "surface-container-highest": "#262626",
+                        "secondary-fixed": "#f3e651",
+                        "primary-fixed": "#fdd404",
+                        "inverse-surface": "#fcf8f8",
+                        "surface-tint": "#ffe484",
+                        "on-secondary-fixed": "#454100",
+                        "on-tertiary-fixed": "#414d00",
+                        "on-secondary": "#595300",
+                        "primary": "#ffe484",
+                        "error": "#ff7351",
+                        "on-secondary-fixed-variant": "#645d00",
+                        "error-dim": "#d53d18",
+                        "tertiary-fixed": "#e4fc73",
+                        "tertiary-container": "#dff66e",
+                        "secondary-dim": "#e4d844",
+                        "error-container": "#b92902",
+                        "tertiary-fixed-dim": "#d6ee67",
+                        "on-tertiary-fixed-variant": "#5c6b00",
+                        "primary-container": "#fdd404",
+                        "on-background": "#ffffff",
+                        "tertiary-dim": "#d6ee67",
+                        "on-surface-variant": "#adaaaa",
+                        "surface-dim": "#0e0e0e",
+                        "surface-container-low": "#131313",
+                        "on-primary-fixed": "#433700",
+                        "primary-dim": "#edc600",
+                        "outline-variant": "#494847"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .star-fill {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body antialiased">
+<!-- TopAppBar Shell -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-[#0e0e0e]">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary-container cursor-pointer transition-transform active:scale-90" data-icon="menu">menu</span>
+<span class="text-2xl font-black italic tracking-tighter text-[#fdd404] uppercase font-headline">MechaGo</span>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-high border-2 border-primary-container overflow-hidden">
+<img alt="User profile photo" class="w-full h-full object-cover" data-alt="Close up portrait of a smiling user" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_3r9fzJ7TKqnwRW_ptm2A74X9KuhldnjEl8OueEKf71Y--t0YYW-FODC7pxYZC5gDqT9kN2C_JiUy3Dbzf7vpiGa64E8mWFgzkQfIQJaasQdRyHq0HoFJ5U2VlzOn_zZs5FMKvHM6nXP8fdVfqxZw6E8LeH86exgDBp4I-DNhne1Vh8naso1-Mb3M0XcSOP7robJYIK1nTqsWMSJkCfJ19AjCGZxVrQcxbNOhj30VG8EjAI9_LCSoGyI6aYpUJmGB8haat1PbllW1"/>
+</div>
+</header>
+<main class="pt-24 pb-32 px-6 max-w-[420px] mx-auto min-h-screen">
+<!-- View Title -->
+<section class="mb-10">
+<h1 class="font-headline text-[28px] font-bold tracking-tight text-on-surface leading-tight">Como foi?</h1>
+<p class="text-on-surface-variant text-sm mt-1">Sua avaliação ajuda a manter a qualidade MechaGo.</p>
+</section>
+<!-- Service Summary Card (Asymmetric Layout) -->
+<section class="mb-10 bg-surface-container-low rounded-xl p-5 relative overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
+<div class="flex items-center gap-4">
+<div class="relative">
+<img alt="Pro Technician Avatar" class="w-16 h-16 rounded-lg object-cover border border-white/5" data-alt="Professional mechanic in work uniform" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnPsQssEOmh-T4fBRbFMnWZZIAYh2bkUuX4XHFl63CqIRwWrMWAwHhUzSP7jMcDnOQjjNzU2nOIiO5bQS2zArdvXI5dP1RXB5ukYfAJCqwxDvOxc2TfeQDgrMVytHoPNLj2B6MjiMpWAnFNVEuMYrpJv_0J4tnE2oSss6aw5quU4bcg2VvuL96RyNxam4rSRIG6SzBG9yxUb6t9MEs2a4kqPPpDksponup2AcUgM1ZAIaiRdmdx1N0R1IhnFJefT-4a8Y52_HMFhVo"/>
+<div class="absolute -bottom-1 -right-1 bg-primary text-on-primary p-0.5 rounded-full">
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'wght' 700">verified</span>
+</div>
+</div>
+<div class="flex-1">
+<h3 class="font-headline text-lg font-bold text-on-surface">Ricardo Silva</h3>
+<div class="flex items-center gap-2 text-on-surface-variant text-xs mb-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="build">build</span>
+<span>Troca de Pastilhas</span>
+</div>
+<div class="text-primary font-bold text-sm">R$ 180,00</div>
+</div>
+</div>
+</section>
+<!-- Rating Selection -->
+<section class="mb-10 text-center">
+<div class="flex justify-between items-center px-4 mb-4">
+<div class="w-12 h-12 flex items-center justify-center bg-primary/10 rounded-xl cursor-pointer transition-all active:scale-95 border border-primary/20">
+<span class="material-symbols-outlined text-primary star-fill" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<div class="w-12 h-12 flex items-center justify-center bg-primary/10 rounded-xl cursor-pointer transition-all active:scale-95 border border-primary/20">
+<span class="material-symbols-outlined text-primary star-fill" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<div class="w-12 h-12 flex items-center justify-center bg-primary/10 rounded-xl cursor-pointer transition-all active:scale-95 border border-primary/20">
+<span class="material-symbols-outlined text-primary star-fill" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<div class="w-12 h-12 flex items-center justify-center bg-primary/10 rounded-xl cursor-pointer transition-all active:scale-95 border border-primary/20">
+<span class="material-symbols-outlined text-primary star-fill" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<div class="w-12 h-12 flex items-center justify-center bg-surface-container-high rounded-xl cursor-pointer transition-all active:scale-95">
+<span class="material-symbols-outlined text-outline" data-icon="star">star</span>
+</div>
+</div>
+<p class="text-primary font-medium">Muito Bom</p>
+</section>
+<!-- Dynamic Tags -->
+<section class="mb-10">
+<h4 class="font-headline text-base font-bold text-on-surface mb-4">O que mais te marcou?</h4>
+<div class="flex flex-wrap gap-2">
+<button class="px-4 py-2 rounded-full bg-primary/10 text-primary border border-primary/20 text-sm font-medium transition-colors hover:bg-primary/20">Rápido</button>
+<button class="px-4 py-2 rounded-full bg-surface-container-high text-on-surface-variant text-sm font-medium transition-colors hover:bg-surface-container-highest">Honesto</button>
+<button class="px-4 py-2 rounded-full bg-primary/10 text-primary border border-primary/20 text-sm font-medium transition-colors hover:bg-primary/20">Explicou bem</button>
+<button class="px-4 py-2 rounded-full bg-surface-container-high text-on-surface-variant text-sm font-medium transition-colors hover:bg-surface-container-highest">Bom preço</button>
+<button class="px-4 py-2 rounded-full bg-surface-container-high text-on-surface-variant text-sm font-medium transition-colors hover:bg-surface-container-highest">Equipado</button>
+<button class="px-4 py-2 rounded-full bg-primary/10 text-primary border border-primary/20 text-sm font-medium transition-colors hover:bg-primary/20">Pontual</button>
+</div>
+</section>
+<!-- Comment Field -->
+<section class="mb-10">
+<label class="font-headline text-base font-bold text-on-surface mb-4 block">Comentário <span class="text-on-surface-variant text-xs font-normal ml-2 opacity-60">(opcional)</span></label>
+<textarea class="w-full bg-surface-container-lowest border-none rounded-xl p-4 text-on-surface placeholder:text-outline focus:ring-1 focus:ring-primary/40 min-h-[120px] text-sm resize-none" placeholder="Escreva como foi sua experiência com o Ricardo..."></textarea>
+</section>
+<!-- Submit Button -->
+<button class="w-full bg-primary text-on-primary h-14 rounded-xl font-headline font-bold text-base tracking-widest uppercase transition-all hover:bg-primary-dim active:scale-95 shadow-[0_10px_30px_rgba(253,212,4,0.2)]">
+            ENVIAR AVALIAÇÃO
+        </button>
+</main>
+<!-- BottomNavBar Shell (Suppressed context check: Primary screen equivalent, but specific to action - showing for global continuity) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-2 bg-[#0e0e0e]/70 backdrop-blur-xl shadow-[0_-10px_40px_rgba(0,0,0,0.4)] border-t border-white/5">
+<div class="flex flex-col items-center justify-center text-gray-500 hover:text-[#ffe484] transition-colors cursor-pointer group">
+<span class="material-symbols-outlined mb-1 group-active:scale-90 transition-transform" data-icon="emergency_share">emergency_share</span>
+<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest">SOS</span>
+</div>
+<div class="flex flex-col items-center justify-center text-gray-500 hover:text-[#ffe484] transition-colors cursor-pointer group">
+<span class="material-symbols-outlined mb-1 group-active:scale-90 transition-transform" data-icon="directions_car">directions_car</span>
+<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest">Vehicles</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#fdd404] bg-[#fdd404]/10 rounded-xl px-3 py-1 cursor-pointer group">
+<span class="material-symbols-outlined mb-1 group-active:scale-90 transition-transform" data-icon="history">history</span>
+<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest">History</span>
+</div>
+<div class="flex flex-col items-center justify-center text-gray-500 hover:text-[#ffe484] transition-colors cursor-pointer group">
+<span class="material-symbols-outlined mb-1 group-active:scale-90 transition-transform" data-icon="person">person</span>
+<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest">Profile</span>
+</div>
+</nav>
+</body></html>

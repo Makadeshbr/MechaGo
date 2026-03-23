@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "MechaGo",
+    "slug": "mechago-cliente",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "mechago",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0A0A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.mechago.cliente"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A0A0A"
+      },
+      "package": "com.mechago.cliente"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-localization",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "O MechaGo precisa da sua localização para encontrar profissionais próximos."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O MechaGo precisa acessar sua câmera para tirar fotos do serviço."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#FDD404"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "updates": {
+      "url": "https://u.expo.dev/mechago-cliente"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
+  }
+}

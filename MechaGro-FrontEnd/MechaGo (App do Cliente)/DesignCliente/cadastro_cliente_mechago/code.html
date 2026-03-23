@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MechaGo - Criar Conta</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-primary": "#635200",
+                        "inverse-on-surface": "#565554",
+                        "background": "#0e0e0e",
+                        "tertiary": "#f6ffc2",
+                        "surface": "#0e0e0e",
+                        "secondary-fixed-dim": "#e4d844",
+                        "on-primary-fixed-variant": "#645300",
+                        "surface-container-high": "#201f1f",
+                        "on-tertiary": "#576500",
+                        "surface-variant": "#262626",
+                        "primary-fixed-dim": "#edc600",
+                        "on-primary-container": "#594a00",
+                        "inverse-primary": "#715d00",
+                        "secondary-container": "#676000",
+                        "surface-container": "#1a1919",
+                        "secondary": "#f3e651",
+                        "on-surface": "#ffffff",
+                        "surface-container-lowest": "#000000",
+                        "on-tertiary-container": "#4f5d00",
+                        "outline": "#777575",
+                        "on-error-container": "#ffd2c8",
+                        "on-error": "#450900",
+                        "on-secondary-container": "#fff9d2",
+                        "surface-bright": "#2c2c2c",
+                        "surface-container-highest": "#262626",
+                        "secondary-fixed": "#f3e651",
+                        "primary-fixed": "#fdd404",
+                        "inverse-surface": "#fcf8f8",
+                        "surface-tint": "#ffe484",
+                        "on-secondary-fixed": "#454100",
+                        "on-tertiary-fixed": "#414d00",
+                        "on-secondary": "#595300",
+                        "primary": "#ffe484",
+                        "error": "#ff7351",
+                        "on-secondary-fixed-variant": "#645d00",
+                        "error-dim": "#d53d18",
+                        "tertiary-fixed": "#e4fc73",
+                        "tertiary-container": "#dff66e",
+                        "secondary-dim": "#e4d844",
+                        "error-container": "#b92902",
+                        "tertiary-fixed-dim": "#d6ee67",
+                        "on-tertiary-fixed-variant": "#5c6b00",
+                        "primary-container": "#fdd404",
+                        "on-background": "#ffffff",
+                        "tertiary-dim": "#d6ee67",
+                        "on-surface-variant": "#adaaaa",
+                        "surface-dim": "#0e0e0e",
+                        "surface-container-low": "#131313",
+                        "on-primary-fixed": "#433700",
+                        "primary-dim": "#edc600",
+                        "outline-variant": "#494847"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #0e0e0e;
+            color: #ffffff;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="flex flex-col items-center min-h-screen bg-surface">
+<!-- Top Navigation Header (Shared Component: TopAppBar inspired) -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-[#0e0e0e]">
+<button class="flex items-center justify-center w-10 h-10 hover:opacity-80 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-on-surface text-2xl">arrow_back</span>
+</button>
+<div class="text-2xl font-black italic tracking-tighter text-[#fdd404] uppercase font-['Space_Grotesk']">
+            MechaGo
+        </div>
+<div class="w-10"></div> <!-- Spacer for symmetry -->
+</header>
+<main class="w-full max-w-[420px] px-6 pt-24 pb-12 flex flex-col gap-8">
+<!-- Title Section -->
+<section class="flex flex-col gap-2">
+<h1 class="text-[28px] font-bold font-['Space_Grotesk'] tracking-tight text-on-surface">
+                Criar conta
+            </h1>
+<p class="text-on-surface-variant text-sm font-medium">
+                Insira seus dados para começar sua jornada premium.
+            </p>
+</section>
+<!-- Registration Form -->
+<form class="flex flex-col gap-5">
+<!-- Full Name -->
+<div class="flex flex-col gap-1.5">
+<label class="text-[12px] font-bold uppercase tracking-wider text-on-surface-variant ml-1">
+                    Nome completo
+                </label>
+<input class="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3.5 text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all font-body" placeholder="Ex: João Silva" type="text"/>
+</div>
+<!-- Email -->
+<div class="flex flex-col gap-1.5">
+<label class="text-[12px] font-bold uppercase tracking-wider text-on-surface-variant ml-1">
+                    E-mail
+                </label>
+<input class="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3.5 text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all font-body" placeholder="nome@email.com" type="email"/>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<!-- Phone -->
+<div class="flex flex-col gap-1.5">
+<label class="text-[12px] font-bold uppercase tracking-wider text-on-surface-variant ml-1">
+                        Telefone
+                    </label>
+<input class="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3.5 text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all font-body" placeholder="(00) 00000-0000" type="tel"/>
+</div>
+<!-- CPF -->
+<div class="flex flex-col gap-1.5">
+<label class="text-[12px] font-bold uppercase tracking-wider text-on-surface-variant ml-1">
+                        CPF
+                    </label>
+<input class="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3.5 text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all font-body" placeholder="000.000.000-00" type="text"/>
+</div>
+</div>
+<!-- Password -->
+<div class="flex flex-col gap-1.5">
+<label class="text-[12px] font-bold uppercase tracking-wider text-on-surface-variant ml-1">
+                    Senha
+                </label>
+<div class="relative">
+<input class="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3.5 text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all font-body" placeholder="••••••••" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant" type="button">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+</div>
+</div>
+<!-- Confirm Password -->
+<div class="flex flex-col gap-1.5">
+<label class="text-[12px] font-bold uppercase tracking-wider text-on-surface-variant ml-1">
+                    Confirmar senha
+                </label>
+<input class="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3.5 text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all font-body" placeholder="••••••••" type="password"/>
+</div>
+<!-- Primary Action -->
+<div class="mt-4 flex flex-col gap-6">
+<button class="w-full bg-primary-container text-on-primary-fixed font-extrabold uppercase tracking-widest py-4 rounded-xl shadow-[0_10px_30px_rgba(253,212,4,0.15)] active:scale-95 transition-all font-headline" type="submit">
+                    Criar conta
+                </button>
+<!-- Legal Text -->
+<p class="text-center text-[11px] leading-relaxed text-on-surface-variant/60 font-body px-2">
+                    Ao criar sua conta, você declara que leu e concorda com os 
+                    <a class="text-primary-dim underline" href="#">Termos de Uso</a> e a 
+                    <a class="text-primary-dim underline" href="#">Política de Privacidade</a> da MechaGo.
+                </p>
+</div>
+</form>
+<!-- Alternative Login -->
+<div class="flex flex-col items-center gap-4 mt-4">
+<span class="text-sm text-on-surface-variant">Já possui uma conta?</span>
+<a class="text-primary font-bold uppercase tracking-wider text-sm hover:opacity-80 transition-opacity" href="#">
+                Fazer login
+            </a>
+</div>
+</main>
+<!-- Visual Background Accent -->
+<div class="fixed top-0 right-0 -z-10 w-[300px] h-[300px] bg-primary/5 rounded-full blur-[100px] translate-x-1/2 -translate-y-1/2"></div>
+<div class="fixed bottom-0 left-0 -z-10 w-[200px] h-[200px] bg-primary/5 rounded-full blur-[80px] -translate-x-1/2 translate-y-1/2"></div>
+</body></html>
