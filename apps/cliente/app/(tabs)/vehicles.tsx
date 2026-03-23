@@ -30,7 +30,7 @@ export default function VehiclesScreen() {
           accessibilityLabel="Adicionar veículo"
           accessibilityRole="button"
         >
-          <Ionicons name="add" size={24} color="#000000" />
+          <Ionicons name="add" size={24} color={colors.background} />
         </Pressable>
       </View>
 

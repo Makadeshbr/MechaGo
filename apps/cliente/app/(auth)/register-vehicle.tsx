@@ -136,7 +136,7 @@ export default function RegisterVehicleScreen() {
                       <Ionicons
                         name={icon as keyof typeof Ionicons.glyphMap}
                         size={28}
-                        color={isSelected ? "#000000" : colors.textSecondary}
+                        color={isSelected ? colors.background : colors.textSecondary}
                       />
                       <Text
                         style={[
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   typeLabelSelected: {
-    color: "#000000",
+    color: colors.background,
   },
   row: {
     flexDirection: "row",

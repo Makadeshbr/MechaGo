@@ -1,0 +1,17 @@
+{
+  // Exclui node_modules do escaneamento de projetos Java/Gradle pelo Buildship.
+  // Sem isso, a extensão tenta configurar os subprojetos Android das dependências
+  // e falha com "Unbound classpath container: JRE System Library [JavaSE-21]".
+  "java.import.exclusions": [
+    "**/node_modules/**",
+    "**/.expo/**",
+    "**/dist/**",
+    "**/build/**"
+  ],
+
+  // Desativa a detecção automática de projetos Gradle dentro de node_modules
+  "java.autobuild.enabled": false,
+
+  // Garante que o Gradle Extension não tente sincronizar projetos de node_modules
+  "gradle.nestedProjects": false
+}

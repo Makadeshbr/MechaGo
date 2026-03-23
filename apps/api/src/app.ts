@@ -6,6 +6,7 @@ import { errorHandler } from "@/middleware/error-handler";
 import authRoutes from "@/modules/auth/auth.routes";
 import usersRoutes from "@/modules/users/users.routes";
 import vehiclesRoutes from "@/modules/vehicles/vehicles.routes";
+import serviceRequestsRoutes from "@/modules/service-requests/service-requests.routes";
 
 export function createApp() {
   const app = new OpenAPIHono();
@@ -54,6 +55,7 @@ export function createApp() {
   app.route("/api/v1/auth", authRoutes);
   app.route("/api/v1/users", usersRoutes);
   app.route("/api/v1/vehicles", vehiclesRoutes);
+  app.route("/api/v1/service-requests", serviceRequestsRoutes);
 
   return app;
 }

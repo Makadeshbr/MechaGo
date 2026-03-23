@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   },
   sosGradient: {
     // Gradiente laranja/vermelho fiel ao design
-    backgroundColor: "#E8562A",
+    backgroundColor: colors.error,
     borderRadius: borderRadius.xl,
     padding: spacing.xxl,
     minHeight: 180,
