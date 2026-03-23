@@ -1,22 +1,27 @@
 import { UsersRepository } from "./users.repository";
 import { UpdateProfileInput, UserProfile } from "./users.schemas";
 import { AppError } from "@/utils/errors";
+import { users } from "@/db/schema";
+
+// Tipo inferido do Drizzle — se uma coluna for renomeada no schema,
+// o TypeScript vai apontar o erro aqui em compile time
+type UserRow = typeof users.$inferSelect;
 
 // Campos que NUNCA devem ser expostos na resposta
 // passwordHash é o principal — vazá-lo seria uma falha de segurança crítica
-function sanitizeUser(user: Record<string, unknown>): UserProfile {
+function sanitizeUser(user: UserRow): UserProfile {
   return {
-    id: user.id as string,
-    name: user.name as string,
-    email: user.email as string,
-    phone: user.phone as string,
-    type: user.type as UserProfile["type"],
-    avatarUrl: (user.avatarUrl as string) ?? null,
-    cpfCnpj: user.cpfCnpj as string,
-    rating: (user.rating as string) ?? null,
-    totalReviews: (user.totalReviews as number) ?? null,
-    isVerified: user.isVerified as boolean,
-    createdAt: (user.createdAt as Date).toISOString(),
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    type: user.type,
+    avatarUrl: user.avatarUrl ?? null,
+    cpfCnpj: user.cpfCnpj,
+    rating: user.rating ?? null,
+    totalReviews: user.totalReviews ?? null,
+    isVerified: user.isVerified,
+    createdAt: user.createdAt.toISOString(),
   };
 }
 
@@ -41,8 +46,8 @@ export class UsersService {
       throw new AppError("USER_NOT_FOUND", "Usuário não encontrado", 404);
     }
 
-    // Filtra campos undefined para não sobrescrever com null
-    const updateData: Record<string, unknown> = {};
+    // Tipo alinhado com o repository — Drizzle valida os campos em compile time
+    const updateData: Partial<Pick<typeof users.$inferInsert, "name" | "phone" | "avatarUrl">> = {};
     if (input.name !== undefined) updateData.name = input.name;
     if (input.phone !== undefined) updateData.phone = input.phone;
     if (input.avatarUrl !== undefined) updateData.avatarUrl = input.avatarUrl;

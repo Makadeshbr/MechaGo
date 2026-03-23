@@ -277,7 +277,171 @@ async function acceptRequest(professionalId: string, requestId: string) {
 
 ---
 
-## 6. MOBILE (REACT NATIVE / EXPO)
+## 5.5 NÍVEL DE EXCELÊNCIA — CÓDIGO DE CLASSE MUNDIAL
+
+> **O MechaGo não é um projeto acadêmico ou protótipo. É um produto enterprise que será usado
+> por pessoas em situação de stress (motorista parado, profissional correndo). O código deve
+> ter a mesma qualidade dos apps que essas pessoas já usam: iFood, 99, Uber, Nubank.**
+>
+> Se o código "funciona" mas não está no nível abaixo, ele NÃO está pronto. Refatore antes de entregar.
+
+### 5.5.1 Backend — Padrão Arquiteto
+
+```
+TYPE-SAFETY MÁXIMO:
+✅ USAR tipos inferidos do Drizzle: InferSelectModel<typeof table>, InferInsertModel<typeof table>
+✅ USAR tipos dos Zod schemas: z.infer<typeof createVehicleSchema>
+❌ PROIBIDO: Record<string, unknown>, any, as string, as unknown, casts manuais
+❌ PROIBIDO: Tipos genéricos quando o Drizzle/Zod já fornece o tipo específico
+   Se uma coluna mudar no banco, o TypeScript DEVE acusar erro em tempo de compilação.
+
+SERVICES — Lógica de negócio:
+✅ Cada método tem uma responsabilidade clara e testável
+✅ Validação de negócio separada da transformação de dados
+✅ Retornos tipados — nunca retornar objetos genéricos
+✅ Utilitários de transformação (sanitize, serialize, format) como funções puras separadas
+❌ PROIBIDO: Filtragem manual de undefined com ifs — usar Zod .partial() ou utilitários tipados
+❌ PROIBIDO: Lógica de negócio espalhada em routes — routes só chamam service
+❌ PROIBIDO: Métodos com 50+ linhas — extrair sub-funções com nomes descritivos
+
+REPOSITORY — Acesso a dados:
+✅ Queries Drizzle com tipos inferidos
+✅ Retornos tipados do Drizzle (nunca raw objects)
+✅ Select específico quando não precisa de todas as colunas (performance)
+✅ Usar .returning() em inserts e updates para evitar query extra
+❌ PROIBIDO: SELECT * quando só precisa de 3 campos
+
+SCHEMAS (Zod) — Validação:
+✅ Schemas são a FONTE DA VERDADE para validação, tipos e documentação OpenAPI
+✅ Transforms no schema (toLowerCase, trim, formatação) — não na route
+✅ Mensagens de erro em PT-BR, específicas e úteis para o usuário
+✅ Regex com explicação do formato esperado na mensagem de erro
+❌ PROIBIDO: Validação manual com ifs quando Zod resolve
+❌ PROIBIDO: Mensagens genéricas ("campo inválido") — sempre dizer O QUE está errado e COMO corrigir
+
+TESTES — Robustez:
+✅ Testar cenário feliz + TODOS os cenários de erro do service
+✅ Testar edge cases: string vazia, null, undefined, lista vazia, valor no limite
+✅ Mock de dependências (repository) para isolar lógica de negócio
+✅ Cada teste com nome descritivo em PT-BR: "deve rejeitar placa duplicada"
+❌ PROIBIDO: Testes que só testam o happy path
+❌ PROIBIDO: Testes frágeis que dependem de ordem de execução
+```
+
+### 5.5.2 Frontend — Padrão App Profissional
+
+```
+FORMULÁRIOS:
+✅ OBRIGATÓRIO: react-hook-form + zod resolver para QUALQUER formulário
+   - Validação centralizada no schema Zod (não espalhada em useState + ifs manuais)
+   - Zero re-renders desnecessários (react-hook-form não re-renderiza a cada keystroke)
+   - Mensagens de erro inline abaixo de cada campo
+❌ PROIBIDO: useState para cada campo de formulário individualmente
+❌ PROIBIDO: Função validate() manual com ifs encadeados
+❌ PROIBIDO: Validação só no submit — validar em tempo real (onChange/onBlur)
+
+ESTADO:
+✅ Server state: TanStack Query (NUNCA duplicar dados da API em useState ou Zustand)
+✅ Client state: Zustand stores pequenas e focadas (auth, UI)
+✅ Form state: react-hook-form (NUNCA useState para formulários)
+❌ PROIBIDO: useState para dados que vêm da API
+❌ PROIBIDO: Zustand store que replica dados do TanStack Query cache
+❌ PROIBIDO: Props drilling de 3+ níveis — usar hook ou context
+
+COMPONENTES:
+✅ Componentes UI (Button, Input, Card) são REUTILIZÁVEIS e GENÉRICOS
+   - Aceitam props de variantes (variant="primary" | "outline" | "error")
+   - Aceitam todas as props nativas (accessibilityLabel, testID, etc.)
+   - Encapsulam feedback visual (opacity, scale, haptics)
+✅ Componentes de domínio (VehicleCard, ProfessionalCard) recebem dados tipados
+✅ Separação clara: lógica (hooks) vs visual (componentes)
+❌ PROIBIDO: Componente com 200+ linhas — quebrar em subcomponentes
+❌ PROIBIDO: Estilos inline repetidos — extrair para StyleSheet.create
+❌ PROIBIDO: Cores hardcoded — SEMPRE tokens do DS V4
+
+PERFORMANCE:
+✅ FlatList para listas (não ScrollView + .map())
+✅ useCallback para funções passadas como props
+✅ useMemo para cálculos pesados dentro de render
+✅ Imagens otimizadas (resize, cache)
+❌ PROIBIDO: .map() dentro de ScrollView para listas dinâmicas
+❌ PROIBIDO: Re-render de lista inteira quando um item muda
+
+ACESSIBILIDADE (não é opcional):
+✅ accessibilityLabel em TODOS os elementos interativos sem texto visível
+✅ accessibilityRole correto (button, link, header, image)
+✅ accessibilityState para estados (disabled, selected, checked)
+✅ Touch targets 44×44px mínimo (hitSlop se botão visual for menor)
+✅ Suporte a fonte dinâmica (não travar font size)
+```
+
+### 5.5.3 Exemplos: Código medíocre vs Código de excelência
+
+**Backend — Service:**
+
+```typescript
+// ❌ MEDÍOCRE: tipos genéricos, filtragem manual, sem type-safety
+static async update(userId: string, vehicleId: string, data: Record<string, unknown>) {
+  const vehicle = await VehiclesRepository.findById(vehicleId);
+  if (!vehicle) throw Errors.notFound("Veículo");
+  if (vehicle.userId !== userId) throw Errors.forbidden();
+  const filtered: any = {};
+  if (data.type !== undefined) filtered.type = data.type;
+  if (data.color !== undefined) filtered.color = data.color;
+  return VehiclesRepository.update(vehicleId, filtered);
+}
+
+// ✅ EXCELÊNCIA: tipos inferidos do Zod, sem any, sem filtragem manual
+static async update(userId: string, vehicleId: string, input: UpdateVehicleInput) {
+  const vehicle = await VehiclesRepository.findById(vehicleId);
+  if (!vehicle) throw Errors.notFound("Veículo");
+  if (vehicle.userId !== userId) throw Errors.forbidden();
+  // Zod .partial() já garante que só campos válidos passam — sem filtragem manual
+  return VehiclesRepository.update(vehicleId, input);
+}
+```
+
+**Frontend — Formulário:**
+
+```typescript
+// ❌ MEDÍOCRE: useState por campo, validação manual, re-render a cada keystroke
+const [plate, setPlate] = useState("");
+const [brand, setBrand] = useState("");
+const [model, setModel] = useState("");
+const [error, setError] = useState("");
+
+const validate = () => {
+  if (!plate) { setError("Placa obrigatória"); return false; }
+  if (!/^[A-Z]{3}/.test(plate)) { setError("Placa inválida"); return false; }
+  return true;
+};
+
+// ✅ EXCELÊNCIA: react-hook-form + zod, validação centralizada, zero re-render
+const { control, handleSubmit, formState: { errors } } = useForm<CreateVehicleInput>({
+  resolver: zodResolver(createVehicleSchema),
+});
+
+const onSubmit = handleSubmit((data) => {
+  createVehicle.mutate(data);
+});
+
+// No JSX:
+<Controller
+  control={control}
+  name="plate"
+  render={({ field, fieldState }) => (
+    <Input
+      {...field}
+      label="Placa"
+      placeholder="ABC-1234"
+      error={fieldState.error?.message}
+      accessibilityLabel="Placa do veículo"
+    />
+  )}
+/>
+```
+
+---
 
 ### Estado
 
@@ -358,23 +522,6 @@ app/
 ├── _layout.tsx            # Root layout
 └── +not-found.tsx
 ```
-
-### 6.2 Fluxo de Build e Atualização Mobile (EAS Update)
-
-> **Regra de Ouro**: O MechaGo utiliza o **Expo Development Client** (APK/IPA customizado). O runtime nativo é selado com todas as dependências do MVP/V1.0, e o desenvolvimento flui via **EAS Update (OTA)**.
-
-1. **Imutabilidade do Runtime Nativo**:
-   - O binário nativo (APK/IPA) é gerado uma única vez com o conjunto completo de bibliotecas (GPS, MMKV, Mapas, Câmera, Haptics, Sockets, etc.).
-   - **PROIBIDO**: Instalar novas bibliotecas que exijam modificação nativa (que afetem `ios/` ou `android/`) sem um "Re-build" explícito e aprovação do desenvolvedor.
-
-2. **Entrega via OTA (EAS Update)**:
-   - Ao concluir uma Task, a IA **DEVE** preparar e lançar a atualização via `eas update`.
-   - **MANDATÓRIO**: O update só deve ser lançado após TODOS os testes (Backend e Frontend) passarem com sucesso.
-   - Mudanças de UI, lógica de hooks, estilos e regras de negócio no frontend são entregues instantaneamente através deste fluxo.
-
-3. **Consistência de Versão (CRITICAL)**:
-   - Antes de cada atualização OTA, a IA **DEVE** validar no `package.json` se não houve adição de dependências nativas que invalidem o update no app já instalado.
-   - Se uma nova dependência nativa for estritamente necessária, a IA deve avisar o desenvolvedor da necessidade de um novo Build Nativo antes de prosseguir.
 
 ---
 

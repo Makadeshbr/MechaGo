@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -11,11 +11,19 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useCreateVehicle } from "@/hooks/queries/useVehicles";
 import { Input, Button, LogoPin } from "@/components/ui";
-import { colors, spacing, borderRadius } from "@mechago/shared";
-
-type VehicleType = "car" | "moto" | "suv" | "truck";
+import {
+  colors,
+  spacing,
+  borderRadius,
+  createVehicleFormSchema,
+  type VehicleType,
+  type CreateVehicleFormInput,
+  type CreateVehicleFormOutput,
+} from "@mechago/shared";
 
 const VEHICLE_TYPES: { type: VehicleType; label: string; icon: string }[] = [
   { type: "car", label: "Carro", icon: "car-outline" },
@@ -25,54 +33,40 @@ const VEHICLE_TYPES: { type: VehicleType; label: string; icon: string }[] = [
 ];
 
 export default function RegisterVehicleScreen() {
-  const [selectedType, setSelectedType] = useState<VehicleType>("car");
-  const [brand, setBrand] = useState("");
-  const [model, setModel] = useState("");
-  const [year, setYear] = useState("");
-  const [plate, setPlate] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const {
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors },
+  } = useForm<CreateVehicleFormInput>({
+    resolver: zodResolver(createVehicleFormSchema),
+    defaultValues: {
+      type: "car",
+      brand: "",
+      model: "",
+      year: "",
+      plate: "",
+    },
+  });
 
   const createVehicle = useCreateVehicle();
 
-  function validate(): boolean {
-    const newErrors: Record<string, string> = {};
-
-    if (!brand.trim()) newErrors.brand = "Marca é obrigatória";
-    if (!model.trim()) newErrors.model = "Modelo é obrigatório";
-
-    const yearNum = parseInt(year, 10);
-    if (!year || isNaN(yearNum) || yearNum < 1980 || yearNum > new Date().getFullYear() + 1) {
-      newErrors.year = "Ano inválido";
-    }
-
-    // Validação de placa: formato antigo (AAA-1234) ou Mercosul (AAA1A23)
-    const plateClean = plate.toUpperCase().trim();
-    if (!plateClean || !/^[A-Z]{3}-?\d{1}[A-Z0-9]{1}\d{2}$/.test(plateClean)) {
-      newErrors.plate = "Placa inválida (ABC-1234 ou ABC1A23)";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }
-
-  function handleSave() {
-    if (!validate()) return;
-
+  function onSubmit(data: CreateVehicleFormOutput) {
     createVehicle.mutate(
       {
-        type: selectedType,
-        brand: brand.trim(),
-        model: model.trim(),
-        year: parseInt(year, 10),
-        plate: plate.toUpperCase().trim(),
+        type: data.type,
+        brand: data.brand,
+        model: data.model,
+        year: data.year,
+        plate: data.plate,
       },
       {
         onSuccess: () => {
           router.replace("/(tabs)");
         },
         onError: (error) => {
-          setErrors({
-            form:
+          setError("root", {
+            message:
               (error as { message?: string }).message ??
               "Erro ao salvar veículo. Tente novamente.",
           });
@@ -109,91 +103,126 @@ export default function RegisterVehicleScreen() {
         >
           <Text style={styles.title}>Adicionar veículo</Text>
 
-          {errors.form && (
+          {errors.root && (
             <View style={styles.formError}>
-              <Text style={styles.formErrorText}>{errors.form}</Text>
+              <Text style={styles.formErrorText}>
+                {errors.root.message}
+              </Text>
             </View>
           )}
 
-          {/* Tipo de veículo — grid 2x2 */}
+          {/* Tipo de veículo — grid 2x2 com Controller */}
           <Text style={styles.sectionLabel}>TIPO DE VEÍCULO</Text>
-          <View style={styles.typeGrid}>
-            {VEHICLE_TYPES.map(({ type, label, icon }) => (
-              <Pressable
-                key={type}
-                onPress={() => setSelectedType(type)}
-                style={({ pressed }) => [
-                  styles.typeCard,
-                  selectedType === type && styles.typeCardSelected,
-                  pressed && { opacity: 0.7 },
-                ]}
-                accessibilityLabel={`Tipo: ${label}`}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: selectedType === type }}
-              >
-                <Ionicons
-                  name={icon as keyof typeof Ionicons.glyphMap}
-                  size={28}
-                  color={selectedType === type ? "#000000" : colors.textSecondary}
-                />
-                <Text
-                  style={[
-                    styles.typeLabel,
-                    selectedType === type && styles.typeLabelSelected,
-                  ]}
-                >
-                  {label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          {/* Campos do formulário */}
-          <Input
-            label="MARCA"
-            placeholder="Ex: Honda"
-            value={brand}
-            onChangeText={setBrand}
-            error={errors.brand}
+          <Controller
+            control={control}
+            name="type"
+            render={({ field: { onChange, value } }) => (
+              <View style={styles.typeGrid} accessibilityRole="radiogroup">
+                {VEHICLE_TYPES.map(({ type, label, icon }) => {
+                  const isSelected = value === type;
+                  return (
+                    <Pressable
+                      key={type}
+                      onPress={() => onChange(type)}
+                      style={({ pressed }) => [
+                        styles.typeCard,
+                        isSelected && styles.typeCardSelected,
+                        pressed && { opacity: 0.7 },
+                      ]}
+                      accessibilityLabel={`Tipo: ${label}`}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: isSelected }}
+                    >
+                      <Ionicons
+                        name={icon as keyof typeof Ionicons.glyphMap}
+                        size={28}
+                        color={isSelected ? "#000000" : colors.textSecondary}
+                      />
+                      <Text
+                        style={[
+                          styles.typeLabel,
+                          isSelected && styles.typeLabelSelected,
+                        ]}
+                      >
+                        {label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
           />
 
-          <Input
-            label="MODELO"
-            placeholder="Ex: Civic"
-            value={model}
-            onChangeText={setModel}
-            error={errors.model}
+          {/* Campos do formulário */}
+          <Controller
+            control={control}
+            name="brand"
+            render={({ field: { onChange, value } }) => (
+              <Input
+                label="MARCA"
+                placeholder="Ex: Honda"
+                value={value}
+                onChangeText={onChange}
+                error={errors.brand?.message}
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="model"
+            render={({ field: { onChange, value } }) => (
+              <Input
+                label="MODELO"
+                placeholder="Ex: Civic"
+                value={value}
+                onChangeText={onChange}
+                error={errors.model?.message}
+              />
+            )}
           />
 
           {/* Ano + Placa lado a lado */}
           <View style={styles.row}>
             <View style={styles.halfField}>
-              <Input
-                label="ANO"
-                placeholder="2024"
-                value={year}
-                onChangeText={setYear}
-                keyboardType="numeric"
-                maxLength={4}
-                error={errors.year}
+              <Controller
+                control={control}
+                name="year"
+                render={({ field: { onChange, value } }) => (
+                  <Input
+                    label="ANO"
+                    placeholder="2024"
+                    value={value}
+                    onChangeText={onChange}
+                    keyboardType="numeric"
+                    maxLength={4}
+                    error={errors.year?.message}
+                  />
+                )}
               />
             </View>
             <View style={styles.halfField}>
-              <Input
-                label="PLACA"
-                placeholder="ABC-1D23"
-                value={plate}
-                onChangeText={setPlate}
-                autoCapitalize="characters"
-                maxLength={8}
-                error={errors.plate}
+              <Controller
+                control={control}
+                name="plate"
+                render={({ field: { onChange, value } }) => (
+                  <Input
+                    label="PLACA"
+                    placeholder="ABC-1D23"
+                    value={value}
+                    onChangeText={onChange}
+                    autoCapitalize="characters"
+                    maxLength={8}
+                    error={errors.plate?.message}
+                  />
+                )}
               />
             </View>
           </View>
 
           <Button
             title="SALVAR VEÍCULO"
-            onPress={handleSave}
+            onPress={handleSubmit(onSubmit)}
             loading={createVehicle.isPending}
             style={styles.saveButton}
           />

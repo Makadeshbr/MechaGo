@@ -5,22 +5,27 @@ import {
   Vehicle,
 } from "./vehicles.schemas";
 import { AppError } from "@/utils/errors";
+import { vehicles } from "@/db/schema";
 
 // Limite de veículos por cliente para evitar abuse de cadastro
 // e manter a tabela enxuta para queries de matching
 const MAX_VEHICLES_PER_USER = 5;
 
-function serializeVehicle(vehicle: Record<string, unknown>): Vehicle {
+// Tipo inferido do Drizzle — se uma coluna for renomeada no schema,
+// o TypeScript vai apontar o erro aqui em compile time
+type VehicleRow = typeof vehicles.$inferSelect;
+
+function serializeVehicle(vehicle: VehicleRow): Vehicle {
   return {
-    id: vehicle.id as string,
-    userId: vehicle.userId as string,
-    type: vehicle.type as Vehicle["type"],
-    plate: vehicle.plate as string,
-    brand: vehicle.brand as string,
-    model: vehicle.model as string,
-    year: vehicle.year as number,
-    color: (vehicle.color as string) ?? null,
-    createdAt: (vehicle.createdAt as Date).toISOString(),
+    id: vehicle.id,
+    userId: vehicle.userId,
+    type: vehicle.type,
+    plate: vehicle.plate,
+    brand: vehicle.brand,
+    model: vehicle.model,
+    year: vehicle.year,
+    color: vehicle.color ?? null,
+    createdAt: vehicle.createdAt.toISOString(),
   };
 }
 
@@ -85,8 +90,8 @@ export class VehiclesService {
       throw new AppError("FORBIDDEN", "Acesso negado", 403);
     }
 
-    // Filtra campos undefined
-    const updateData: Record<string, unknown> = {};
+    // Tipo alinhado com o repository — Drizzle valida os campos em compile time
+    const updateData: Partial<Pick<typeof vehicles.$inferInsert, "type" | "brand" | "model" | "year" | "color">> = {};
     if (input.type !== undefined) updateData.type = input.type;
     if (input.brand !== undefined) updateData.brand = input.brand;
     if (input.model !== undefined) updateData.model = input.model;

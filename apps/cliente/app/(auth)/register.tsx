@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -11,65 +11,55 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/useAuth";
 import { Input, Button, LogoPin } from "@/components/ui";
-import { colors, spacing } from "@mechago/shared";
+import {
+  colors,
+  spacing,
+  registerFormSchema,
+  type RegisterFormInput,
+  type RegisterFormOutput,
+} from "@mechago/shared";
 
 export default function RegisterScreen() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [cpfCnpj, setCpfCnpj] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const {
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors },
+  } = useForm<RegisterFormInput>({
+    resolver: zodResolver(registerFormSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      cpfCnpj: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
 
   const { register } = useAuth();
 
-  function validate(): boolean {
-    const newErrors: Record<string, string> = {};
-
-    if (!name.trim() || name.trim().length < 2)
-      newErrors.name = "Nome deve ter pelo menos 2 caracteres";
-    if (!email.trim() || !email.includes("@"))
-      newErrors.email = "E-mail inválido";
-    if (!phone.trim())
-      newErrors.phone = "Telefone é obrigatório";
-    if (!cpfCnpj.trim())
-      newErrors.cpfCnpj = "CPF é obrigatório";
-    if (password.length < 8)
-      newErrors.password = "Senha deve ter pelo menos 8 caracteres";
-    else if (!/[A-Z]/.test(password))
-      newErrors.password = "Senha deve ter pelo menos 1 letra maiúscula";
-    else if (!/[0-9]/.test(password))
-      newErrors.password = "Senha deve ter pelo menos 1 número";
-    if (password !== confirmPassword)
-      newErrors.confirmPassword = "Senhas não conferem";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }
-
-  function handleRegister() {
-    if (!validate()) return;
-
+  function onSubmit(data: RegisterFormOutput) {
     register.mutate(
       {
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        phone: phone.trim(),
-        cpfCnpj: cpfCnpj.trim(),
-        password,
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        cpfCnpj: data.cpfCnpj,
+        password: data.password,
         type: "client",
       },
       {
         onSuccess: () => {
-          // Após cadastro, ir para cadastro de veículo
           router.replace("/(auth)/register-vehicle");
         },
         onError: (error) => {
-          setErrors({
-            form:
+          setError("root", {
+            message:
               (error as { message?: string }).message ??
               "Erro ao criar conta. Tente novamente.",
           });
@@ -112,79 +102,117 @@ export default function RegisterScreen() {
 
           {/* Formulário */}
           <View style={styles.form}>
-            {errors.form && (
+            {errors.root && (
               <View style={styles.formError}>
-                <Text style={styles.formErrorText}>{errors.form}</Text>
+                <Text style={styles.formErrorText}>
+                  {errors.root.message}
+                </Text>
               </View>
             )}
 
-            <Input
-              label="NOME COMPLETO"
-              placeholder="Ex: João Silva"
-              value={name}
-              onChangeText={setName}
-              autoComplete="name"
-              error={errors.name}
+            <Controller
+              control={control}
+              name="name"
+              render={({ field: { onChange, value } }) => (
+                <Input
+                  label="NOME COMPLETO"
+                  placeholder="Ex: João Silva"
+                  value={value}
+                  onChangeText={onChange}
+                  autoComplete="name"
+                  error={errors.name?.message}
+                />
+              )}
             />
 
-            <Input
-              label="E-MAIL"
-              placeholder="nome@email.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              error={errors.email}
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, value } }) => (
+                <Input
+                  label="E-MAIL"
+                  placeholder="nome@email.com"
+                  value={value}
+                  onChangeText={onChange}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  error={errors.email?.message}
+                />
+              )}
             />
 
             {/* Telefone + CPF lado a lado */}
             <View style={styles.row}>
               <View style={styles.halfField}>
-                <Input
-                  label="TELEFONE"
-                  placeholder="(00) 00000-000"
-                  value={phone}
-                  onChangeText={setPhone}
-                  keyboardType="phone-pad"
-                  autoComplete="tel"
-                  error={errors.phone}
+                <Controller
+                  control={control}
+                  name="phone"
+                  render={({ field: { onChange, value } }) => (
+                    <Input
+                      label="TELEFONE"
+                      placeholder="(00) 00000-000"
+                      value={value}
+                      onChangeText={onChange}
+                      keyboardType="phone-pad"
+                      autoComplete="tel"
+                      error={errors.phone?.message}
+                    />
+                  )}
                 />
               </View>
               <View style={styles.halfField}>
-                <Input
-                  label="CPF"
-                  placeholder="000.000.000-00"
-                  value={cpfCnpj}
-                  onChangeText={setCpfCnpj}
-                  keyboardType="numeric"
-                  error={errors.cpfCnpj}
+                <Controller
+                  control={control}
+                  name="cpfCnpj"
+                  render={({ field: { onChange, value } }) => (
+                    <Input
+                      label="CPF"
+                      placeholder="000.000.000-00"
+                      value={value}
+                      onChangeText={onChange}
+                      keyboardType="numeric"
+                      error={errors.cpfCnpj?.message}
+                    />
+                  )}
                 />
               </View>
             </View>
 
-            <Input
-              label="SENHA"
-              placeholder="Mínimo 8 caracteres"
-              value={password}
-              onChangeText={setPassword}
-              isPassword
-              autoComplete="new-password"
-              error={errors.password}
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, value } }) => (
+                <Input
+                  label="SENHA"
+                  placeholder="Mínimo 8 caracteres"
+                  value={value}
+                  onChangeText={onChange}
+                  isPassword
+                  autoComplete="new-password"
+                  error={errors.password?.message}
+                />
+              )}
             />
 
-            <Input
-              label="CONFIRMAR SENHA"
-              placeholder="Repita a senha"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              isPassword
-              error={errors.confirmPassword}
+            <Controller
+              control={control}
+              name="confirmPassword"
+              render={({ field: { onChange, value } }) => (
+                <Input
+                  label="CONFIRMAR SENHA"
+                  placeholder="Repita a senha"
+                  value={value}
+                  onChangeText={onChange}
+                  isPassword
+                  error={errors.confirmPassword?.message}
+                />
+              )}
             />
 
             <Button
               title="CRIAR CONTA"
-              onPress={handleRegister}
+              onPress={handleSubmit(onSubmit)}
               loading={register.isPending}
               style={styles.submitButton}
             />

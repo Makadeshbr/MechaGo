@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -10,41 +10,41 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/useAuth";
-import { useVehicles } from "@/hooks/queries/useVehicles";
 import { Input, Button, LogoPin } from "@/components/ui";
-import { colors, spacing } from "@mechago/shared";
+import {
+  colors,
+  spacing,
+  loginFormSchema,
+  type LoginFormInput,
+  type LoginFormOutput,
+} from "@mechago/shared";
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const {
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors },
+  } = useForm<LoginFormInput>({
+    resolver: zodResolver(loginFormSchema),
+    defaultValues: { email: "", password: "" },
+  });
 
   const { login } = useAuth();
 
-  function validate(): boolean {
-    const newErrors: Record<string, string> = {};
-    if (!email.trim()) newErrors.email = "E-mail é obrigatório";
-    if (!password) newErrors.password = "Senha é obrigatória";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }
-
-  async function handleLogin() {
-    if (!validate()) return;
-
+  function onSubmit(data: LoginFormOutput) {
     login.mutate(
-      { email: email.trim().toLowerCase(), password },
+      { email: data.email, password: data.password },
       {
         onSuccess: () => {
-          // Após login, verificar se tem veículo cadastrado
-          // Se não tiver, redireciona para cadastro de veículo
           router.replace("/(tabs)");
         },
         onError: (error) => {
-          // Erro genérico da API (ky encapsula o erro)
-          setErrors({
-            form:
+          setError("root", {
+            message:
               (error as { message?: string }).message ??
               "E-mail ou senha incorretos",
           });
@@ -74,31 +74,45 @@ export default function LoginScreen() {
 
           {/* Formulário */}
           <View style={styles.form}>
-            {errors.form && (
+            {errors.root && (
               <View style={styles.formError}>
-                <Text style={styles.formErrorText}>{errors.form}</Text>
+                <Text style={styles.formErrorText}>
+                  {errors.root.message}
+                </Text>
               </View>
             )}
 
-            <Input
-              label="E-MAIL OU TELEFONE"
-              placeholder="nome@exemplo.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              error={errors.email}
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, value } }) => (
+                <Input
+                  label="E-MAIL OU TELEFONE"
+                  placeholder="nome@exemplo.com"
+                  value={value}
+                  onChangeText={onChange}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  error={errors.email?.message}
+                />
+              )}
             />
 
-            <Input
-              label="SENHA"
-              placeholder="Sua senha"
-              value={password}
-              onChangeText={setPassword}
-              isPassword
-              autoComplete="password"
-              error={errors.password}
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, value } }) => (
+                <Input
+                  label="SENHA"
+                  placeholder="Sua senha"
+                  value={value}
+                  onChangeText={onChange}
+                  isPassword
+                  autoComplete="password"
+                  error={errors.password?.message}
+                />
+              )}
             />
 
             <Pressable
@@ -115,7 +129,7 @@ export default function LoginScreen() {
 
             <Button
               title="ENTRAR"
-              onPress={handleLogin}
+              onPress={handleSubmit(onSubmit)}
               loading={login.isPending}
               style={styles.loginButton}
             />
