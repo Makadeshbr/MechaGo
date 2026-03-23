@@ -4,9 +4,12 @@
 export const colors = {
   primary: "#FDD404",
   primaryDark: "#D4B200",
+  bg: "#0A0A0A",
   background: "#0A0A0A",
   surface: "#1A1A1A",
   surfaceLight: "#2A2A2A",
+  surfaceLow: "#141414",
+  outline: "#333333",
   text: "#FFFFFF",
   textSecondary: "#A0A0A0",
   error: "#FF4444",

@@ -96,16 +96,20 @@ export class PricingService {
                           locationMultiplier * 
                           distanceMultiplier;
 
+    // Arredondar para 2 casas ANTES de calcular a taxa de diagnóstico
+    // para evitar erros de precisão IEEE 754 (ex: 373.749... em vez de 373.75)
+    const roundedPrice = Math.round(estimatedPrice * 100) / 100;
+
     /**
      * Taxa de Diagnóstico (Pré-autorização)
-     * No MVP, a taxa de diagnóstico é fixa em 30% do valor estimado, 
+     * No MVP, a taxa de diagnóstico é fixa em 30% do valor estimado,
      * com mínimo de R$ 35,00.
      */
-    const diagnosticFee = Math.max(35, estimatedPrice * 0.30);
+    const diagnosticFee = Math.max(35, roundedPrice * 0.30);
 
     return {
       basePrice,
-      estimatedPrice: Math.round(estimatedPrice * 100) / 100, // Arredondar para 2 casas
+      estimatedPrice: roundedPrice,
       diagnosticFee: Math.round(diagnosticFee * 100) / 100,
       multipliers: {
         vehicle: vehicleMultiplier,

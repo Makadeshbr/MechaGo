@@ -16,6 +16,16 @@
 
 ---
 
+## GOVERNANÇA DE VERSÕES (CRITICAL)
+
+- **EXPO SDK**: 54.0.0 (Obrigatório)
+- **React**: 19.1.0
+- **React Native**: 0.81.5
+- **Instalação**: SEMPRE usar `npm install --legacy-peer-deps` ou `npm install --force` para gerenciar o conflito de tipos do React 19.
+- **Downgrade**: Proibido realizar downgrade de SDK ou bibliotecas core sem aprovação do Arquiteto Principal.
+
+---
+
 ## REGRA ZERO — DOIS PRINCÍPIOS QUE SE EQUILIBRAM
 
 > **Princípio 1 (Qualidade):** Não aceite gambiarras. Não gere código "que funciona por enquanto". Se a solução correta é mais complexa, implemente a solução correta.

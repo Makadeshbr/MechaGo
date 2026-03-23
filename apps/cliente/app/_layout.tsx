@@ -9,7 +9,11 @@ import {
   PlusJakartaSans_600SemiBold,
   PlusJakartaSans_700Bold,
 } from "@expo-google-fonts/plus-jakarta-sans";
-import { JetBrainsMono_400Regular } from "@expo-google-fonts/jetbrains-mono";
+import {
+  JetBrainsMono_400Regular,
+  JetBrainsMono_500Medium,
+  JetBrainsMono_700Bold,
+} from "@expo-google-fonts/jetbrains-mono";
 import * as SplashScreen from "expo-splash-screen";
 import { queryClient } from "@/lib/query-client";
 import { useAuthStore } from "@/stores/auth.store";
@@ -27,6 +31,8 @@ export default function RootLayout() {
     PlusJakartaSans_600SemiBold,
     PlusJakartaSans_700Bold,
     JetBrainsMono_400Regular,
+    JetBrainsMono_500Medium,
+    JetBrainsMono_700Bold,
   });
 
   useEffect(() => {
@@ -53,6 +59,7 @@ export default function RootLayout() {
         >
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(service-flow)" options={{ animation: "slide_from_bottom" }} />
         </Stack>
       </QueryClientProvider>
     </GestureHandlerRootView>

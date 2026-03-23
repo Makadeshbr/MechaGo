@@ -22,13 +22,21 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"
       },
+      "googleServicesFile": "./google-services.json",
       "package": "com.mechago.cliente",
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
-      ]
+        "android.permission.RECORD_AUDIO",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDolH1bMkYY7eHHYx_baKV31IxzWuz27s0"
+        }
+      }
     },
     "plugins": [
       "expo-router",
@@ -44,6 +52,12 @@
         "expo-camera",
         {
           "cameraPermission": "O MechaGo precisa acessar sua câmera para tirar fotos do serviço."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "O MechaGo usa autenticação biométrica para proteger sua conta."
         }
       ],
       [

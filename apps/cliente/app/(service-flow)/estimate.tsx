@@ -12,13 +12,13 @@ import { router, useLocalSearchParams } from "expo-router";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import { useCreateServiceRequest } from "@/hooks/queries/useServiceRequest";
-import { Button, LogoPin, Skeleton } from "@/components/ui";
+import { Button, LogoPin } from "@/components/ui";
 import { colors, spacing, borderRadius } from "@mechago/shared";
 
 export default function EstimateScreen() {
   const params = useLocalSearchParams<{ 
     vehicleId: string; 
-    problemType: any; 
+    problemType: string;
     triageAnswers: string 
   }>();
 
@@ -46,7 +46,8 @@ export default function EstimateScreen() {
 
     createRequest.mutate({
       vehicleId: params.vehicleId,
-      problemType: params.problemType,
+      // Valor garantido pela tela anterior (select-problem) — cast seguro
+      problemType: params.problemType as "tire" | "battery" | "electric" | "overheat" | "fuel" | "other",
       latitude: location.coords.latitude,
       longitude: location.coords.longitude,
       triageAnswers: params.triageAnswers ? JSON.parse(params.triageAnswers) : {},

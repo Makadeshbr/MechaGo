@@ -13,5 +13,9 @@
   "java.autobuild.enabled": false,
 
   // Garante que o Gradle Extension não tente sincronizar projetos de node_modules
-  "gradle.nestedProjects": false
+  "gradle.nestedProjects": false,
+
+  // Aponta explicitamente para o JDK 21 do Android Studio, garantindo que o
+  // Java Language Server use a versão correta ao tentar processar projetos Android
+  "java.jdt.ls.java.home": "C:\\Program Files\\Android\\Android Studio\\jbr"
 }

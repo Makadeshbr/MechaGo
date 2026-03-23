@@ -81,14 +81,14 @@ mechago/
 
 | Camada        | Tecnologia        | Versão | Justificativa                    |
 | ------------- | ----------------- | ------ | -------------------------------- |
-| Runtime       | React Native      | 0.76+  | Cross-platform                   |
-| Plataforma    | Expo SDK          | 52     | Dev build, OTA updates           |
-| Navegação     | Expo Router       | 4.x    | File-based routing               |
+| Runtime       | React Native      | 0.81+  | Cross-platform (SDK 54)          |
+| Plataforma    | Expo SDK          | 54     | Dev build, OTA updates, LTS      |
+| Navegação     | Expo Router       | 6.x    | File-based routing (SDK 54)      |
 | Server State  | TanStack Query    | 5.x    | Cache, background refetch        |
 | Client State  | Zustand           | 5.x    | Leve, sem boilerplate            |
 | Storage local | MMKV              | 3.x    | 10x AsyncStorage, criptografado  |
-| Mapas         | react-native-maps | 1.x    | Google Maps SDK                  |
-| Animações     | Reanimated        | 3.x    | Animações 60fps nativas          |
+| Mapas         | react-native-maps | 1.2+   | Google Maps SDK                  |
+| Animações     | Reanimated        | 4.x    | Animações 60fps nativas (SDK 54) |
 | Câmera        | expo-camera       | 16.x   | Foto obrigatória do serviço      |
 | GPS           | expo-location     | 18.x   | Foreground + background tracking |
 | HTTP Client   | ky                | 1.x    | Fetch wrapper leve com retry     |
