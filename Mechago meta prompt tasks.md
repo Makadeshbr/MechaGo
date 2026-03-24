@@ -298,6 +298,57 @@ Seguir: RULES.md (padrões, segurança, TDD)
 
 ---
 
+## REGRA DE NUMERAÇÃO DE TASKS (OBRIGATÓRIO)
+
+> **Os números inteiros de tasks (01, 02, 03... 06, 07...) são reservados para marcos
+> principais do Roadmap e mapeiam para sprints.**
+> Se uma task precisa ser quebrada em partes menores, usar sub-numeração decimal.
+
+### Padrão
+
+```
+Task XX      → Task principal (marco do Roadmap)
+Task XX.1    → Sub-task 1 (mesma sprint ou sprint seguinte)
+Task XX.2    → Sub-task 2
+Task XX.N    → Sub-task N
+```
+
+### Exemplo real
+
+```
+Tasks/
+├── 05.md      Professionals + App Pro bootstrap (Task principal)
+├── 05.1.md    Matching engine + real-time
+├── 05.2.md    Tracking + diagnostico + resolucao
+├── 05.3.md    Payments + reviews + cancelamento
+├── 05.4.md    Polimento + deploy MVP
+│
+├── 06.md      ← Livre para Sprint 7 (V1.0: CI/CD, login social...)
+├── 07.md      ← Livre para Sprint 8 (V1.0: KYC, chat...)
+```
+
+### Regras
+
+```
+1. NUNCA avançar o número inteiro para quebrar uma task em partes.
+   ❌ Task 05 grande → Task 06, 07, 08, 09
+   ✅ Task 05 grande → Task 05, 05.1, 05.2, 05.3, 05.4
+
+2. Cada sub-task DEVE referenciar o pré-requisito correto:
+   Task 05.2 → Pré-requisito: Task 05.1
+
+3. Os números inteiros seguem a ordem do Roadmap:
+   Tasks 01-05.x  → MVP / Beta Fechado (Sprint 1-6)
+   Tasks 06-09.x  → V1.0 / Produção Aberta (Sprint 7-10)
+   Tasks 10-13.x  → V1.5 / Expansão (Sprint 11-14)
+   Tasks 14+      → V2.0 / Plataforma (Sprint 15+)
+
+4. Se uma sub-task precisar ser dividida novamente, usar segundo nível:
+   Task 05.2.1, 05.2.2 (evitar — preferir reescrever a sub-task)
+```
+
+---
+
 ## QUANDO A IA TIVER DÚVIDA
 
 ```
