@@ -2,9 +2,13 @@ import ky from "ky";
 import { tokenStorage } from "./storage";
 import { router } from "expo-router";
 
-const API_BASE_URL = __DEV__
-  ? "http://10.0.2.2:3000/api/v1" // Android emulator → host machine
-  : "https://api.mechago.com.br/api/v1";
+// EXPO_PUBLIC_API_URL vem do eas.json (preview/production) ou fallback para emulador
+const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL
+    ? `${process.env.EXPO_PUBLIC_API_URL}/api/v1`
+    : __DEV__
+      ? "http://10.0.2.2:3000/api/v1"
+      : "https://api.mechago.com.br/api/v1";
 
 // Cliente HTTP configurado com interceptors de auth
 // Injeta Bearer token automaticamente e trata 401 (token expirado)
