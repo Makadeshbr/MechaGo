@@ -930,6 +930,42 @@ chore(deps): update drizzle-orm to 0.36.1
 
 ---
 
+## 11.5 NUMERAÇÃO DE TASKS (OBRIGATÓRIO)
+
+> **Números inteiros de tasks (01, 02, 03... 06, 07...) são reservados para marcos
+> principais do Roadmap e mapeiam para sprints. NUNCA avançar o número inteiro para
+> quebrar uma task em partes menores.**
+
+### Padrão de sub-numeração
+
+```
+Task XX      → Task principal (marco do Roadmap)
+Task XX.1    → Sub-task 1
+Task XX.2    → Sub-task 2
+Task XX.N    → Sub-task N
+```
+
+### Regras
+
+```
+1. NUNCA avançar o número inteiro para quebrar uma task:
+   ❌ Task 05 grande → Task 06, 07, 08, 09
+   ✅ Task 05 grande → Task 05, 05.1, 05.2, 05.3, 05.4
+
+2. Cada sub-task referencia o pré-requisito correto:
+   Task 05.2 → Pré-requisito: Task 05.1
+
+3. Mapeamento Roadmap → Tasks:
+   Tasks 01-05.x  → MVP / Beta Fechado (Sprint 1-6)
+   Tasks 06-09.x  → V1.0 / Produção Aberta (Sprint 7-10)
+   Tasks 10-13.x  → V1.5 / Expansão (Sprint 11-14)
+   Tasks 14+      → V2.0 / Plataforma (Sprint 15+)
+
+4. Arquivos: Tasks/05.md, Tasks/05.1.md, Tasks/05.2.md, etc.
+```
+
+---
+
 ## 12. QUANDO TIVER DÚVIDA
 
 1. **Consultar** `MechaGo_Technical_Reference.md` primeiro
