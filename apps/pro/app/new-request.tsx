@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
@@ -10,38 +10,53 @@ import { useSocket } from "@/providers/SocketProvider";
 
 const { width } = Dimensions.get("window");
 
-const formatTime = (seconds: number) => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
-};
-
 const PROBLEM_LABELS: Record<string, string> = {
-  battery: "Bateria",
   tire: "Pneu",
-  electric: "Pane Elétrica",
+  battery: "Bateria",
+  electric: "Elétrico",
   overheat: "Superaquecimento",
-  fuel: "Pane Seca",
+  fuel: "Combustível",
   other: "Outro",
 };
 
-const PROBLEM_ICONS: Record<string, any> = {
-  battery: "flash",
+const PROBLEM_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   tire: "construct",
-  electric: "bulb",
+  battery: "battery-charging",
+  electric: "flash",
   overheat: "thermometer",
-  fuel: "funnel",
+  fuel: "water",
   other: "alert-circle",
 };
+
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
 
 export default function NewRequestScreen() {
   const router = useRouter();
   const { requestData: request, clearRequest } = useSocket();
   const [timeLeft, setTimeLeft] = useState(180);
 
+  // Efeito para monitorar cancelamento pelo cliente via Socket
   useEffect(() => {
-    if (!request || timeLeft <= 0) {
-      if (timeLeft <= 0) {
+    if (request?.isCancelled) {
+      Alert.alert(
+        "Chamado Cancelado",
+        "O cliente cancelou a solicitação antes de você aceitar.",
+        [{ text: "OK", onPress: () => {
+          clearRequest();
+          router.replace("/(tabs)");
+        }}]
+      );
+    }
+  }, [request?.isCancelled]);
+
+  useEffect(() => {
+    if (!request || timeLeft <= 0 || request.isCancelled) {
+      if (timeLeft <= 0 && !request?.isCancelled) {
+        Alert.alert("Tempo Expirado", "O tempo para aceitar este chamado acabou.");
         clearRequest();
         router.replace("/(tabs)");
       }
@@ -62,19 +77,36 @@ export default function NewRequestScreen() {
   }, [request, timeLeft, clearRequest, router]);
 
   const handleAccept = async () => {
-    if (!request) return;
+    if (!request || request.isCancelled) return;
     try {
       await api.post(`service-requests/${request.requestId}/accept`);
       clearRequest();
+      // Em uma task futura, navegaria para a tela de acompanhamento
+      Alert.alert("Sucesso", "Chamado aceito! Prossiga para o atendimento.");
       router.replace("/(tabs)");
     } catch (err) {
-      console.error("Error accepting request", err);
+      Alert.alert("Erro", "Não foi possível aceitar este chamado. Ele pode ter sido cancelado ou aceito por outro profissional.");
+      clearRequest();
+      router.replace("/(tabs)");
     }
   };
 
   const handleRefuse = () => {
-    clearRequest();
-    router.replace("/(tabs)");
+    Alert.alert(
+      "Recusar Chamado",
+      "Tem certeza que não deseja realizar este atendimento?",
+      [
+        { text: "Voltar", style: "cancel" },
+        { 
+          text: "Sim, Recusar", 
+          style: "destructive",
+          onPress: () => {
+            clearRequest();
+            router.replace("/(tabs)");
+          }
+        }
+      ]
+    );
   };
 
   if (!request) {

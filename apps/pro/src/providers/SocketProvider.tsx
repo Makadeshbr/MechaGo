@@ -89,6 +89,18 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     });
 
+    // Listener para cancelamento pelo cliente
+    newSocket.on("request_cancelled", (data) => {
+      console.log("[Socket] Global: Request was cancelled by client", data.requestId);
+      // Se estivermos na tela de novo chamado deste ID, limpamos e avisamos
+      setRequestData((current: any) => {
+        if (current?.requestId === data.requestId) {
+          return { ...current, isCancelled: true };
+        }
+        return current;
+      });
+    });
+
     setSocket(newSocket);
 
     return () => {
