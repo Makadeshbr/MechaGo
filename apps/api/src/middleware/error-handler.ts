@@ -42,7 +42,7 @@ export const errorHandler: ErrorHandler = (err, c) => {
           message: err.userMessage,
         },
       },
-      err.statusCode as any,
+      err.statusCode,
     );
   }
 

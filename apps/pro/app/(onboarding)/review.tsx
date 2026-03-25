@@ -5,15 +5,21 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Button, AmbientGlow } from "@/components/ui";
+import { AmbientGlow, Button, MechaGoModal } from "@/components/ui";
 import { useOnboardingStore } from "@/stores/onboarding.store";
 import { useRegisterProfessional } from "@/hooks/queries/useProfessional";
 import { colors, spacing, borderRadius } from "@mechago/shared";
+
+interface ReviewModalState {
+  visible: boolean;
+  title: string;
+  description: string;
+  type: "info" | "danger" | "success";
+}
 
 // Labels legíveis para exibir no resumo — evita mostrar IDs técnicos ao usuário
 const TYPE_LABELS: Record<string, string> = {
@@ -54,12 +60,30 @@ export default function ReviewScreen() {
   const { getRegistrationData, reset } = useOnboardingStore();
   const { step2, step3, step4 } = useOnboardingStore();
   const registerProfessional = useRegisterProfessional();
+  const [modal, setModal] = React.useState<ReviewModalState>({
+    visible: false,
+    title: "",
+    description: "",
+    type: "info",
+  });
 
   const registrationData = getRegistrationData();
 
+  function closeModal() {
+    setModal((current) => ({ ...current, visible: false }));
+  }
+
+  function openModal(
+    title: string,
+    description: string,
+    type: ReviewModalState["type"] = "info",
+  ) {
+    setModal({ visible: true, title, description, type });
+  }
+
   function onFinish() {
     if (!registrationData) {
-      Alert.alert(
+      openModal(
         "Dados incompletos",
         "Volte aos passos anteriores e preencha todos os campos obrigatórios.",
       );
@@ -76,7 +100,7 @@ export default function ReviewScreen() {
         const message =
           (error as { message?: string }).message ??
           "Erro ao finalizar cadastro. Tente novamente.";
-        Alert.alert("Erro", message);
+        openModal("Erro", message, "danger");
       },
     });
   }
@@ -84,6 +108,16 @@ export default function ReviewScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <AmbientGlow />
+      <MechaGoModal
+        visible={modal.visible}
+        title={modal.title}
+        description={modal.description}
+        type={modal.type}
+        confirmText="ENTENDI"
+        hideCancel
+        onClose={closeModal}
+        onConfirm={closeModal}
+      />
 
       {/* Barra de progresso — todas ativas */}
       <View style={styles.progressBar}>

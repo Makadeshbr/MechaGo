@@ -21,6 +21,11 @@
 
 ## REGRAS TRANSVERSAIS (APLICAM-SE A TODAS AS FASES)
 
+> **Baseline técnica atual (já aplicada)**:
+> `RULES.md` e `MechaGo_Technical_Reference.md` já foram alinhados ao repositório real.
+> Contratos compartilhados já extraídos para `packages/shared` devem ser tratados como base do projeto, não como feature nova.
+> É proibido reintroduzir import de `apps/api/src` dentro de `apps/cliente` ou `apps/pro`.
+
 > **1. Backend + Frontend JUNTOS**: Toda sprint entrega API + tela funcionando.
 > Nunca entregar só backend. Nunca entregar só frontend. Fatia vertical sempre.
 >

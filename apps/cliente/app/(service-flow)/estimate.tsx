@@ -16,67 +16,76 @@ import {
   useEstimatePrice 
 } from "@/hooks/queries/useServiceRequest";
 import { Button, LogoPin, AmbientGlow } from "@/components/ui";
-import { colors, spacing, borderRadius } from "@mechago/shared";
+import { borderRadius, colors, problemTypeSchema, spacing } from "@mechago/shared";
 
 export default function EstimateScreen() {
-  const params = useLocalSearchParams<{ 
-    vehicleId: string; 
+  const params = useLocalSearchParams<{
+    vehicleId: string;
     problemType: string;
-    triageAnswers: string 
+    triageAnswers: string;
   }>();
+
+  const parsedProblemType = problemTypeSchema.safeParse(params.problemType);
+  const problemType = parsedProblemType.success ? parsedProblemType.data : undefined;
+  const vehicleId = params.vehicleId;
 
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  
+
   const createRequest = useCreateServiceRequest();
+  const estimateParams = vehicleId && problemType
+    ? {
+        vehicleId,
+        problemType,
+        latitude: location?.coords.latitude,
+        longitude: location?.coords.longitude,
+      }
+    : null;
 
   // Hook para buscar a estimativa real
-  const { data: pricing, isLoading: isLoadingPricing } = useEstimatePrice({
-    vehicleId: params.vehicleId!,
-    problemType: params.problemType as any,
-    latitude: location?.coords.latitude,
-    longitude: location?.coords.longitude,
-  });
+  const { data: pricing, isLoading: isLoadingPricing } = useEstimatePrice(estimateParams);
 
   // Pegar localização real para o Geofencing
   useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setErrorMsg('Permissão de localização negada');
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setErrorMsg("Permissão de localização negada");
         return;
       }
 
-      let loc = await Location.getCurrentPositionAsync({});
+      const loc = await Location.getCurrentPositionAsync({});
       setLocation(loc);
     })();
   }, []);
 
   function handleRequestSocorro() {
-    if (!location) return;
+    if (!location || !problemType) return;
 
     createRequest.mutate({
-      vehicleId: params.vehicleId!,
-      problemType: params.problemType as any,
+      vehicleId,
+      problemType,
       latitude: location.coords.latitude,
       longitude: location.coords.longitude,
       triageAnswers: params.triageAnswers ? JSON.parse(params.triageAnswers) : {},
-    }, {
+    },
+    {
       onSuccess: (data) => {
         router.replace({
           pathname: "/(service-flow)/searching",
-          params: { requestId: data.id }
+          params: { requestId: data.id },
         });
-      }
+      },
     });
   }
 
   const isLoadingLocation = !location && !errorMsg;
   const isGlobalLoading = isLoadingLocation || isLoadingPricing;
+  const hasInvalidParams = !vehicleId || !problemType;
 
   // Formata moeda PT-BR
-  const formatCurrency = (val?: number) => 
-    val ? `R$ ${val.toFixed(2).replace('.', ',')}` : "R$ --,--";
+  const formatCurrency = (val?: number) =>
+    val ? `R$ ${val.toFixed(2).replace(".", ",")}` : "R$ --,--";
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -92,7 +101,13 @@ export default function EstimateScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.title}>Estimativa de Preço</Text>
         
-        {isGlobalLoading ? (
+        {hasInvalidParams ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>
+              Nao foi possivel identificar os dados do chamado. Volte e tente novamente.
+            </Text>
+          </View>
+        ) : isGlobalLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator color={colors.primary} size="large" />
             <Text style={styles.loadingText}>
@@ -129,6 +144,7 @@ export default function EstimateScreen() {
             <Button
               title="SOLICITAR SOCORRO AGORA"
               onPress={handleRequestSocorro}
+              disabled={!location || !problemType}
               loading={createRequest.isPending}
               style={styles.cta}
             />

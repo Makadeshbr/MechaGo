@@ -59,6 +59,7 @@ mechago/
 > Cada app tem seu próprio app.json, suas próprias telas, e seus próprios componentes.
 > O path de design canônico no repositório atual é `MechaGro-FrontEnd/`.
 > `apps/cliente` e `apps/pro` NUNCA importam código-fonte de `apps/api/src`; contratos compartilhados ficam em `packages/shared` ou cliente gerado.
+> Contratos já extraídos para `packages/shared` fazem parte da baseline atual do projeto e devem ser evoluídos lá.
 
 ### 2.2 Backend
 
@@ -196,21 +197,14 @@ apps/api/
 │   │
 │   ├── middleware/
 │   │   ├── auth.middleware.ts       # JWT validation
-│   │   ├── rate-limit.middleware.ts # Rate limiting por rota
 │   │   ├── logger.middleware.ts     # Pino request logging
 │   │   └── error-handler.ts        # Error handler global
 │   │
 │   ├── lib/
-│   │   ├── redis.ts                # Redis client singleton
-│   │   ├── queue.ts                # BullMQ queue instances
-│   │   ├── socket.ts               # Socket.IO server setup
-│   │   ├── storage.ts              # Cloudflare R2 client
-│   │   ├── mercadopago.ts          # Mercado Pago SDK config
-│   │   └── fcm.ts                  # Firebase Admin SDK
+│   │   └── redis.ts                # Redis client singleton
 │   │
 │   └── utils/
 │       ├── errors.ts               # Custom error classes
-│       ├── geo.ts                   # Helpers PostGIS
 │       └── crypto.ts               # Argon2 + JWT helpers
 │
 ├── drizzle.config.ts               # Drizzle Kit config
@@ -897,9 +891,20 @@ socket.emit("update_location", { lat, lng })      // Profissional envia GPS
 // Server → Client
 socket.emit("professional_location", { lat, lng, eta }) // Posição do profissional
 socket.emit("status_update", { status, data })           // Mudança de status
-socket.emit("new_request", { requestData })              // Push para profissional (novo chamado)
+socket.emit("new_request", {                             // Push para profissional (novo chamado)
+  requestId: string,      // ID do pedido de serviço
+  problemType: string,   // tipo do problema (battery, tire, etc)
+  estimatedPrice: number,// preço estimado
+  distanceMeters: number,// distância em metros
+  clientLatitude: string,// latitude do cliente
+  clientLongitude: string // longitude do cliente
+})
 socket.emit("request_cancelled", { reason })             // Cancelamento
 socket.emit("queue_update", { position, estimatedWait }) // Atualização da fila
+
+// Rooms do Socket.IO
+// Profissional: entra no room "professional:{userId}" ao conectar (JWT)
+// Cliente: entra no room "request:{requestId}" ao criar pedido
 ```
 
 ---
@@ -1367,6 +1372,7 @@ packages/shared/                       # Compartilhado entre cliente, pro, e API
 > **Nota operacional**: o mapa abaixo combina estado atual do repositório com estrutura alvo do produto.
 > Antes de editar qualquer tela, a IA DEVE confirmar se o arquivo já existe no repo.
 > Se não existir, criar incrementalmente na estrutura real vigente do app, sem assumir arquivos inexistentes como se já estivessem implementados.
+> Hooks e contratos já existentes em `packages/shared` e `src/hooks/queries/` devem ser tratados como baseline; não recriar versões paralelas sem necessidade arquitetural explícita.
 
 #### App Cliente (apps/cliente/)
 

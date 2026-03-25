@@ -5,15 +5,42 @@ import {
   FlatList,
   ActivityIndicator,
   Pressable,
-  Alert,
   StyleSheet,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useVehicles, useDeleteVehicle } from "@/hooks/queries/useVehicles";
+import {
+  useDeleteVehicle,
+  useVehicleDeletionImpact,
+  useVehicles,
+} from "@/hooks/queries/useVehicles";
 import { LogoPin, AmbientGlow, MechaGoModal } from "@/components/ui";
-import { colors, spacing, borderRadius } from "@mechago/shared";
+import { borderRadius, colors, spacing, type VehicleDeletionImpact } from "@mechago/shared";
+
+interface FeedbackModalState {
+  visible: boolean;
+  title: string;
+  description: string;
+  type: "info" | "danger" | "success";
+}
+
+async function extractErrorMessage(error: unknown): Promise<string> {
+  try {
+    if (error && typeof error === "object" && "response" in error) {
+      const body = await (error as { response: Response }).response.clone().json();
+      return body?.error?.message ?? body?.message ?? "Erro inesperado";
+    }
+  } catch {
+    // Ignora body não-JSON
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Não foi possível concluir esta ação.";
+}
 
 // Ícones por tipo de veículo
 const vehicleIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -34,14 +61,73 @@ const vehicleTypeLabels: Record<string, string> = {
 export default function VehiclesScreen() {
   const { data: vehicles, isLoading, error, refetch } = useVehicles();
   const deleteVehicle = useDeleteVehicle();
+  const deletionImpact = useVehicleDeletionImpact();
 
   // Estados locais para controle de exclusão
   const [modalVisible, setModalVisible] = React.useState(false);
-  const [vehicleToDelete, setVehicleToDelete] = React.useState<{ id: string; name: string } | null>(null);
+  const [pendingDeletionImpactVehicleId, setPendingDeletionImpactVehicleId] =
+    React.useState<string | null>(null);
+  const [vehicleToDelete, setVehicleToDelete] = React.useState<{
+    id: string;
+    name: string;
+    impact: VehicleDeletionImpact | null;
+  } | null>(null);
+  const [feedbackModal, setFeedbackModal] = React.useState<FeedbackModalState>({
+    visible: false,
+    title: "",
+    description: "",
+    type: "info",
+  });
+
+  function closeFeedbackModal() {
+    setFeedbackModal((current) => ({ ...current, visible: false }));
+  }
+
+  function openFeedbackModal(
+    title: string,
+    description: string,
+    type: FeedbackModalState["type"] = "info",
+  ) {
+    setFeedbackModal({ visible: true, title, description, type });
+  }
+
+  function buildDeletionDescription(name: string, impact: VehicleDeletionImpact | null) {
+    if (!impact) {
+      return `Tem certeza que deseja remover seu "${name}"? Esta ação não pode ser desfeita.`;
+    }
+
+    if (!impact.canDelete) {
+      return impact.message;
+    }
+
+    if (impact.willCancelPendingRequests) {
+      return `Tem certeza que deseja remover seu "${name}"? ${impact.message}`;
+    }
+
+    return `Tem certeza que deseja remover seu "${name}"? Esta ação não pode ser desfeita.`;
+  }
 
   function handleDeletePress(id: string, name: string) {
-    setVehicleToDelete({ id, name });
-    setModalVisible(true);
+    setPendingDeletionImpactVehicleId(id);
+    deletionImpact.mutate(id, {
+      onSuccess: (impact) => {
+        setPendingDeletionImpactVehicleId(null);
+        if (!impact.canDelete) {
+          openFeedbackModal("Não é possível excluir", impact.message, "danger");
+          return;
+        }
+
+        setVehicleToDelete({ id, name, impact });
+        setModalVisible(true);
+      },
+      onError: (err) => {
+        setPendingDeletionImpactVehicleId(null);
+        void (async () => {
+          const message = await extractErrorMessage(err);
+          openFeedbackModal("Não foi possível verificar", message, "danger");
+        })();
+      },
+    });
   }
 
   function handleConfirmDelete() {
@@ -53,7 +139,10 @@ export default function VehiclesScreen() {
         setVehicleToDelete(null);
       },
       onError: (err) => {
-        Alert.alert("Erro", (err as any).message || "Não foi possível excluir o veículo.");
+        void (async () => {
+          const message = await extractErrorMessage(err);
+          openFeedbackModal("Não foi possível excluir", message, "danger");
+        })();
       },
     });
   }
@@ -65,12 +154,30 @@ export default function VehiclesScreen() {
       <MechaGoModal
         visible={modalVisible}
         title="Excluir veículo"
-        description={`Tem certeza que deseja remover seu "${vehicleToDelete?.name}"? Esta ação não pode ser desfeita.`}
+        description={buildDeletionDescription(
+          vehicleToDelete?.name ?? "veículo",
+          vehicleToDelete?.impact ?? null,
+        )}
         type="danger"
         confirmText="EXCLUIR"
-        loading={deleteVehicle.isPending}
-        onClose={() => !deleteVehicle.isPending && setModalVisible(false)}
+        loading={deleteVehicle.isPending || deletionImpact.isPending}
+        onClose={() =>
+          !deleteVehicle.isPending &&
+          !deletionImpact.isPending &&
+          setModalVisible(false)
+        }
         onConfirm={handleConfirmDelete}
+      />
+
+      <MechaGoModal
+        visible={feedbackModal.visible}
+        title={feedbackModal.title}
+        description={feedbackModal.description}
+        type={feedbackModal.type}
+        confirmText="ENTENDI"
+        hideCancel
+        onClose={closeFeedbackModal}
+        onConfirm={closeFeedbackModal}
       />
 
       {/* TopBar — fiel ao design */}
@@ -161,7 +268,7 @@ export default function VehiclesScreen() {
                   <View style={styles.cardActions}>
                     <Pressable
                       onPress={() => {
-                        Alert.alert(
+                        openFeedbackModal(
                           "Em breve",
                           "A edição de veículos estará disponível em uma próxima atualização.",
                         );
@@ -184,11 +291,15 @@ export default function VehiclesScreen() {
                         pressed && { opacity: 0.5 },
                       ]}
                       hitSlop={8}
-                      disabled={deleteVehicle.isPending}
+                      disabled={
+                        deleteVehicle.isPending ||
+                        pendingDeletionImpactVehicleId === item.id
+                      }
                       accessibilityLabel={`Excluir ${vehicleName}`}
                       accessibilityRole="button"
                     >
-                      {deleteVehicle.isPending && vehicleToDelete?.id === item.id ? (
+                      {(deleteVehicle.isPending && vehicleToDelete?.id === item.id) ||
+                      pendingDeletionImpactVehicleId === item.id ? (
                         <ActivityIndicator size={16} color={colors.error} />
                       ) : (
                         <Ionicons name="trash-outline" size={18} color={colors.error} />

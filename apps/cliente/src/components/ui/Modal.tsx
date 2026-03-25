@@ -22,6 +22,7 @@ interface MechaGoModalProps {
   cancelText?: string;
   type?: "info" | "danger" | "success";
   loading?: boolean;
+  hideCancel?: boolean;
 }
 
 const { width } = Dimensions.get("window");
@@ -36,6 +37,7 @@ export function MechaGoModal({
   cancelText = "CANCELAR",
   type = "info",
   loading = false,
+  hideCancel = false,
 }: MechaGoModalProps) {
   const iconName = 
     type === "danger" ? "alert-circle" : 
@@ -75,15 +77,17 @@ export function MechaGoModal({
               variant={type === "danger" ? "error" : "primary"}
               style={styles.confirmButton}
             />
-            
-            <Pressable 
-              onPress={onClose} 
-              style={styles.cancelButton}
-              hitSlop={8}
-              disabled={loading}
-            >
-              <Text style={styles.cancelText}>{cancelText}</Text>
-            </Pressable>
+
+            {!hideCancel ? (
+              <Pressable
+                onPress={onClose}
+                style={styles.cancelButton}
+                hitSlop={8}
+                disabled={loading}
+              >
+                <Text style={styles.cancelText}>{cancelText}</Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
       </View>

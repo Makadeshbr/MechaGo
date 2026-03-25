@@ -22,7 +22,6 @@ import {
   createVehicleFormSchema,
   type VehicleType,
   type CreateVehicleFormInput,
-  type CreateVehicleFormOutput,
 } from "@mechago/shared";
 
 const VEHICLE_TYPES: { type: VehicleType; label: string; icon: string }[] = [
@@ -51,14 +50,23 @@ export default function RegisterVehicleScreen() {
 
   const createVehicle = useCreateVehicle();
 
-  function onSubmit(data: CreateVehicleFormOutput) {
+  function onSubmit(data: CreateVehicleFormInput) {
+    const parsed = createVehicleFormSchema.safeParse(data);
+
+    if (!parsed.success) {
+      setError("root", {
+        message: "Revise os dados do veiculo antes de continuar.",
+      });
+      return;
+    }
+
     createVehicle.mutate(
       {
-        type: data.type,
-        brand: data.brand,
-        model: data.model,
-        year: data.year,
-        plate: data.plate,
+        type: parsed.data.type,
+        brand: parsed.data.brand,
+        model: parsed.data.model,
+        year: parsed.data.year,
+        plate: parsed.data.plate,
       },
       {
         onSuccess: () => {

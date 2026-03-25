@@ -6,8 +6,15 @@
 >
 > 1. `RULES.md` — Regras comportamentais e padrões de código
 > 2. `MechaGo_Technical_Reference.md` — Arquitetura, schemas, endpoints, mapa de telas
-> 3. `MechaGo_Roadmap_Completo.md` — Fases do produto com specs técnicas
-> 4. `MechaGo_Contratos_Futuros.md` — Blueprints de tabelas/endpoints pós-beta
+> 3. `Mechago roadmap completo.md` — Fases do produto com specs técnicas
+> 4. `Mechago contratos futuros.md` — Blueprints de tabelas/endpoints pós-beta
+
+> **Baseline técnica atual (já aplicada):**
+>
+> - `RULES.md` e `MechaGo_Technical_Reference.md` já estão alinhados ao repo real
+> - Contratos compartilhados já extraídos para `packages/shared` devem ser reutilizados, não recriados localmente
+> - `apps/cliente` e `apps/pro` não podem importar `apps/api/src`
+> - Limpezas estruturais já aplicadas no repo entram como baseline técnica, não como escopo funcional novo de task
 
 ---
 
@@ -30,6 +37,13 @@
 ### Por que a IA da IDE gera o código (não documentos externos)
 
 A IA da IDE tem acesso aos arquivos reais do projeto. Ela sabe o que já existe, quais imports estão disponíveis, quais componentes já foram criados. Documentos externos fornecem contexto e regras. A IA da IDE executa com base nesse contexto.
+
+Antes de gerar uma nova task, a IA DEVE distinguir:
+
+- **baseline técnica já aplicada**: hardening, correções de contrato, remoção de import cruzado, limpeza de type-safety
+- **escopo funcional novo**: feature, endpoint, tela ou fluxo ainda não entregue
+
+Task nova só deve listar o que ainda é escopo funcional pendente.
 
 ---
 
@@ -357,8 +371,8 @@ Tasks/
 ```
 1. Technical Reference (arquitetura, schemas, mapa de telas)
 2. RULES.md (padrões, segurança, TDD, UI/UX)
-3. Roadmap Completo (specs de sprints futuras)
-4. Contratos Futuros (blueprints pós-beta)
+3. `Mechago roadmap completo.md` (specs de sprints futuras)
+4. `Mechago contratos futuros.md` (blueprints pós-beta)
 5. Se não está em nenhum documento → PERGUNTAR ao desenvolvedor
 6. NUNCA inventar nomes, funções ou schemas que não existem
 ```

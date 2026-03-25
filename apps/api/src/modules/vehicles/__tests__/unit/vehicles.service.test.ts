@@ -10,7 +10,9 @@ vi.mock("../../vehicles.repository", () => ({
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
-    hasActiveServiceRequests: vi.fn(),
+    hasBlockingServiceRequests: vi.fn(),
+    cancelPreMatchServiceRequests: vi.fn(),
+    getDeletionImpactCounts: vi.fn(),
   },
 }));
 
@@ -36,9 +38,13 @@ describe("VehiclesService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default: sem solicitações ativas (cenário mais comum)
-    vi.mocked(VehiclesRepository.hasActiveServiceRequests).mockResolvedValue(
+    vi.mocked(VehiclesRepository.hasBlockingServiceRequests).mockResolvedValue(
       false,
     );
+    vi.mocked(VehiclesRepository.getDeletionImpactCounts).mockResolvedValue({
+      pendingRequestCount: 0,
+      blockingRequestCount: 0,
+    });
   });
 
   describe("create", () => {
@@ -214,21 +220,26 @@ describe("VehiclesService", () => {
   describe("delete", () => {
     it("deve deletar veículo do usuário sem solicitações ativas", async () => {
       vi.mocked(VehiclesRepository.findById).mockResolvedValue(mockVehicle);
-      vi.mocked(VehiclesRepository.hasActiveServiceRequests).mockResolvedValue(
+      vi.mocked(VehiclesRepository.hasBlockingServiceRequests).mockResolvedValue(
         false,
       );
 
       await VehiclesService.delete(USER_ID, "vehicle-uuid-1");
 
-      expect(VehiclesRepository.hasActiveServiceRequests).toHaveBeenCalledWith(
+      expect(
+        VehiclesRepository.hasBlockingServiceRequests,
+      ).toHaveBeenCalledWith(
         "vehicle-uuid-1",
       );
+      expect(
+        VehiclesRepository.cancelPreMatchServiceRequests,
+      ).toHaveBeenCalledWith("vehicle-uuid-1");
       expect(VehiclesRepository.delete).toHaveBeenCalledWith("vehicle-uuid-1");
     });
 
     it("deve rejeitar delete de veículo com solicitação ativa", async () => {
       vi.mocked(VehiclesRepository.findById).mockResolvedValue(mockVehicle);
-      vi.mocked(VehiclesRepository.hasActiveServiceRequests).mockResolvedValue(
+      vi.mocked(VehiclesRepository.hasBlockingServiceRequests).mockResolvedValue(
         true,
       );
 
@@ -239,6 +250,9 @@ describe("VehiclesService", () => {
       );
 
       // Não deve chamar delete se existe solicitação ativa
+      expect(
+        VehiclesRepository.cancelPreMatchServiceRequests,
+      ).not.toHaveBeenCalled();
       expect(VehiclesRepository.delete).not.toHaveBeenCalled();
     });
 
@@ -259,6 +273,59 @@ describe("VehiclesService", () => {
       await expect(
         VehiclesService.delete(USER_ID, "vehicle-uuid-1"),
       ).rejects.toThrow("Acesso negado");
+    });
+  });
+
+  describe("getDeletionImpact", () => {
+    it("deve permitir exclusao simples quando nao ha solicitacoes relacionadas", async () => {
+      vi.mocked(VehiclesRepository.findById).mockResolvedValue(mockVehicle);
+      vi.mocked(VehiclesRepository.getDeletionImpactCounts).mockResolvedValue({
+        pendingRequestCount: 0,
+        blockingRequestCount: 0,
+      });
+
+      const impact = await VehiclesService.getDeletionImpact(
+        USER_ID,
+        "vehicle-uuid-1",
+      );
+
+      expect(impact.canDelete).toBe(true);
+      expect(impact.willCancelPendingRequests).toBe(false);
+      expect(impact.message).toContain("pode ser removido");
+    });
+
+    it("deve avisar que solicitacoes pendentes serao canceladas automaticamente", async () => {
+      vi.mocked(VehiclesRepository.findById).mockResolvedValue(mockVehicle);
+      vi.mocked(VehiclesRepository.getDeletionImpactCounts).mockResolvedValue({
+        pendingRequestCount: 1,
+        blockingRequestCount: 0,
+      });
+
+      const impact = await VehiclesService.getDeletionImpact(
+        USER_ID,
+        "vehicle-uuid-1",
+      );
+
+      expect(impact.canDelete).toBe(true);
+      expect(impact.willCancelPendingRequests).toBe(true);
+      expect(impact.pendingRequestCount).toBe(1);
+    });
+
+    it("deve bloquear exclusao quando existe atendimento em andamento", async () => {
+      vi.mocked(VehiclesRepository.findById).mockResolvedValue(mockVehicle);
+      vi.mocked(VehiclesRepository.getDeletionImpactCounts).mockResolvedValue({
+        pendingRequestCount: 0,
+        blockingRequestCount: 1,
+      });
+
+      const impact = await VehiclesService.getDeletionImpact(
+        USER_ID,
+        "vehicle-uuid-1",
+      );
+
+      expect(impact.canDelete).toBe(false);
+      expect(impact.blockingRequestCount).toBe(1);
+      expect(impact.message).toContain("atendimento em andamento");
     });
   });
 });

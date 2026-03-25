@@ -10,43 +10,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { AmbientGlow } from "@/components/ui";
 import { colors, spacing, borderRadius } from "@mechago/shared";
 
-// Histórico de atendimentos do profissional
-const MOCK_HISTORY = [
-  {
-    id: "1",
-    type: "Mecânica Geral",
-    client: "Lucas Mendes",
-    date: "20 jan • 14h30",
-    value: "R$ 120,00",
-    rating: 5,
-  },
-  {
-    id: "2",
-    type: "Pneu Furado",
-    client: "Carla Souza",
-    date: "18 jan • 09h15",
-    value: "R$ 80,00",
-    rating: 4,
-  },
-  {
-    id: "3",
-    type: "Bateria",
-    client: "Pedro Alves",
-    date: "15 jan • 17h45",
-    value: "R$ 60,00",
-    rating: 5,
-  },
-  {
-    id: "4",
-    type: "Ar Condicionado",
-    client: "Mariana Lima",
-    date: "12 jan • 11h00",
-    value: "R$ 200,00",
-    rating: 4,
-  },
-] as const;
-
-type HistoryItem = (typeof MOCK_HISTORY)[number];
+interface HistoryItem {
+  id: string;
+  type: string;
+  client: string;
+  date: string;
+  value: string;
+  rating: number;
+}
 
 function StarRating({ rating }: { rating: number }) {
   return (
@@ -64,6 +35,8 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 export default function HistoryScreen() {
+  const historyItems: HistoryItem[] = [];
+
   function renderItem({ item }: { item: HistoryItem }) {
     return (
       <View style={styles.card}>
@@ -95,23 +68,23 @@ export default function HistoryScreen() {
       {/* Resumo do mês */}
       <View style={styles.summaryCard}>
         <View style={styles.summaryItem}>
-          <Text style={styles.summaryValue}>R$ 460</Text>
+          <Text style={styles.summaryValue}>R$ --,--</Text>
           <Text style={styles.summaryLabel}>Janeiro</Text>
         </View>
         <View style={styles.summaryDivider} />
         <View style={styles.summaryItem}>
-          <Text style={styles.summaryValue}>4</Text>
+          <Text style={styles.summaryValue}>0</Text>
           <Text style={styles.summaryLabel}>Atendimentos</Text>
         </View>
         <View style={styles.summaryDivider} />
         <View style={styles.summaryItem}>
-          <Text style={styles.summaryValue}>4.7★</Text>
+          <Text style={styles.summaryValue}>--</Text>
           <Text style={styles.summaryLabel}>Avaliação</Text>
         </View>
       </View>
 
       <FlatList
-        data={MOCK_HISTORY as unknown as HistoryItem[]}
+        data={historyItems}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
@@ -124,7 +97,7 @@ export default function HistoryScreen() {
             <Ionicons name="time-outline" size={48} color={colors.textSecondary} />
             <Text style={styles.emptyTitle}>Sem histórico ainda</Text>
             <Text style={styles.emptyText}>
-              Seus atendimentos concluídos aparecerão aqui.
+              Seus atendimentos concluídos aparecerão aqui quando o backend deste fluxo estiver conectado.
             </Text>
           </View>
         }

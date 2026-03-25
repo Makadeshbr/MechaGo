@@ -7,6 +7,11 @@ interface User {
   email: string;
   phone: string;
   type: string;
+  cpfCnpj: string;
+  rating: string | null;
+  totalReviews: number | null;
+  isVerified: boolean;
+  avatarUrl: string | null;
   createdAt: string;
 }
 

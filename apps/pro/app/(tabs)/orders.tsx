@@ -15,41 +15,16 @@ import { colors, spacing, borderRadius } from "@mechago/shared";
 const FILTERS = ["Todos", "Ativos", "Pendentes", "Encerrados"] as const;
 type Filter = (typeof FILTERS)[number];
 
-// Pedidos mockados — substituídos por dados reais da API
-const MOCK_ORDERS = [
-  {
-    id: "1",
-    type: "Mecânica Geral",
-    client: "Lucas Mendes",
-    address: "Av. Paulista, 1000 – SP",
-    dist: "2,3 km",
-    time: "há 5 min",
-    status: "Ativo",
-    value: "R$ 120,00",
-  },
-  {
-    id: "2",
-    type: "Pneu Furado",
-    client: "Ana Santos",
-    address: "R. Augusta, 500 – SP",
-    dist: "4,1 km",
-    time: "há 32 min",
-    status: "Pendente",
-    value: "R$ 80,00",
-  },
-  {
-    id: "3",
-    type: "Bateria Descarregada",
-    client: "Roberto Lima",
-    address: "Rua XV, 220 – SP",
-    dist: "1,8 km",
-    time: "há 1h",
-    status: "Encerrado",
-    value: "R$ 60,00",
-  },
-] as const;
-
-type Order = (typeof MOCK_ORDERS)[number];
+interface Order {
+  id: string;
+  type: string;
+  client: string;
+  address: string;
+  dist: string;
+  time: string;
+  status: "Ativo" | "Pendente" | "Encerrado";
+  value: string;
+}
 
 // Mapa de cores por status
 const STATUS_COLOR: Record<string, string> = {
@@ -60,8 +35,9 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function OrdersScreen() {
   const [activeFilter, setActiveFilter] = useState<Filter>("Todos");
+  const orders: Order[] = [];
 
-  const filtered = MOCK_ORDERS.filter((o) => {
+  const filtered = orders.filter((o) => {
     if (activeFilter === "Todos") return true;
     return o.status === activeFilter.replace("s", "");
   });
@@ -160,7 +136,7 @@ export default function OrdersScreen() {
       </View>
 
       <FlatList
-        data={filtered as unknown as Order[]}
+        data={filtered}
         renderItem={renderOrder}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
@@ -170,7 +146,7 @@ export default function OrdersScreen() {
             <Ionicons name="alert-circle-outline" size={48} color={colors.textSecondary} />
             <Text style={styles.emptyTitle}>Sem pedidos aqui</Text>
             <Text style={styles.emptyText}>
-              Fique online para receber novos chamados.
+              Quando o matching estiver conectado à API, seus chamados aparecerão aqui.
             </Text>
           </View>
         }

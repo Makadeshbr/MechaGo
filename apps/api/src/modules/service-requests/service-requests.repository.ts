@@ -1,6 +1,8 @@
 import { db } from "@/db";
 import { serviceRequests } from "@/db/schema/service-requests";
 import { roadwayInfo } from "@/db/schema/roadway-info";
+import { users } from "@/db/schema/users";
+import { professionals } from "@/db/schema/professionals";
 import { eq, sql, and, gte, lte } from "drizzle-orm";
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
@@ -18,13 +20,50 @@ export class ServiceRequestsRepository {
   }
 
   /**
-   * Busca um pedido pelo ID
+   * Busca um pedido pelo ID com dados do profissional
    */
-  static async findById(id: string): Promise<SelectServiceRequest | null> {
+  static async findById(id: string) {
     const request = await db.query.serviceRequests.findFirst({
       where: eq(serviceRequests.id, id),
     });
-    return request || null;
+
+    if (!request) return null;
+
+    if (!request.professionalId) {
+      return { ...request, professional: null };
+    }
+
+    const professionalData = await db
+      .select({
+        name: users.name,
+        avatarUrl: users.avatarUrl,
+        rating: users.rating,
+        specialties: professionals.specialties,
+      })
+      .from(professionals)
+      .join(users, eq(professionals.userId, users.id))
+      .where(eq(professionals.id, request.professionalId))
+      .limit(1);
+
+    return {
+      ...request,
+      professional: professionalData[0] || null,
+    };
+  }
+
+  /**
+   * Atualiza um pedido existente
+   */
+  static async update(
+    id: string,
+    data: Partial<InsertServiceRequest>
+  ): Promise<SelectServiceRequest> {
+    const [request] = await db
+      .update(serviceRequests)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(serviceRequests.id, id))
+      .returning();
+    return request;
   }
 
   /**

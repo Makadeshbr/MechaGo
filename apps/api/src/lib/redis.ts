@@ -3,9 +3,8 @@ import { env } from "@/env";
 import { logger } from "@/middleware/logger.middleware";
 
 export const redis = new Redis(env.REDIS_URL, {
-  maxRetriesPerRequest: 3,
+  maxRetriesPerRequest: null,
   retryStrategy(times) {
-    // Retry com backoff exponencial, máximo 3 segundos
     const delay = Math.min(times * 200, 3000);
     return delay;
   },

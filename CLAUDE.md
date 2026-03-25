@@ -141,6 +141,7 @@ Ao criar um módulo novo:
 
 - `apps/api` é dono da implementação de backend. Nenhum app mobile importa arquivos de `apps/api/src`
 - `packages/shared` concentra contratos compartilhados, tokens, schemas reaproveitáveis e tipos estáveis entre workspaces
+- Se um contrato já existe em `packages/shared`, ele DEVE ser preservado e evoluído lá — nunca duplicado localmente no app/backend sem necessidade explícita
 - Se um dado vem da API, o frontend consome via cliente HTTP/hook tipado — nunca via import direto do backend
 - Ao criar contrato novo, alinhar Zod/OpenAPI/backend/frontend na mesma task
 
@@ -800,25 +801,21 @@ Se identificar um problema de segurança que o desenvolvedor NÃO pediu:
 
 ---
 
-## 10. TESTES — TDD OBRIGATÓRIO (PROTOCOLO AKITA XP)
+### 10. TESTES — TDD E QUALIDADE TOTAL (PROTOCOLO AKITA XP)
 
 > **Regra inegociável: NUNCA escreva código de produção sem teste.**
 > Testes são a rede de segurança que permite refatorar agressivamente. Sem teste, sem merge.
 
-### Fluxo TDD (Red → Green → Refactor)
+#### 10.1 Pirâmide de Testes Obrigatória
 
-1. **Red**: Escreva o teste PRIMEIRO descrevendo o comportamento esperado. O teste DEVE falhar.
-2. **Green**: Escreva o código MÍNIMO para fazer o teste passar. Sem otimização, sem elegância.
-3. **Refactor**: Com o teste verde, refatore o código para ficar limpo. O teste garante que nada quebrou.
+1.  **Unit Tests (TDD):** Protege a lógica de negócio pura nos Services. (Vitest)
+2.  **Integration Tests:** Garante que a API, Banco de Dados (Drizzle/PostGIS) e Redis conversam corretamente. Deve testar o fluxo de dados real.
+3.  **E2E Tests (Cypress/Playwright):** Valida o fluxo completo do usuário no App. Essencial para pegar erros de UI estática (ex: "--,--"), ícones faltando ou navegação quebrada.
 
-### Quando a IA recebe um pedido de implementação:
+#### 10.2 Fluxo de Execução
 
-```
-1. ANTES de codar → Perguntar: "Devo criar os testes para esse comportamento primeiro?"
-2. Se o desenvolvedor disser sim → Criar teste, confirmar que falha, só então implementar
-3. Se o desenvolvedor disser "implementa direto" → Implementar E entregar o teste junto
-4. NUNCA entregar código sem teste correspondente
-```
+- **Obrigatório:** Ao final de TODA Task, todos os testes (Unit e Integration) DEVEM ser executados e passarem 100%.
+- **TDD (Red → Green → Refactor):** O teste nasce antes da implementação.
 
 ### O que testar (prioridade)
 
@@ -995,15 +992,18 @@ chore(deps): update drizzle-orm to 0.36.1
 ### Padrão de sub-numeração
 
 ```
-Task XX      → Task principal (marco do Roadmap)
-Task XX.1    → Sub-task 1
-Task XX.2    → Sub-task 2
-Task XX.N    → Sub-task N
+
+Task XX → Task principal (marco do Roadmap)
+Task XX.1 → Sub-task 1
+Task XX.2 → Sub-task 2
+Task XX.N → Sub-task N
+
 ```
 
 ### Regras
 
 ```
+
 1. NUNCA avançar o número inteiro para quebrar uma task:
    ❌ Task 05 grande → Task 06, 07, 08, 09
    ✅ Task 05 grande → Task 05, 05.1, 05.2, 05.3, 05.4
@@ -1012,12 +1012,13 @@ Task XX.N    → Sub-task N
    Task 05.2 → Pré-requisito: Task 05.1
 
 3. Mapeamento Roadmap → Tasks:
-   Tasks 01-05.x  → MVP / Beta Fechado (Sprint 1-6)
-   Tasks 06-09.x  → V1.0 / Produção Aberta (Sprint 7-10)
-   Tasks 10-13.x  → V1.5 / Expansão (Sprint 11-14)
-   Tasks 14+      → V2.0 / Plataforma (Sprint 15+)
+   Tasks 01-05.x → MVP / Beta Fechado (Sprint 1-6)
+   Tasks 06-09.x → V1.0 / Produção Aberta (Sprint 7-10)
+   Tasks 10-13.x → V1.5 / Expansão (Sprint 11-14)
+   Tasks 14+ → V2.0 / Plataforma (Sprint 15+)
 
 4. Arquivos: Tasks/05.md, Tasks/05.1.md, Tasks/05.2.md, etc.
+
 ```
 
 ---

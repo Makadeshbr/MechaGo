@@ -2,10 +2,12 @@ import { serve } from "@hono/node-server";
 import { env } from "@/env";
 import { createApp } from "@/app";
 import { logger } from "@/middleware/logger.middleware";
+import { initSocketIO } from "@/socket";
+import "@/modules/matching/matching.worker"; // Inicia BullMQ worker
 
 const app = createApp();
 
-serve(
+const server = serve(
   {
     fetch: app.fetch,
     port: env.PORT,
@@ -16,3 +18,5 @@ serve(
     logger.info(`Health: http://localhost:${info.port}/health`);
   },
 );
+
+initSocketIO(server as any);

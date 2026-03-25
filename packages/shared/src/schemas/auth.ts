@@ -10,6 +10,27 @@ export const loginFormSchema = z.object({
   password: z.string().min(1, "Senha é obrigatória"),
 });
 
+export const appContextSchema = z.enum(["client", "pro"]);
+
+export const loginRequestSchema = loginFormSchema.extend({
+  appContext: appContextSchema.optional(),
+});
+
+export const authUserSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  email: z.string().email(),
+  type: z.string(),
+});
+
+export const authResponseSchema = z.object({
+  user: authUserSchema,
+  tokens: z.object({
+    accessToken: z.string(),
+    refreshToken: z.string(),
+  }),
+});
+
 // ==================== REGISTER ====================
 // Regras de validação idênticas às do backend (auth.schemas.ts)
 // Fonte única de verdade para cliente + servidor
@@ -57,5 +78,9 @@ export const registerFormSchema = z
 // Output = tipo enviado à API (depois dos transforms)
 export type LoginFormInput = z.input<typeof loginFormSchema>;
 export type LoginFormOutput = z.output<typeof loginFormSchema>;
+export type LoginRequestInput = z.input<typeof loginRequestSchema>;
+export type LoginRequestOutput = z.output<typeof loginRequestSchema>;
 export type RegisterFormInput = z.input<typeof registerFormSchema>;
 export type RegisterFormOutput = z.output<typeof registerFormSchema>;
+export type AppContext = z.infer<typeof appContextSchema>;
+export type AuthResponse = z.infer<typeof authResponseSchema>;

@@ -1,0 +1,2 @@
+ALTER TABLE "vehicles" DROP CONSTRAINT "vehicles_plate_unique";--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "vehicles_active_plate_idx" ON "vehicles" USING btree ("plate") WHERE "vehicles"."deleted_at" is null;

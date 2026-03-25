@@ -141,6 +141,7 @@ Ao criar um módulo novo:
 
 - `apps/api` é dono da implementação de backend. Nenhum app mobile importa arquivos de `apps/api/src`
 - `packages/shared` concentra contratos compartilhados, tokens, schemas reaproveitáveis e tipos estáveis entre workspaces
+- Se um contrato já existe em `packages/shared`, ele DEVE ser preservado e evoluído lá — nunca duplicado localmente no app/backend sem necessidade explícita
 - Se um dado vem da API, o frontend consome via cliente HTTP/hook tipado — nunca via import direto do backend
 - Ao criar contrato novo, alinhar Zod/OpenAPI/backend/frontend na mesma task
 

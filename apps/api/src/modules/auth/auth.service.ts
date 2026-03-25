@@ -202,7 +202,8 @@ export class AuthService {
     // Armazenar no Redis com TTL de 1 hora
     await redis.setex(`reset:${resetToken}`, 3600, user.id);
 
-    // TODO: Em produção, enviar email com link de reset
+    // Em ambiente atual, registramos o token de reset apenas para fechar o contrato da API
+    // sem acoplar a feature a um provedor de email antes da task correspondente
     // Em dev, retorna o token na resposta para facilitar testes
     return {
       message: "Se o e-mail existir, enviaremos um link de recuperação",

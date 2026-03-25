@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import type { VehicleDeletionImpact } from "@mechago/shared";
 
 interface Vehicle {
   id: string;
@@ -26,6 +27,7 @@ interface CreateVehicleInput {
 export const vehicleKeys = {
   all: ["vehicles"] as const,
   detail: (id: string) => ["vehicles", id] as const,
+  deletionImpact: (id: string) => ["vehicles", id, "deletion-impact"] as const,
 };
 
 // Hook para listar veículos do usuário logado
@@ -68,6 +70,18 @@ export function useDeleteVehicle() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: vehicleKeys.all });
+    },
+  });
+}
+
+export function useVehicleDeletionImpact() {
+  return useMutation({
+    mutationFn: async (vehicleId: string) => {
+      const response = await api
+        .get(`vehicles/${vehicleId}/deletion-impact`)
+        .json<{ impact: VehicleDeletionImpact }>();
+
+      return response.impact;
     },
   });
 }

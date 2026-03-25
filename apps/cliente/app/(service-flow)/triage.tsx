@@ -104,6 +104,7 @@ export default function TriageScreen() {
                   name={`q${index}`}
                   render={({ field: { onChange, value } }) => (
                     <Input
+                      label="DESCRIÇÃO DO PROBLEMA"
                       placeholder={q.placeholder}
                       value={value}
                       onChangeText={onChange}

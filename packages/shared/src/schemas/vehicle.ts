@@ -5,6 +5,14 @@ const PLATE_REGEX = /^[A-Z]{3}-?\d{1}[A-Z0-9]{1}\d{2}$/;
 
 export const vehicleTypeSchema = z.enum(["car", "moto", "suv", "truck"]);
 
+export const vehicleDeletionImpactSchema = z.object({
+  canDelete: z.boolean(),
+  willCancelPendingRequests: z.boolean(),
+  pendingRequestCount: z.number().int().nonnegative(),
+  blockingRequestCount: z.number().int().nonnegative(),
+  message: z.string(),
+});
+
 // Schema do formulário de cadastro de veículo
 // year aceita string (TextInput) e transforma para number via pipe
 export const createVehicleFormSchema = z.object({
@@ -44,3 +52,4 @@ export const createVehicleFormSchema = z.object({
 export type VehicleType = z.infer<typeof vehicleTypeSchema>;
 export type CreateVehicleFormInput = z.input<typeof createVehicleFormSchema>;
 export type CreateVehicleFormOutput = z.output<typeof createVehicleFormSchema>;
+export type VehicleDeletionImpact = z.infer<typeof vehicleDeletionImpactSchema>;

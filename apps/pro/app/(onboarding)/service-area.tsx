@@ -14,7 +14,14 @@ import MapView, { Circle, PROVIDER_GOOGLE } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, AmbientGlow } from "@/components/ui";
 import { useOnboardingStore } from "@/stores/onboarding.store";
-import { colors, spacing, borderRadius } from "@mechago/shared";
+import { borderRadius, colors, type ScheduleType, spacing } from "@mechago/shared";
+
+type ScheduleOption = {
+  id: ScheduleType;
+  label: string;
+  description: string;
+  icon: keyof typeof Ionicons.glyphMap;
+};
 
 // Estilo Dark para o mapa (MechaGo Noir)
 // Definido conforme DS V4 para manter fidelidade visual ao produto
@@ -30,7 +37,7 @@ const MAP_STYLE = [
   { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#000000" }] }
 ];
 
-const SCHEDULE_OPTIONS = [
+const SCHEDULE_OPTIONS: ScheduleOption[] = [
   { id: "24h", label: "24 Horas", description: "Disponível a qualquer momento", icon: "flash-outline" },
   { id: "daytime", label: "Diurno", description: "Das 6h às 22h", icon: "sunny-outline" },
   { id: "nighttime", label: "Noturno", description: "22h às 6h", icon: "moon-outline" },
@@ -53,13 +60,13 @@ export default function ServiceAreaScreen() {
 
   useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
+      const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         setLoadingLocation(false);
         return;
       }
 
-      let loc = await Location.getCurrentPositionAsync({});
+      const loc = await Location.getCurrentPositionAsync({});
       setLocation({
         latitude: loc.coords.latitude,
         longitude: loc.coords.longitude,
@@ -162,11 +169,11 @@ export default function ServiceAreaScreen() {
           {SCHEDULE_OPTIONS.map((option) => (
             <Pressable
               key={option.id}
-              onPress={() => setStep4({ scheduleType: option.id as any })}
+              onPress={() => setStep4({ scheduleType: option.id })}
               style={[styles.optionCard, selectedSchedule === option.id && styles.optionCardSelected]}
             >
               <Ionicons
-                name={option.icon as any}
+                name={option.icon}
                 size={24}
                 color={selectedSchedule === option.id ? colors.primary : colors.textSecondary}
               />

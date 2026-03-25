@@ -12,13 +12,20 @@ import { Ionicons } from "@expo/vector-icons";
 import { Button, LogoPin, AmbientGlow } from "@/components/ui";
 import { colors, spacing, borderRadius } from "@mechago/shared";
 
-const PROBLEMS = [
+type ProblemOption = {
+  id: string;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+};
+
+const PROBLEMS: ProblemOption[] = [
   { id: "tire", label: "Pneu furado", icon: "construct-outline" },
   { id: "battery", label: "Bateria / Não liga", icon: "flash-outline" },
   { id: "electric", label: "Pane elétrica", icon: "hardware-chip-outline" },
   { id: "overheat", label: "Superaquecimento", icon: "thermometer-outline" },
   { id: "fuel", label: "Pane seca (Combustível)", icon: "speedometer-outline" },
-  { id: "other", label: "Outro problema", icon: "help-circle-outline" },];
+  { id: "other", label: "Outro problema", icon: "help-circle-outline" },
+];
 
 export default function SelectProblemScreen() {
   const { vehicleId } = useLocalSearchParams();
@@ -63,10 +70,10 @@ export default function SelectProblemScreen() {
                 accessibilityState={{ selected: isSelected }}
               >
                 <View style={[styles.iconBox, isSelected && styles.iconBoxSelected]}>
-                  <Ionicons 
-                    name={item.icon as any} 
-                    size={28} 
-                    color={isSelected ? colors.bg : colors.primary} 
+                  <Ionicons
+                    name={item.icon}
+                    size={28}
+                    color={isSelected ? colors.bg : colors.primary}
                   />
                 </View>
                 <Text style={[styles.cardLabel, isSelected && styles.textInverted]}>

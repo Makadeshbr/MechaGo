@@ -1,6 +1,7 @@
 import { VehiclesRepository } from "./vehicles.repository";
 import {
   CreateVehicleInput,
+  VehicleDeletionImpact,
   UpdateVehicleInput,
   Vehicle,
 } from "./vehicles.schemas";
@@ -26,6 +27,41 @@ function serializeVehicle(vehicle: VehicleRow): Vehicle {
     year: vehicle.year,
     color: vehicle.color ?? null,
     createdAt: vehicle.createdAt.toISOString(),
+  };
+}
+
+function buildDeletionImpact(params: {
+  pendingRequestCount: number;
+  blockingRequestCount: number;
+}): VehicleDeletionImpact {
+  if (params.blockingRequestCount > 0) {
+    return {
+      canDelete: false,
+      willCancelPendingRequests: false,
+      pendingRequestCount: params.pendingRequestCount,
+      blockingRequestCount: params.blockingRequestCount,
+      message:
+        "Nao e possivel remover veiculo com atendimento em andamento.",
+    };
+  }
+
+  if (params.pendingRequestCount > 0) {
+    return {
+      canDelete: true,
+      willCancelPendingRequests: true,
+      pendingRequestCount: params.pendingRequestCount,
+      blockingRequestCount: 0,
+      message:
+        "Ao remover este veiculo, suas solicitacoes pendentes serao canceladas automaticamente.",
+    };
+  }
+
+  return {
+    canDelete: true,
+    willCancelPendingRequests: false,
+    pendingRequestCount: 0,
+    blockingRequestCount: 0,
+    message: "Este veiculo pode ser removido com seguranca.",
   };
 }
 
@@ -121,9 +157,9 @@ export class VehiclesService {
     // Verificar se o veículo está vinculado a alguma solicitação ativa
     // (pending, matching, accepted, professional_enroute, etc.)
     // Impede remoção durante atendimento em andamento
-    const hasActive =
-      await VehiclesRepository.hasActiveServiceRequests(vehicleId);
-    if (hasActive) {
+    const hasBlocking =
+      await VehiclesRepository.hasBlockingServiceRequests(vehicleId);
+    if (hasBlocking) {
       throw new AppError(
         "VEHICLE_IN_USE",
         "Não é possível remover veículo com solicitação ativa",
@@ -131,6 +167,24 @@ export class VehiclesService {
       );
     }
 
+    await VehiclesRepository.cancelPreMatchServiceRequests(vehicleId);
     await VehiclesRepository.delete(vehicleId);
+  }
+
+  static async getDeletionImpact(
+    userId: string,
+    vehicleId: string,
+  ): Promise<VehicleDeletionImpact> {
+    const vehicle = await VehiclesRepository.findById(vehicleId);
+    if (!vehicle) {
+      throw new AppError("NOT_FOUND", "Veiculo nao encontrado", 404);
+    }
+
+    if (vehicle.userId !== userId) {
+      throw new AppError("FORBIDDEN", "Acesso negado", 403);
+    }
+
+    const counts = await VehiclesRepository.getDeletionImpactCounts(vehicleId);
+    return buildDeletionImpact(counts);
   }
 }

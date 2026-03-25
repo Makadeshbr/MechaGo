@@ -13,9 +13,9 @@ interface OnboardingState {
   step3: Partial<OnboardingStep3Input>;
   step4: Partial<OnboardingStep4Input>;
 
-  setStep2: (data: OnboardingStep2Input) => void;
-  setStep3: (data: OnboardingStep3Input) => void;
-  setStep4: (data: OnboardingStep4Input) => void;
+  setStep2: (data: Partial<OnboardingStep2Input>) => void;
+  setStep3: (data: Partial<OnboardingStep3Input>) => void;
+  setStep4: (data: Partial<OnboardingStep4Input>) => void;
 
   // Retorna os dados consolidados de step2+3+4 para o submit final
   getRegistrationData: () => {
@@ -35,9 +35,9 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   step3: {},
   step4: {},
 
-  setStep2: (data) => set({ step2: data }),
-  setStep3: (data) => set({ step3: data }),
-  setStep4: (data) => set({ step4: data }),
+  setStep2: (data) => set((state) => ({ step2: { ...state.step2, ...data } })),
+  setStep3: (data) => set((state) => ({ step3: { ...state.step3, ...data } })),
+  setStep4: (data) => set((state) => ({ step4: { ...state.step4, ...data } })),
 
   getRegistrationData: () => {
     const { step2, step3, step4 } = get();

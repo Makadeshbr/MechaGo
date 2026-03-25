@@ -3,25 +3,15 @@ import { api } from "@/lib/api";
 import { tokenStorage } from "@/lib/storage";
 import { useAuthStore } from "@/stores/auth.store";
 import { router } from "expo-router";
+import type {
+  AuthResponse,
+  LoginRequestInput,
+  RegisterFormOutput,
+} from "@mechago/shared";
 
-interface LoginInput {
-  email: string;
-  password: string;
-}
-
-interface RegisterInput {
-  name: string;
-  email: string;
-  phone: string;
-  password: string;
-  cpfCnpj: string;
+type RegisterInput = Omit<RegisterFormOutput, "confirmPassword"> & {
   type: "client";
-}
-
-interface AuthResponse {
-  user: { id: string; name: string; email: string; type: string };
-  tokens: { accessToken: string; refreshToken: string };
-}
+};
 
 // Extrai mensagem de erro da resposta HTTP (ky lança HTTPError com body JSON)
 async function extractErrorMessage(error: unknown): Promise<string> {
@@ -42,7 +32,7 @@ export function useAuth() {
   const { setUser, logout: storeLogout } = useAuthStore();
 
   const loginMutation = useMutation({
-    mutationFn: async (input: LoginInput) => {
+    mutationFn: async (input: LoginRequestInput) => {
       try {
         return await api
           .post("auth/login", { json: input })

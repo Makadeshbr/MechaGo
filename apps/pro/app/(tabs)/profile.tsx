@@ -14,6 +14,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { AmbientGlow } from "@/components/ui";
 import { colors, spacing, borderRadius } from "@mechago/shared";
 
+type MenuItem = {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+};
+
 // Perfil do profissional — difere do cliente em:
 // - badge de especialidades
 // - status de verificação de docs
@@ -21,8 +26,11 @@ import { colors, spacing, borderRadius } from "@mechago/shared";
 export default function ProfileScreen() {
   const { data: user, isLoading } = useUser();
   const { logout } = useAuth();
+  const ratingLabel = user?.rating ? Number(user.rating).toFixed(1) : "--";
+  const reviewsLabel = user?.totalReviews ?? 0;
+  const levelLabel = user?.isVerified ? "Verificado" : "Pendente";
 
-  const MENU_ITEMS = [
+  const MENU_ITEMS: MenuItem[] = [
     { icon: "construct-outline", label: "Minhas especialidades" },
     { icon: "map-outline", label: "Área de atendimento" },
     { icon: "document-outline", label: "Documentos e verificação" },
@@ -63,17 +71,17 @@ export default function ProfileScreen() {
             {/* Avaliação e atendimentos */}
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>4.8</Text>
+                <Text style={styles.statValue}>{ratingLabel}</Text>
                 <Text style={styles.statLabel}>Avaliação</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>47</Text>
+                <Text style={styles.statValue}>{reviewsLabel}</Text>
                 <Text style={styles.statLabel}>Atendimentos</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>PRO</Text>
+                <Text style={styles.statValue}>{levelLabel}</Text>
                 <Text style={styles.statLabel}>Nível</Text>
               </View>
             </View>
@@ -107,7 +115,7 @@ export default function ProfileScreen() {
               >
                 <View style={styles.menuIconBox}>
                   <Ionicons
-                    name={item.icon as any}
+                    name={item.icon}
                     size={20}
                     color={colors.primary}
                   />

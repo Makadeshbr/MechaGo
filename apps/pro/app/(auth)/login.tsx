@@ -37,7 +37,7 @@ export default function LoginScreen() {
 
   function onSubmit(data: LoginFormOutput) {
     login.mutate(
-      { email: data.email, password: data.password, appContext: "pro" as any },
+      { email: data.email, password: data.password, appContext: "pro" },
       {
         onSuccess: () => {
           router.replace("/(tabs)");
@@ -117,7 +117,10 @@ export default function LoginScreen() {
 
             <Pressable
               onPress={() => {
-                // TODO: tela de recuperação de senha
+                setError("root", {
+                  message:
+                    "A recuperacao de senha ainda nao esta disponivel nesta tela. Se precisar, fale com o suporte.",
+                });
               }}
               style={styles.forgotButton}
               hitSlop={8}

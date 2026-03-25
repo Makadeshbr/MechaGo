@@ -11,7 +11,7 @@ import { colors, spacing, borderRadius } from "@mechago/shared";
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: "primary" | "outline";
+  variant?: "primary" | "outline" | "error";
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
@@ -31,6 +31,8 @@ export function Button({
   accessibilityLabel,
 }: ButtonProps) {
   const isDisabled = disabled || loading;
+  const isPrimary = variant === "primary";
+  const isError = variant === "error";
 
   return (
     <Pressable
@@ -38,7 +40,7 @@ export function Button({
       disabled={isDisabled}
       style={({ pressed }) => [
         styles.base,
-        variant === "primary" ? styles.primary : styles.outline,
+        isPrimary ? styles.primary : isError ? styles.error : styles.outline,
         pressed && !isDisabled && { opacity: 0.7, transform: [{ scale: 0.97 }] },
         isDisabled && styles.disabled,
         style,
@@ -50,7 +52,7 @@ export function Button({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === "primary" ? "#000000" : colors.primary}
+          color={isPrimary || isError ? "#000000" : colors.primary}
         />
       ) : (
         <Text style={[styles.text, variant === "outline" && styles.textOutline]}>
@@ -73,6 +75,14 @@ const styles = StyleSheet.create({
   primary: {
     backgroundColor: colors.primary,
     shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  error: {
+    backgroundColor: colors.error,
+    shadowColor: colors.error,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 16,

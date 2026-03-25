@@ -1,3 +1,5 @@
+export type AppStatusCode = 400 | 401 | 403 | 404 | 409 | 422 | 500;
+
 // Classe base para erros da aplicação
 // Toda exceção de negócio DEVE usar esta classe
 // O error-handler converte para resposta JSON segura
@@ -5,7 +7,7 @@ export class AppError extends Error {
   constructor(
     public readonly code: string, // Código interno (ex: "VEHICLE_LIMIT")
     public readonly userMessage: string, // Mensagem PT-BR para o cliente
-    public readonly statusCode: number = 400,
+    public readonly statusCode: AppStatusCode = 400,
     public readonly details?: unknown, // Detalhes para log interno (NUNCA enviado ao cliente)
   ) {
     super(userMessage);

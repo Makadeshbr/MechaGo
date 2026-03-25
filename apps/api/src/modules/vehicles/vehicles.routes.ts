@@ -2,6 +2,7 @@ import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { VehiclesService } from "./vehicles.service";
 import {
   createVehicleSchema,
+  vehicleDeletionImpactResponseSchema,
   updateVehicleSchema,
   vehicleResponseSchema,
   vehicleListResponseSchema,
@@ -62,6 +63,34 @@ app.openapi(listRoute, async (c) => {
   const userId = c.get("userId");
   const vehicles = await VehiclesService.listByUser(userId);
   return c.json({ vehicles });
+});
+
+// ==================== GET /:id/deletion-impact ====================
+const deletionImpactRoute = createRoute({
+  method: "get",
+  path: "/{id}/deletion-impact",
+  tags: ["Vehicles"],
+  summary: "Consultar impacto da exclusao do veiculo",
+  request: {
+    params: vehicleIdParamSchema,
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": { schema: vehicleDeletionImpactResponseSchema },
+      },
+      description: "Impacto da exclusao calculado",
+    },
+    403: { description: "Acesso negado" },
+    404: { description: "Veiculo nao encontrado" },
+  },
+});
+
+app.openapi(deletionImpactRoute, async (c) => {
+  const userId = c.get("userId");
+  const { id } = c.req.valid("param");
+  const impact = await VehiclesService.getDeletionImpact(userId, id);
+  return c.json({ impact });
 });
 
 // ==================== PATCH /:id ====================

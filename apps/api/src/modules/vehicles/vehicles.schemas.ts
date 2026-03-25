@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { vehicleDeletionImpactSchema } from "@mechago/shared";
 
 // Regex para placa brasileira: formato antigo (AAA-1234) ou Mercosul (AAA1A23)
 const PLATE_REGEX = /^[A-Z]{3}-?\d{1}[A-Z0-9]{1}\d{2}$/;
@@ -83,6 +84,10 @@ export const vehicleListResponseSchema = z.object({
   vehicles: z.array(vehicleSchema),
 });
 
+export const vehicleDeletionImpactResponseSchema = z.object({
+  impact: vehicleDeletionImpactSchema,
+});
+
 // ==================== PARAMS ====================
 export const vehicleIdParamSchema = z.object({
   id: z.string().uuid("ID do veículo inválido"),
@@ -92,3 +97,4 @@ export const vehicleIdParamSchema = z.object({
 export type CreateVehicleInput = z.infer<typeof createVehicleSchema>;
 export type UpdateVehicleInput = z.infer<typeof updateVehicleSchema>;
 export type Vehicle = z.infer<typeof vehicleSchema>;
+export type VehicleDeletionImpact = z.infer<typeof vehicleDeletionImpactSchema>;

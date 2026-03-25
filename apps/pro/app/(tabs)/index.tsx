@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   Pressable,
   Switch,
   StyleSheet,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -19,45 +18,99 @@ import {
   useGoOnline,
   useGoOffline,
 } from "@/hooks/queries/useProfessional";
-import { LogoPin, AmbientGlow } from "@/components/ui";
+import { AmbientGlow, LogoPin, MechaGoModal } from "@/components/ui";
 import { colors, spacing, borderRadius } from "@mechago/shared";
 
 // Dashboard principal do profissional — fiel ao design dashboard_mechago_pro
+interface DashboardModalState {
+  visible: boolean;
+  title: string;
+  description: string;
+  type: "info" | "danger" | "success";
+}
+
 // Exibe: status online/offline via API, estatísticas reais, seção de chamados
 export default function DashboardScreen() {
   const { data: user, isLoading: userLoading } = useUser();
   const { data: stats, isLoading: statsLoading } = useProfessionalStats();
   const goOnline = useGoOnline();
   const goOffline = useGoOffline();
+  const [modal, setModal] = React.useState<DashboardModalState>({
+    visible: false,
+    title: "",
+    description: "",
+    type: "info",
+  });
 
   const isOnline = stats?.isOnline ?? false;
   const isToggling = goOnline.isPending || goOffline.isPending;
 
+  const closeModal = useCallback(() => {
+    setModal((current) => ({ ...current, visible: false }));
+  }, []);
+
+  const openModal = useCallback(
+    (title: string, description: string, type: DashboardModalState["type"] = "info") => {
+      setModal({ visible: true, title, description, type });
+    },
+    [],
+  );
+
   // Toggle online/offline via API — requer GPS para ficar online
-  const handleToggle = useCallback(async (value: boolean) => {
-    if (value) {
-      // Precisa de permissão de localização para ficar online
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Permissão necessária",
-          "Para ficar online e receber chamados, precisamos acessar sua localização.",
-        );
+  const handleToggle = useCallback(
+    async (value: boolean) => {
+      if (value) {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          openModal(
+            "Permissão necessária",
+            "Para ficar online e receber chamados, precisamos acessar sua localização.",
+          );
+          return;
+        }
+
+        try {
+          const location = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+
+          goOnline.mutate(
+            {
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+            },
+            {
+              onError: () => {
+                openModal(
+                  "Nao foi possivel ficar online",
+                  "Tivemos um problema ao atualizar sua disponibilidade. Tente novamente.",
+                  "danger",
+                );
+              },
+            },
+          );
+        } catch {
+          openModal(
+            "Localizacao indisponivel",
+            "Nao foi possivel obter sua localizacao atual. Verifique o GPS do aparelho e tente novamente.",
+            "danger",
+          );
+        }
         return;
       }
 
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+      goOffline.mutate(undefined, {
+        onError: () => {
+          openModal(
+            "Nao foi possivel ficar offline",
+            "Tivemos um problema ao atualizar sua disponibilidade. Tente novamente.",
+            "danger",
+          );
+        },
       });
-
-      goOnline.mutate({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-    } else {
-      goOffline.mutate();
-    }
-  }, [goOnline, goOffline]);
+    },
+    [goOffline, goOnline, openModal],
+  );
 
   // Formata valores para exibição em PT-BR — Blindagem contra undefined/null
   const formatCurrency = (value: any) => {
@@ -92,6 +145,16 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <AmbientGlow />
+      <MechaGoModal
+        visible={modal.visible}
+        title={modal.title}
+        description={modal.description}
+        type={modal.type}
+        confirmText="ENTENDI"
+        hideCancel
+        onClose={closeModal}
+        onConfirm={closeModal}
+      />
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
