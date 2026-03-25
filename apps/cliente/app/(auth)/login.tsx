@@ -13,7 +13,7 @@ import { router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/useAuth";
-import { Input, Button, LogoPin } from "@/components/ui";
+import { Input, Button, LogoPin, AmbientGlow } from "@/components/ui";
 import {
   colors,
   spacing,
@@ -37,7 +37,7 @@ export default function LoginScreen() {
 
   function onSubmit(data: LoginFormOutput) {
     login.mutate(
-      { email: data.email, password: data.password },
+      { email: data.email, password: data.password, appContext: "client" as any },
       {
         onSuccess: () => {
           router.replace("/(tabs)");
@@ -55,6 +55,7 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+      <AmbientGlow />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.flex}

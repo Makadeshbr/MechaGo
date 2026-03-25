@@ -20,6 +20,26 @@ export const createServiceRequestSchema = z.object({
   triageAnswers: z.record(z.string(), z.any()).optional(),
 });
 
+// ==================== ESTIMATE PRICE ====================
+export const estimatePriceSchema = z.object({
+  vehicleId: z.string().uuid("ID do veículo inválido"),
+  problemType: problemTypeEnum,
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+});
+
+export const pricingResponseSchema = z.object({
+  basePrice: z.number(),
+  estimatedPrice: z.number(),
+  diagnosticFee: z.number(),
+  multipliers: z.object({
+    vehicle: z.number(),
+    time: z.number(),
+    location: z.number(),
+    distance: z.number(),
+  }),
+});
+
 // ==================== RESPONSE ====================
 export const serviceRequestResponseSchema = z.object({
   id: z.string().uuid(),
@@ -33,4 +53,5 @@ export const serviceRequestResponseSchema = z.object({
 });
 
 export type CreateServiceRequestInput = z.infer<typeof createServiceRequestSchema>;
+export type EstimatePriceInput = z.infer<typeof estimatePriceSchema>;
 export type ServiceRequestResponse = z.infer<typeof serviceRequestResponseSchema>;

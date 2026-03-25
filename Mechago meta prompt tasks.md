@@ -48,23 +48,26 @@ A IA da IDE tem acesso aos arquivos reais do projeto. Ela sabe o que já existe,
 
 ```
 1. BACKEND:
-   a. Escrever TESTE primeiro (service.test.ts) — cenário feliz + erros
+   a. Escrever TESTE unitário primeiro (service.test.ts) — cenário feliz + erros
    b. Implementar: schema Drizzle → repository → service → routes
-   c. Verificar: teste passa ✅
+   c. Escrever TESTE de integração (API + Banco + Redis)
+   d. Verificar: todos os testes passam ✅
 
 2. FRONTEND:
    a. ABRIR o design Stitch correspondente
-   b. Escrever TESTE de integração (tela renderiza? hook chama endpoint? loading aparece?)
+   b. Escrever TESTE de integração/E2E (tela renderiza? fluxo real funciona sem mocks? assets ok?)
    c. Implementar: hook TanStack Query → componente → tela fiel ao design
    d. Verificar: teste passa ✅, visual bate com design ✅
 
-3. INTEGRAÇÃO:
+3. INTEGRAÇÃO E VALIDAÇÃO FINAL:
    a. Testar fluxo completo (tela → API → banco → response → tela atualiza)
-   b. Verificar estados: loading, erro, vazio, sucesso
+   b. Rodar TODA a suíte de testes do módulo (Unit + Integration + E2E)
+   c. Verificar estados: loading, erro, vazio, sucesso
+   d. MANDATÓRIO: Nenhuma task é considerada pronta sem que 100% dos testes passem.
 
 4. REFATORAÇÃO (AGORA, não depois):
-   a. Componente duplicado em 2+ telas? → Extrair para components/ui/
-   b. Hook duplicado? → Extrair para hooks/
+   a. Componente duplicado em 2+ telas? → Extrair para src/components/ui/
+   b. Hook duplicado? → Extrair para src/hooks/
    c. Arquivo com 200+ linhas? → Quebrar
 ```
 
@@ -102,7 +105,7 @@ A IA NUNCA deve:
 ### Localização dos arquivos de design
 
 ```
-MechaGo-FrontEnd/
+MechaGro-FrontEnd/
 ├── MechaGo (App do Cliente)/DesignCliente/    ← Telas do cliente
 └── MechaGo Pro (App do Profissional)/DesignPro/ ← Telas do profissional
 ```
@@ -199,7 +202,7 @@ dados de packages/shared/src/test-fixtures.ts
 | Pagamento     | Mercado Pago            | Pix, split                  |
 | Storage       | Cloudflare R2           | S3-compat, sem egress fee   |
 | Push          | FCM                     | Tópicos geográficos         |
-| Mobile        | Expo SDK 52 + Router 4  | Dev build, file-based       |
+| Mobile        | Expo SDK 54 + Router 6  | Dev build, file-based       |
 | Server state  | TanStack Query v5       | Cache, refetch              |
 | Client state  | Zustand 5               | Leve                        |
 | Local storage | MMKV                    | 10x AsyncStorage            |
@@ -244,7 +247,7 @@ BACKEND:
 - Registrar rotas no app.ts
 
 FRONTEND:
-- Abrir design: MechaGo-FrontEnd/MechaGo (App do Cliente)/DesignCliente/adicionar_ve_culo_mechago/
+- Abrir design: MechaGro-FrontEnd/MechaGo (App do Cliente)/DesignCliente/adicionar_ve_culo_mechago/
 - Implementar tela 100% fiel ao design
 - Conectar ao POST /vehicles via useVehicles.create
 - Loading state, error state, sucesso → navegar para home
@@ -282,7 +285,7 @@ Seguir: RULES.md (padrões, segurança, TDD)
 
 ## FRONTEND
 
-[OBRIGATÓRIO: "Abrir design: MechaGo-FrontEnd/.../[pasta exata]/"]
+[OBRIGATÓRIO: "Abrir design: MechaGro-FrontEnd/.../[pasta exata]/"]
 [OBRIGATÓRIO: "Visual 100% fiel ao design"]
 [Telas, hooks, componentes]
 [Referência: Technical Reference seção 12]

@@ -9,7 +9,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Button, LogoPin } from "@/components/ui";
+import { Button, LogoPin, AmbientGlow } from "@/components/ui";
 import { colors, spacing, borderRadius } from "@mechago/shared";
 
 const PROBLEMS = [
@@ -17,9 +17,8 @@ const PROBLEMS = [
   { id: "battery", label: "Bateria / Não liga", icon: "flash-outline" },
   { id: "electric", label: "Pane elétrica", icon: "hardware-chip-outline" },
   { id: "overheat", label: "Superaquecimento", icon: "thermometer-outline" },
-  { id: "fuel", label: "Pane seca (Combustível)", icon: "gas-station-outline" },
-  { id: "other", label: "Outro problema", icon: "help-circle-outline" },
-];
+  { id: "fuel", label: "Pane seca (Combustível)", icon: "speedometer-outline" },
+  { id: "other", label: "Outro problema", icon: "help-circle-outline" },];
 
 export default function SelectProblemScreen() {
   const { vehicleId } = useLocalSearchParams();
@@ -35,6 +34,7 @@ export default function SelectProblemScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AmbientGlow />
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />

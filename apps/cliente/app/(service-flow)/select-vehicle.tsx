@@ -11,7 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useVehicles } from "@/hooks/queries/useVehicles";
-import { Button, LogoPin, Skeleton } from "@/components/ui";
+import { Button, LogoPin, Skeleton, AmbientGlow } from "@/components/ui";
 import { colors, spacing, borderRadius } from "@mechago/shared";
 
 export default function SelectVehicleScreen() {
@@ -30,6 +30,7 @@ export default function SelectVehicleScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safe}>
+        <AmbientGlow />
         <View style={styles.header}>
           <LogoPin size="sm" />
         </View>
@@ -45,6 +46,7 @@ export default function SelectVehicleScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AmbientGlow />
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />

@@ -21,8 +21,8 @@
 >
 > **2. Design Stitch**: Se o contrato afeta uma tela existente (ex: adicionar botão de login social
 > na tela de login), ABRIR o design Stitch correspondente em
-> `MechaGo-FrontEnd/MechaGo (App do Cliente)/DesignCliente/` ou
-> `MechaGo-FrontEnd/MechaGo Pro (App do Profissional)/DesignPro/`
+> `MechaGro-FrontEnd/MechaGo (App do Cliente)/DesignCliente/` ou
+> `MechaGro-FrontEnd/MechaGo Pro (App do Profissional)/DesignPro/`
 > e manter fidelidade visual. Se for tela NOVA sem design Stitch, seguir DS V4 Stitch Fusion.
 >
 > **3. TDD (Akita XP)**: Teste primeiro, código depois. Service.test.ts antes do service.ts.
@@ -142,7 +142,7 @@ POST /api/v1/auth/social
 
 ```
 TELA AFETADA: (auth)/login.tsx
-DESIGN DE REFERÊNCIA: MechaGo-FrontEnd/MechaGo (App do Cliente)/DesignCliente/login_mechago/
+DESIGN DE REFERÊNCIA: MechaGro-FrontEnd/MechaGo (App do Cliente)/DesignCliente/login_mechago/
 
 MUDANÇAS:
 - Adicionar botões "Continuar com Google" e "Continuar com Apple" abaixo do login por email
@@ -154,7 +154,7 @@ MUDANÇAS:
 - Erro: "Não foi possível conectar com [Google/Apple]. Tente novamente."
 
 TAMBÉM AFETA:
-- (pro)/login.tsx — mesmos botões sociais para profissionais
+- (auth)/login.tsx — mesmos botões sociais para profissionais
 - (auth)/register.tsx — opção "Já tenho conta Google/Apple" no final
 ```
 
@@ -196,7 +196,7 @@ export const createCardPaymentSchema = z.object({
 
 ```
 TELA AFETADA: (service-flow)/estimate.tsx (checkout)
-DESIGN DE REFERÊNCIA: MechaGo-FrontEnd/MechaGo (App do Cliente)/DesignCliente/estimativa_e_checkout_mechago/
+DESIGN DE REFERÊNCIA: MechaGro-FrontEnd/MechaGo (App do Cliente)/DesignCliente/estimativa_e_checkout_mechago/
 
 MUDANÇAS:
 - Seletor de método de pagamento: Pix (padrão) ou Cartão
@@ -528,7 +528,7 @@ DELETE /api/v1/tracking/share/:id
 
 ```
 TELA AFETADA (Mobile): (service-flow)/tracking.tsx
-DESIGN DE REFERÊNCIA: MechaGo-FrontEnd/MechaGo (App do Cliente)/DesignCliente/tracking_profissional_mechago/
+DESIGN DE REFERÊNCIA: MechaGro-FrontEnd/MechaGo (App do Cliente)/DesignCliente/tracking_profissional_mechago/
 
 MUDANÇAS NO TRACKING:
 - Adicionar botão "Compartilhar localização" (ícone share_location)

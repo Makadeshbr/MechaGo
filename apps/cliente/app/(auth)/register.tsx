@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/useAuth";
-import { Input, Button, LogoPin } from "@/components/ui";
+import { Input, Button, LogoPin, AmbientGlow } from "@/components/ui";
 import {
   colors,
   spacing,
@@ -70,6 +70,7 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+      <AmbientGlow />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.flex}

@@ -98,6 +98,27 @@ export class AuthService {
       );
     }
 
+    // Validação de Contexto de Aplicativo (Isolamento de Domínio)
+    // Impede que Clientes loguem no App Pro e Profissionais (sem conta cliente) no App Cliente
+    if (input.appContext) {
+      if (input.appContext === "pro" && user.type !== "professional") {
+        throw new AppError(
+          "UNAUTHORIZED_APP_ACCESS",
+          "Esta conta não possui perfil profissional. Use o aplicativo MechaGo para clientes.",
+          403,
+        );
+      }
+      if (input.appContext === "client" && user.type !== "client") {
+        // Nota: No futuro, profissionais podem ter conta cliente linkada.
+        // Por ora, isolamento total para o MVP.
+        throw new AppError(
+          "UNAUTHORIZED_APP_ACCESS",
+          "Esta conta é de profissional. Use o aplicativo MechaGo Pro.",
+          403,
+        );
+      }
+    }
+
     const payload: TokenPayload = { userId: user.id, type: user.type };
     const [accessToken, refreshToken] = await Promise.all([
       generateAccessToken(payload),

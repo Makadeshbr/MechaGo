@@ -11,8 +11,19 @@
 - **Nome**: MechaGo (cliente) / MechaGo Pro (profissional)
 - **Tipo**: App de socorro automotivo em tempo real (Brasil)
 - **Stack**: Hono + Drizzle + PostgreSQL/PostGIS + Redis + BullMQ + Socket.IO + Expo + React Native
-- **Monorepo**: Turborepo com `apps/api`, `apps/mobile`, `packages/shared`
+- **Monorepo**: Turborepo com `apps/api`, `apps/cliente`, `apps/pro`, `packages/shared`
 - **Documento de referência**: `MechaGo_Technical_Reference.md` (consultar SEMPRE antes de implementar qualquer módulo)
+
+---
+
+## FONTE DA VERDADE E PRECEDENCIA (CRITICAL)
+
+- **Ordem de precedência obrigatória**: (1) estrutura real do repositório + `package.json` de cada workspace, (2) `MechaGo_Technical_Reference.md`, (3) `RULES.md`, (4) roadmap, contratos futuros e tasks.
+- **Repo real vence documento**: se um path, arquivo, tela ou workspace no documento divergir do repositório, a IA DEVE considerar o repositório como fonte da verdade imediata.
+- **Corrigir docs antes de feature grande**: ao detectar drift entre docs e código, a IA DEVE corrigir primeiro a documentação-base antes de continuar uma implementação ampla.
+- **Paths devem existir de verdade**: é PROIBIDO "normalizar" nomes de pastas no documento se o repositório usa outro nome. Exemplo atual: o diretório real de design é `MechaGro-FrontEnd/`.
+- **Sem import cruzado entre apps**: `apps/cliente` e `apps/pro` NUNCA podem importar código-fonte de `apps/api/src`. Contratos compartilhados vivem em `packages/shared` ou em cliente gerado a partir do OpenAPI.
+- **Frontend é contract-first**: hook, tela ou store só podem consumir endpoint que exista de fato e esteja documentado. Se frontend e backend divergirem, corrigir o contrato primeiro.
 
 ---
 
@@ -21,7 +32,7 @@
 - **EXPO SDK**: 54.0.0 (Obrigatório)
 - **React**: 19.1.0
 - **React Native**: 0.81.5
-- **Instalação**: SEMPRE usar `npm install --legacy-peer-deps` ou `npm install --force` para gerenciar o conflito de tipos do React 19.
+- **Instalação**: preferir `npm install`. Se houver conflito conhecido de peer dependency envolvendo React 19 / Expo SDK 54, usar `npm install --legacy-peer-deps`. `npm install --force` é PROIBIDO sem justificativa explícita e aprovação do Arquiteto Principal.
 - **Downgrade**: Proibido realizar downgrade de SDK ou bibliotecas core sem aprovação do Arquiteto Principal.
 
 ---
@@ -115,13 +126,23 @@ Ao criar um módulo novo:
 
 ### Mobile
 
-- Expo Router: file-based routing em `apps/mobile/app/`
-- Telas em `app/(tabs)/`, `app/(auth)/`, `app/(service-flow)/`
-- Componentes reutilizáveis em `components/`
-- Hooks customizados em `hooks/`
-- TanStack Query: hooks de query em `hooks/queries/`
-- Zustand: stores em `stores/`
+- Existem dois apps Expo independentes: `apps/cliente` e `apps/pro`
+- Estrutura canônica de cada app: `app/` para rotas e `src/` para componentes, hooks, stores e libs
+- Cliente: `apps/cliente/app/` + `apps/cliente/src/{components,hooks,lib,stores}`
+- Profissional: `apps/pro/app/` + `apps/pro/src/{components,hooks,lib,stores}`
+- Telas em grupos do Expo Router como `app/(tabs)/`, `app/(auth)/`, `app/(service-flow)/` e `app/(onboarding)/`, conforme a estrutura real do app
+- Componentes reutilizáveis em `src/components/`
+- Hooks customizados em `src/hooks/`
+- TanStack Query: hooks de query em `src/hooks/queries/`
+- Diretórios legados fora de `src/` só podem ser mantidos por compatibilidade; NOVO código não deve nascer neles
 - Constantes e tipos de `packages/shared`
+
+### Boundaries entre workspaces (OBRIGATÓRIO)
+
+- `apps/api` é dono da implementação de backend. Nenhum app mobile importa arquivos de `apps/api/src`
+- `packages/shared` concentra contratos compartilhados, tokens, schemas reaproveitáveis e tipos estáveis entre workspaces
+- Se um dado vem da API, o frontend consome via cliente HTTP/hook tipado — nunca via import direto do backend
+- Ao criar contrato novo, alinhar Zod/OpenAPI/backend/frontend na mesma task
 
 ---
 
@@ -195,19 +216,27 @@ try {
 
 ### PostGIS
 
-- Localização armazenada como `geometry(Point, 4326)`
-- Queries de proximidade com `ST_DWithin()` (mais eficiente que `ST_Distance` para filtro)
+- Estado canônico atual do schema: latitude/longitude armazenados como `decimal(10,7)` nas tabelas operacionais
+- Queries geoespaciais avançadas usam funções PostGIS no repository (`ST_DWithin`, `ST_Distance`, `ST_Contains`) a partir desses campos decimais
 - SEMPRE converter km para metros nas queries (1km = 1000m)
+- Se o projeto migrar para coluna geoespacial nativa (`geometry(Point, 4326)`), isso é mudança arquitetural explícita: atualizar schema, migration, Technical Reference e RULES ANTES de gerar código novo
 
 ```typescript
 // Query de matching: profissionais dentro do raio
 const nearby = await db.execute(sql`
   SELECT p.*, u.name, u.rating,
-    ST_Distance(p.location::geography, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography) AS distance_meters
+    ST_Distance(
+      ST_SetSRID(ST_MakePoint(p.longitude, p.latitude), 4326)::geography,
+      ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
+    ) AS distance_meters
   FROM professionals p
   JOIN users u ON p.user_id = u.id
   WHERE p.is_online = true
-    AND ST_DWithin(p.location::geography, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography, ${radiusMeters})
+    AND ST_DWithin(
+      ST_SetSRID(ST_MakePoint(p.longitude, p.latitude), 4326)::geography,
+      ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+      ${radiusMeters}
+    )
     AND ${vehicleType} = ANY(p.vehicle_types_served)
     AND p.schedule_type = ANY(${activeSchedules})
   ORDER BY u.rating DESC, distance_meters ASC
@@ -228,10 +257,11 @@ const nearby = await db.execute(sql`
 ### TypeScript
 
 - **strict mode**: SEMPRE ativo no tsconfig
-- **Sem `any`**: usar `unknown` + type guards, ou tipos específicos
-- **Sem `as` casting**: fazer validação real em vez de forçar tipo
+- **Sem `any` no domínio**: usar `unknown` + type guards, ou tipos específicos
+- **Casts inseguros são proibidos**: preferir validação real. Exceções controladas: `as const`, `satisfies`, e boundary casts encapsulados para interoperar com libs externas
 - **Sem `!` non-null assertion**: verificar null explicitamente
 - **Inferência de tipos do Drizzle**: usar `typeof table.$inferSelect` e `$inferInsert`
+- **Dependência usada precisa existir no workspace**: se um arquivo importa uma lib, essa lib DEVE estar declarada no `package.json` do app/pacote correspondente
 
 ### Nomenclatura
 
@@ -301,7 +331,8 @@ async function acceptRequest(professionalId: string, requestId: string) {
 TYPE-SAFETY MÁXIMO:
 ✅ USAR tipos inferidos do Drizzle: InferSelectModel<typeof table>, InferInsertModel<typeof table>
 ✅ USAR tipos dos Zod schemas: z.infer<typeof createVehicleSchema>
-❌ PROIBIDO: Record<string, unknown>, any, as string, as unknown, casts manuais
+❌ PROIBIDO no domínio: `any`, casts manuais inseguros, `Record<string, unknown>` quando Drizzle/Zod já fornecem o tipo específico
+✅ PERMITIDO: `as const`, `satisfies`, e casts de boundary encapsulados com justificativa clara
 ❌ PROIBIDO: Tipos genéricos quando o Drizzle/Zod já fornece o tipo específico
    Se uma coluna mudar no banco, o TypeScript DEVE acusar erro em tempo de compilação.
 
@@ -462,7 +493,7 @@ const onSubmit = handleSubmit((data) => {
 ### Queries (TanStack Query)
 
 ```typescript
-// hooks/queries/useServiceRequest.ts
+// src/hooks/queries/useServiceRequest.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
@@ -496,8 +527,8 @@ export function useCreateServiceRequest() {
 
 ### Componentes
 
-- Componentes de UI reutilizáveis em `components/ui/` (Button, Card, Input, etc.)
-- Componentes de domínio em `components/` (VehicleCard, ProfessionalCard, etc.)
+- Componentes de UI reutilizáveis em `src/components/ui/` (Button, Card, Input, etc.)
+- Componentes de domínio em `src/components/` (VehicleCard, ProfessionalCard, etc.)
 - Design tokens importados de `packages/shared`
 - NUNCA cores hardcoded — SEMPRE via tokens
 
@@ -606,8 +637,8 @@ ANTES de implementar QUALQUER tela, a IA DEVE:
 3. Implementar 100% fiel — zero liberdade criativa, zero "melhorias"
 
 Arquivos de design:
-  Cliente: MechaGo-FrontEnd/MechaGo (App do Cliente)/DesignCliente/
-  Pro:     MechaGo-FrontEnd/MechaGo Pro (App do Profissional)/DesignPro/
+  Cliente: MechaGro-FrontEnd/MechaGo (App do Cliente)/DesignCliente/
+  Pro:     MechaGro-FrontEnd/MechaGo Pro (App do Profissional)/DesignPro/
 
 Mapa completo de tela → arquivo de design: ver Technical Reference seção 12.4
 
@@ -664,7 +695,7 @@ DADOS (zero mock):
 □ Datas formatadas em PT-BR (22 mar 2026 — não Mar 22, 2026)
 ```
 
-### 7.6 Checklist de Pré-Entrega (UI)
+### 7.8 Checklist de Pré-Entrega (UI)
 
 Antes de entregar qualquer tela ou componente:
 
@@ -810,9 +841,34 @@ Se identificar um problema de segurança que o desenvolvedor NÃO pediu:
 ```
 apps/api/src/modules/<nome>/
 ├── <nome>.service.ts
-├── <nome>.service.test.ts    ← Teste ao lado do arquivo
+├── __tests__/
+│   ├── unit/<nome>.service.test.ts
+│   └── integration/<nome>.integration.test.ts
 ├── <nome>.repository.ts
 └── ...
+```
+
+### Regras adicionais para IA e manutenção
+
+```
+DOCUMENTAÇÃO E DRIFT:
+✅ Se encontrar divergência entre repo e docs, corrigir a doc base primeiro
+✅ Paths documentados DEVEM existir no repositório
+❌ PROIBIDO seguir documento desatualizado ignorando a estrutura real
+
+MOCKS E FEATURES INCOMPLETAS:
+✅ Mock só em teste automatizado, story/demo isolada e seed de desenvolvimento
+✅ Tela sem backend pronto deve exibir loading/empty state honesto ou ficar fora do fluxo
+❌ PROIBIDO hardcode de dado operacional para simular feature pronta
+
+SECRETS E ARQUIVOS SENSÍVEIS:
+✅ Manter `.env.example` atualizado
+✅ Tratar `.env`, `google-services.json`, service accounts, tokens e chaves privadas como arquivos sensíveis
+❌ PROIBIDO commitar ou pedir commit desses arquivos sem necessidade explícita e revisão humana
+
+TODO POLICY:
+❌ PROIBIDO `TODO`, `FIXME` e placeholders em código de produção
+✅ Pendência vira issue/task rastreável ou implementação concluída na mesma entrega
 ```
 
 ### Exemplo de teste correto

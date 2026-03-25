@@ -3,3 +3,5 @@ export { Button } from "./Button";
 export { LogoPin } from "./LogoPin";
 export { VehicleCard } from "./VehicleCard";
 export { Skeleton } from "./Skeleton";
+export { AmbientGlow } from "./AmbientGlow";
+export { MechaGoModal } from "./Modal";

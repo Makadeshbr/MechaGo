@@ -1,10 +1,45 @@
 import { ServiceRequestsRepository } from "./service-requests.repository";
-import { PricingService } from "./pricing.service";
+import { PricingService, PricingResult } from "./pricing.service";
 import { VehiclesRepository } from "../vehicles/vehicles.repository";
-import { CreateServiceRequestInput } from "./service-requests.schemas";
+import { 
+  CreateServiceRequestInput, 
+  EstimatePriceInput 
+} from "./service-requests.schemas";
 import { AppError } from "@/utils/errors";
 
 export class ServiceRequestsService {
+  /**
+   * Calcula apenas a estimativa sem criar o registro.
+   * Utilizado para exibir o preço real no frontend.
+   */
+  static async estimate(input: EstimatePriceInput): Promise<PricingResult> {
+    const vehicle = await VehiclesRepository.findById(input.vehicleId);
+    if (!vehicle) {
+      throw new AppError("VEHICLE_NOT_FOUND", "Veículo não encontrado", 404);
+    }
+
+    // Geofencing: Detectar se está em Rodovia (Usa coordenadas fixas se enviadas)
+    let context: "urban" | "highway" = "urban";
+    if (input.latitude && input.longitude) {
+      const roadway = await ServiceRequestsRepository.findRoadwayByCoords(
+        input.latitude,
+        input.longitude
+      );
+      context = roadway ? "highway" : "urban";
+    }
+
+    const hour = new Date().getHours();
+    const isNight = hour >= 22 || hour < 6;
+
+    return PricingService.calculateEstimate({
+      problemType: input.problemType,
+      vehicleType: vehicle.type,
+      locationContext: context,
+      distanceKm: 5, // Default para estimativa inicial (TODO: Calcular real via roteamento)
+      isNight,
+    });
+  }
+
   /**
    * Cria um novo pedido de socorro
    * Orquestra: Localização -> Preço -> Banco

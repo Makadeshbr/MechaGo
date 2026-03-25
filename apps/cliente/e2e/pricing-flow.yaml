@@ -1,0 +1,11 @@
+appId: com.mechago.cliente
+---
+- clearState
+- launchApp
+- tapOn: "SOS"
+- tapOn: "Bateria" # Seleciona problema
+- tapOn: "PRÓXIMO" # Triagem
+- assertVisible: "Estimativa de Preço"
+- assertNotVisible: "R$ --,--" # Garante que o valor real carregou
+- assertVisible: "R$ .*" # Regex para validar que existe um valor numérico
+- takeScreenshot: pricing-calculated

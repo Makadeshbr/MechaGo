@@ -1,0 +1,12 @@
+appId: com.mechago.pro
+---
+- clearState
+- launchApp
+- assertVisible: "PROFISSIONAL"
+- tapOn: "E-MAIL"
+- inputText: "cliente@teste.com"
+- tapOn: "SENHA"
+- inputText: "Senha123!"
+- tapOn: "ENTRAR"
+- assertVisible: "Esta conta não possui perfil profissional"
+- takeScreenshot: login-blocked-client

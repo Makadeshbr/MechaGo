@@ -2,12 +2,14 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { AmbientGlow } from "@/components/ui";
 import { colors, spacing } from "@mechago/shared";
 
 // Placeholder — será implementado na task de service-requests
 export default function HistoryScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
+      <AmbientGlow />
       <View style={styles.header}>
         <Text style={styles.title}>Histórico</Text>
       </View>

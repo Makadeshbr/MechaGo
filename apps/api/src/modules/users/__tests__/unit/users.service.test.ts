@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock do repository antes de importar o service
-vi.mock("./users.repository", () => ({
+vi.mock("../../users.repository", () => ({
   UsersRepository: {
     findById: vi.fn(),
     update: vi.fn(),
   },
 }));
 
-import { UsersService } from "./users.service";
-import { UsersRepository } from "./users.repository";
+import { UsersService } from "../../users.service";
+import { UsersRepository } from "../../users.repository";
 
 const mockUser = {
   id: "user-uuid-123",

@@ -77,6 +77,12 @@ const styles = StyleSheet.create({
   },
   primary: {
     backgroundColor: colors.primary,
+    // Glow sutil amarelo — fiel ao design Stitch (shadow-lg shadow-primary-container/10)
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
   },
   outline: {
     backgroundColor: "transparent",

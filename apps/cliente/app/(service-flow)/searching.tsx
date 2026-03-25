@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
-import { LogoPin } from "@/components/ui";
+import { LogoPin, AmbientGlow } from "@/components/ui";
 import { colors, spacing } from "@mechago/shared";
 
 /**
@@ -14,6 +14,7 @@ export default function SearchingScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AmbientGlow />
       <View style={styles.container}>
         <LogoPin size="md" />
         <ActivityIndicator color={colors.primary} size="large" style={styles.spinner} />

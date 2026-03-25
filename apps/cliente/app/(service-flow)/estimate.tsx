@@ -11,8 +11,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
-import { useCreateServiceRequest } from "@/hooks/queries/useServiceRequest";
-import { Button, LogoPin } from "@/components/ui";
+import { 
+  useCreateServiceRequest, 
+  useEstimatePrice 
+} from "@/hooks/queries/useServiceRequest";
+import { Button, LogoPin, AmbientGlow } from "@/components/ui";
 import { colors, spacing, borderRadius } from "@mechago/shared";
 
 export default function EstimateScreen() {
@@ -26,6 +29,14 @@ export default function EstimateScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   const createRequest = useCreateServiceRequest();
+
+  // Hook para buscar a estimativa real
+  const { data: pricing, isLoading: isLoadingPricing } = useEstimatePrice({
+    vehicleId: params.vehicleId!,
+    problemType: params.problemType as any,
+    latitude: location?.coords.latitude,
+    longitude: location?.coords.longitude,
+  });
 
   // Pegar localização real para o Geofencing
   useEffect(() => {
@@ -45,15 +56,13 @@ export default function EstimateScreen() {
     if (!location) return;
 
     createRequest.mutate({
-      vehicleId: params.vehicleId,
-      // Valor garantido pela tela anterior (select-problem) — cast seguro
-      problemType: params.problemType as "tire" | "battery" | "electric" | "overheat" | "fuel" | "other",
+      vehicleId: params.vehicleId!,
+      problemType: params.problemType as any,
       latitude: location.coords.latitude,
       longitude: location.coords.longitude,
       triageAnswers: params.triageAnswers ? JSON.parse(params.triageAnswers) : {},
     }, {
       onSuccess: (data) => {
-        // Navegar para a busca de profissionais (C09)
         router.replace({
           pathname: "/(service-flow)/searching",
           params: { requestId: data.id }
@@ -63,9 +72,15 @@ export default function EstimateScreen() {
   }
 
   const isLoadingLocation = !location && !errorMsg;
+  const isGlobalLoading = isLoadingLocation || isLoadingPricing;
+
+  // Formata moeda PT-BR
+  const formatCurrency = (val?: number) => 
+    val ? `R$ ${val.toFixed(2).replace('.', ',')}` : "R$ --,--";
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AmbientGlow />
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -77,23 +92,25 @@ export default function EstimateScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.title}>Estimativa de Preço</Text>
         
-        {isLoadingLocation ? (
+        {isGlobalLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator color={colors.primary} size="large" />
-            <Text style={styles.loadingText}>Detectando sua localização...</Text>
+            <Text style={styles.loadingText}>
+              {isLoadingLocation ? "Detectando localização..." : "Calculando melhor preço..."}
+            </Text>
           </View>
         ) : (
           <View style={styles.content}>
             <View style={styles.priceCard}>
               <Text style={styles.priceLabel}>VALOR TOTAL ESTIMADO</Text>
-              <Text style={styles.priceValue}>R$ ---,--</Text>
+              <Text style={styles.priceValue}>{formatCurrency(pricing?.estimatedPrice)}</Text>
               <Text style={styles.priceSubtext}>O valor exato será confirmado pelo profissional após o diagnóstico.</Text>
             </View>
 
             <View style={styles.breakdown}>
               <View style={styles.breakdownItem}>
                 <Text style={styles.breakdownLabel}>Taxa de Diagnóstico (Pagar agora)</Text>
-                <Text style={styles.breakdownValue}>R$ 35,00</Text>
+                <Text style={styles.breakdownValue}>{formatCurrency(pricing?.diagnosticFee)}</Text>
               </View>
               <Text style={styles.infoText}>
                 Esta taxa garante o deslocamento do profissional e o diagnóstico do problema. O valor é abatido do serviço final.

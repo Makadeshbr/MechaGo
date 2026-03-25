@@ -1,8 +1,38 @@
 import { MMKV } from "react-native-mmkv";
 
-// Storage persistente via MMKV (mais rápido que AsyncStorage)
-// Usado para tokens de auth e preferências do usuário
-export const storage = new MMKV({ id: "mechago-cliente" });
+// Interface comum para storage — MMKV em builds standalone, fallback in-memory no Expo Go
+interface StorageAdapter {
+  getString(key: string): string | undefined;
+  set(key: string, value: string): void;
+  delete(key: string): void;
+}
+
+// Fallback in-memory para Expo Go (que não suporta TurboModules/MMKV 3.x)
+// Tokens não persistem entre reloads, mas permite testar o fluxo completo
+class InMemoryStorage implements StorageAdapter {
+  private data = new Map<string, string>();
+  getString(key: string) {
+    return this.data.get(key);
+  }
+  set(key: string, value: string) {
+    this.data.set(key, value);
+  }
+  delete(key: string) {
+    this.data.delete(key);
+  }
+}
+
+function createStorage(): StorageAdapter {
+  try {
+    return new MMKV({ id: "mechago-cliente" });
+  } catch {
+    // MMKV falha no Expo Go (sem TurboModules) — usar fallback in-memory
+    console.warn("[storage] MMKV indisponível, usando storage in-memory (Expo Go)");
+    return new InMemoryStorage();
+  }
+}
+
+export const storage = createStorage();
 
 // Helpers tipados para tokens
 const ACCESS_TOKEN_KEY = "auth.accessToken";

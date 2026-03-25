@@ -39,6 +39,9 @@ export const loginSchema = z.object({
     .email("E-mail inválido")
     .transform((v) => v.toLowerCase().trim()),
   password: z.string().min(1, "Senha é obrigatória"),
+  appContext: z.enum(["client", "pro"], {
+    errorMap: () => ({ message: "Contexto de aplicativo inválido" }),
+  }).optional(),
 });
 
 // ==================== REFRESH ====================

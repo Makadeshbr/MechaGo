@@ -118,6 +118,19 @@ export class VehiclesService {
       throw new AppError("FORBIDDEN", "Acesso negado", 403);
     }
 
+    // Verificar se o veículo está vinculado a alguma solicitação ativa
+    // (pending, matching, accepted, professional_enroute, etc.)
+    // Impede remoção durante atendimento em andamento
+    const hasActive =
+      await VehiclesRepository.hasActiveServiceRequests(vehicleId);
+    if (hasActive) {
+      throw new AppError(
+        "VEHICLE_IN_USE",
+        "Não é possível remover veículo com solicitação ativa",
+        409,
+      );
+    }
+
     await VehiclesRepository.delete(vehicleId);
   }
 }

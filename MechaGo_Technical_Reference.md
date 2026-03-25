@@ -45,7 +45,7 @@ mechago/
 │   └── pro/              # App MechaGo Pro (Expo) — APK/IPA do profissional
 ├── packages/
 │   └── shared/           # Types, constantes, design tokens, utils compartilhados
-├── MechaGo-FrontEnd/     # Arquivos de design Stitch (referência visual, NÃO código)
+├── MechaGro-FrontEnd/    # Arquivos de design Stitch (referência visual, NÃO código)
 │   ├── MechaGo (App do Cliente)/DesignCliente/
 │   └── MechaGo Pro (App do Profissional)/DesignPro/
 ├── turbo.json
@@ -57,6 +57,8 @@ mechago/
 > O cliente baixa "MechaGo" na store. O profissional baixa "MechaGo Pro".
 > Ambos compartilham o backend (apps/api) e os types/tokens (packages/shared).
 > Cada app tem seu próprio app.json, suas próprias telas, e seus próprios componentes.
+> O path de design canônico no repositório atual é `MechaGro-FrontEnd/`.
+> `apps/cliente` e `apps/pro` NUNCA importam código-fonte de `apps/api/src`; contratos compartilhados ficam em `packages/shared` ou cliente gerado.
 
 ### 2.2 Backend
 
@@ -909,7 +911,7 @@ socket.emit("queue_update", { position, estimatedWait }) // Atualização da fil
 **Objetivo**: Projeto rodando com auth funcional.
 
 ```
-□ Setup Turborepo monorepo (apps/api, apps/mobile, packages/shared)
+□ Setup Turborepo monorepo (apps/api, apps/cliente, apps/pro, packages/shared)
 □ Docker Compose (PostgreSQL 16 + PostGIS 3.4 + Redis 7)
 □ Configurar Drizzle ORM + drizzle-kit
 □ Schema do banco (todas as tabelas acima) + migration inicial
@@ -1243,6 +1245,7 @@ export const TEST_FIXTURES = {
 apps/cliente/                          # Projeto Expo independente — APK "MechaGo"
 ├── app/
 │   ├── _layout.tsx                    # Root layout (providers: QueryClient, Zustand)
+│   ├── index.tsx                      # Bootstrap / redirect inicial
 │   ├── +not-found.tsx
 │   │
 │   ├── (auth)/                        # Grupo: telas sem autenticação
@@ -1273,50 +1276,23 @@ apps/cliente/                          # Projeto Expo independente — APK "Mech
 │       ├── escalation.tsx             # C15
 │       └── completed.tsx              # C16
 │
-├── components/
-│   ├── ui/                            # Componentes base DS V4 (cliente)
-│   │   ├── Button.tsx
-│   │   ├── Card.tsx
-│   │   ├── Input.tsx
-│   │   ├── BottomNavCliente.tsx       # SOS | Veículos | Histórico | Perfil
-│   │   ├── TopBar.tsx
-│   │   ├── StatusPill.tsx
-│   │   ├── SectionLabel.tsx
-│   │   ├── LoadingSpinner.tsx
-│   │   ├── Skeleton.tsx
-│   │   └── EmptyState.tsx
-│   │
-│   ├── VehicleCard.tsx
-│   ├── ProfessionalCard.tsx
-│   ├── ServiceRequestCard.tsx
-│   ├── PriceBreakdown.tsx
-│   ├── StarRating.tsx
-│   ├── MapView.tsx
-│   └── LogoPin.tsx
-│
-├── hooks/
-│   ├── queries/
-│   │   ├── useAuth.ts
-│   │   ├── useUser.ts
-│   │   ├── useVehicles.ts
-│   │   ├── useServiceRequest.ts
-│   │   └── useReviews.ts
-│   │
-│   ├── useSocket.ts
-│   ├── useLocation.ts
-│   └── useAuth.ts
-│
-├── stores/
-│   ├── authStore.ts
-│   └── serviceFlowStore.ts
-│
-├── lib/
-│   ├── api.ts
-│   ├── socket.ts
-│   ├── storage.ts
-│   └── queryClient.ts
-│
-├── assets/fonts/
+├── src/
+│   ├── components/
+│   │   └── ui/                        # Componentes base DS V4 (cliente)
+│   ├── hooks/
+│   │   ├── queries/
+│   │   └── useAuth.ts
+│   ├── stores/
+│   │   └── auth.store.ts
+│   └── lib/
+│       ├── api.ts
+│       ├── storage.ts
+│       └── query-client.ts
+├── hooks/                             # Legado transitório; novo código não nasce aqui
+│   └── queries/
+├── assets/
+├── e2e/
+├── android/
 ├── app.json                           # name: "MechaGo", scheme: "mechago"
 ├── package.json                       # name: "@mechago/cliente"
 └── tsconfig.json
@@ -1328,74 +1304,42 @@ apps/cliente/                          # Projeto Expo independente — APK "Mech
 apps/pro/                              # Projeto Expo independente — APK "MechaGo Pro"
 ├── app/
 │   ├── _layout.tsx                    # Root layout (providers: QueryClient, Zustand)
-│   ├── +not-found.tsx
+│   ├── index.tsx                      # Bootstrap / redirect inicial
 │   │
 │   ├── (auth)/                        # Grupo: telas sem autenticação
 │   │   ├── _layout.tsx
 │   │   ├── login.tsx                  # P02
-│   │   ├── register-data.tsx          # P03 (1/4)
-│   │   ├── register-type.tsx          # P04 (2/4)
-│   │   ├── register-specialties.tsx   # P05 (3/4)
-│   │   └── register-availability.tsx  # P06 (4/4)
+│   │   └── register.tsx               # Bootstrap atual de cadastro
+│   │
+│   ├── (onboarding)/                  # Fluxo atual de onboarding do profissional
+│   │   ├── _layout.tsx
+│   │   ├── professional-type.tsx      # P04 (tipo)
+│   │   ├── specialty.tsx              # P05 (especialidades)
+│   │   ├── service-area.tsx           # P06 (área/disponibilidade)
+│   │   └── review.tsx                 # Revisão final
 │   │
 │   ├── (tabs)/                        # Grupo: tabs principais
-│   │   ├── _layout.tsx                # Tab navigator (Início | Histórico | Ganhos | Perfil)
+│   │   ├── _layout.tsx                # Tab navigator (Início | Chamados | Histórico | Perfil)
 │   │   ├── index.tsx                  # P07 — Dashboard
+│   │   ├── orders.tsx                 # Chamados / fila atual
 │   │   ├── history.tsx                # P14 — Histórico
-│   │   ├── earnings.tsx               # P13 — Ganhos
 │   │   └── profile.tsx                # P15 — Perfil
-│   │
-│   └── (service-flow)/                # Grupo: fluxo de atendimento
-│       ├── _layout.tsx
-│       ├── new-request.tsx            # P08
-│       ├── navigation.tsx             # P09
-│       ├── diagnosis.tsx              # P10
-│       ├── service-resolved.tsx       # P11
-│       ├── escalation.tsx             # P12
-│       ├── service-completed.tsx      # P16
-│       └── review-received.tsx        # P18
 │
-├── components/
-│   ├── ui/                            # Componentes base DS V4 (pro)
-│   │   ├── Button.tsx
-│   │   ├── Card.tsx
-│   │   ├── Input.tsx
-│   │   ├── BottomNavPro.tsx           # Início | Histórico | Ganhos | Perfil
-│   │   ├── TopBarPro.tsx              # Com badge "PRO"
-│   │   ├── StatusPill.tsx
-│   │   ├── LoadingSpinner.tsx
-│   │   ├── Skeleton.tsx
-│   │   └── EmptyState.tsx
-│   │
-│   ├── RequestCard.tsx                # Card de chamado recebido
-│   ├── StatsCard.tsx                  # Card de estatísticas do dashboard
-│   ├── EarningsChart.tsx              # Gráfico de ganhos
-│   ├── DiagnosisForm.tsx              # Formulário de diagnóstico
-│   ├── MapView.tsx
-│   └── LogoPin.tsx
-│
-├── hooks/
-│   ├── queries/
-│   │   ├── useAuth.ts
-│   │   ├── useProfessional.ts
-│   │   ├── useServiceRequest.ts
-│   │   └── useReviews.ts
-│   │
-│   ├── useSocket.ts
-│   ├── useLocation.ts
-│   └── useAuth.ts
-│
-├── stores/
-│   ├── authStore.ts
-│   └── serviceFlowStore.ts
-│
-├── lib/
-│   ├── api.ts
-│   ├── socket.ts
-│   ├── storage.ts
-│   └── queryClient.ts
-│
-├── assets/fonts/
+├── src/
+│   ├── components/
+│   │   └── ui/                        # Componentes base DS V4 (pro)
+│   ├── hooks/
+│   │   ├── queries/
+│   │   └── useAuth.ts
+│   ├── stores/
+│   │   ├── auth.store.ts
+│   │   └── onboarding.store.ts
+│   └── lib/
+│       ├── api.ts
+│       ├── storage.ts
+│       └── query-client.ts
+├── assets/
+├── e2e/
 ├── app.json                           # name: "MechaGo Pro", scheme: "mechagopro"
 ├── package.json                       # name: "@mechago/pro"
 └── tsconfig.json
@@ -1419,6 +1363,10 @@ packages/shared/                       # Compartilhado entre cliente, pro, e API
 > Quando a duplicação se tornar custo de manutenção, refatorar.
 
 ### 12.2 Mapa de Telas → Endpoints → Componentes
+
+> **Nota operacional**: o mapa abaixo combina estado atual do repositório com estrutura alvo do produto.
+> Antes de editar qualquer tela, a IA DEVE confirmar se o arquivo já existe no repo.
+> Se não existir, criar incrementalmente na estrutura real vigente do app, sem assumir arquivos inexistentes como se já estivessem implementados.
 
 #### App Cliente (apps/cliente/)
 
@@ -1525,7 +1473,7 @@ FORMATAÇÃO PT-BR:
 ```
 Ao implementar telas, a IA DEVE refatorar PROATIVAMENTE:
 
-1. Componente aparece em 2+ telas? → Extrair para components/ui/ ou components/
+1. Componente aparece em 2+ telas? → Extrair para src/components/ui/ ou src/components/
    Exemplos comuns: ProfessionalCard, VehicleCard, PriceBreakdown, StarRating
 
 2. Estilo repetido em 3+ lugares? → Extrair para um StyleSheet compartilhado
@@ -1548,7 +1496,7 @@ Ao implementar telas, a IA DEVE refatorar PROATIVAMENTE:
 #### Localização dos arquivos de design
 
 ```
-MechaGo-FrontEnd/
+MechaGro-FrontEnd/
 ├── MechaGo (App do Cliente)/
 │   └── DesignCliente/              ← Design de TODAS as telas do cliente
 │       ├── splash_onboarding_mechago/
@@ -1614,19 +1562,19 @@ MechaGo-FrontEnd/
 
 | Tela             | Código                            | Arquivo de design (abrir ANTES de implementar) |
 | ---------------- | --------------------------------- | ---------------------------------------------- |
-| P01 Splash       | `(pro)/` auto                     | `DesignPro/splash_mechago_pro/`                |
-| P02 Login        | `(pro)/login.tsx`                 | `DesignPro/login_mechago_pro/`                 |
-| P03 Cadastro 1/4 | `(pro)/register-data.tsx`         | `DesignPro/cadastro_pro_dados_1_4/`            |
-| P04 Cadastro 2/4 | `(pro)/register-type.tsx`         | `DesignPro/cadastro_pro_tipo_2_4/`             |
-| P05 Cadastro 3/4 | `(pro)/register-specialties.tsx`  | `DesignPro/cadastro_pro_especialidades_3_4/`   |
-| P06 Cadastro 4/4 | `(pro)/register-availability.tsx` | `DesignPro/cadastro_pro_disponibilidade_4_4/`  |
-| P07 Dashboard    | `(pro)/index.tsx`                 | `DesignPro/dashboard_mechago_pro/`             |
-| P08 Novo Chamado | `(pro)/new-request.tsx`           | `DesignPro/novo_chamado_pro/`                  |
-| P09 Navegação    | `(pro)/navigation.tsx`            | `DesignPro/navega_o_pro_mechago/`              |
-| P10 Diagnóstico  | `(pro)/diagnosis.tsx`             | `DesignPro/atendimento_e_diagn_stico_pro/`     |
-| P11 Resolvido    | `(pro)/service-resolved.tsx`      | `DesignPro/servi_o_resolvido_pro/`             |
-| P12 Escalada     | `(pro)/escalation.tsx`            | `DesignPro/n_o_resolvido_escalada_pro/`        |
-| P16 Concluído    | `(pro)/service-completed.tsx`     | `DesignPro/servi_o_conclu_do_mechago/`         |
+| P01 Splash       | `index.tsx`                       | `DesignPro/splash_mechago_pro/`                |
+| P02 Login        | `(auth)/login.tsx`                | `DesignPro/login_mechago_pro/`                 |
+| P03 Cadastro 1/4 | `(auth)/register.tsx`             | `DesignPro/cadastro_pro_dados_1_4/`            |
+| P04 Cadastro 2/4 | `(onboarding)/professional-type.tsx` | `DesignPro/cadastro_pro_tipo_2_4/`          |
+| P05 Cadastro 3/4 | `(onboarding)/specialty.tsx`      | `DesignPro/cadastro_pro_especialidades_3_4/`   |
+| P06 Cadastro 4/4 | `(onboarding)/service-area.tsx`   | `DesignPro/cadastro_pro_disponibilidade_4_4/`  |
+| P07 Dashboard    | `(tabs)/index.tsx`                | `DesignPro/dashboard_mechago_pro/`             |
+| P08 Novo Chamado | `(service-flow)/new-request.tsx`  | `DesignPro/novo_chamado_pro/`                  |
+| P09 Navegação    | `(service-flow)/navigation.tsx`   | `DesignPro/navega_o_pro_mechago/`              |
+| P10 Diagnóstico  | `(service-flow)/diagnosis.tsx`    | `DesignPro/atendimento_e_diagn_stico_pro/`     |
+| P11 Resolvido    | `(service-flow)/service-resolved.tsx` | `DesignPro/servi_o_resolvido_pro/`         |
+| P12 Escalada     | `(service-flow)/escalation.tsx`   | `DesignPro/n_o_resolvido_escalada_pro/`        |
+| P16 Concluído    | `(service-flow)/service-completed.tsx` | `DesignPro/servi_o_conclu_do_mechago/`     |
 | DS Reference     | —                                 | `DesignPro/mechago_noir/`                      |
 
 ---

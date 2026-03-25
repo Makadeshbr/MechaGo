@@ -2,12 +2,16 @@ import ky from "ky";
 import { tokenStorage } from "./storage";
 import { router } from "expo-router";
 
-// EXPO_PUBLIC_API_URL vem do eas.json (preview/production) ou fallback para emulador
+// EXPO_PUBLIC_API_URL vem do eas.json (preview/production) ou fallback para dev local
+// 192.168.2.100 = IP da máquina na rede Wi-Fi (celular físico + Expo Go)
+// 10.0.2.2 = alias do host no emulador Android
+const DEV_API_URL = "http://192.168.2.100:3000/api/v1";
+
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL
     ? `${process.env.EXPO_PUBLIC_API_URL}/api/v1`
     : __DEV__
-      ? "http://10.0.2.2:3000/api/v1"
+      ? DEV_API_URL
       : "https://api.mechago.com.br/api/v1";
 
 // Cliente HTTP configurado com interceptors de auth
@@ -26,7 +30,15 @@ export const api = ky.create({
     ],
     afterResponse: [
       async (_request, _options, response) => {
-        // Se receber 401, tenta refresh automático
+        // Endpoints de auth retornam 401 para credenciais inválidas —
+        // não interceptar, deixar o erro propagar para a tela tratar
+        const url = new URL(_request.url);
+        const isAuthEndpoint = url.pathname.includes("/auth/");
+        if (response.status === 401 && isAuthEndpoint) {
+          return response;
+        }
+
+        // Para demais endpoints, 401 = token expirado → tenta refresh
         if (response.status === 401) {
           const refreshToken = tokenStorage.getRefreshToken();
           if (!refreshToken) {

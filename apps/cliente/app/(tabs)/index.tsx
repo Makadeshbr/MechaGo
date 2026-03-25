@@ -12,7 +12,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "@/hooks/queries/useUser";
 import { useVehicles } from "@/hooks/queries/useVehicles";
-import { LogoPin, VehicleCard } from "@/components/ui";
+import { LogoPin, VehicleCard, AmbientGlow } from "@/components/ui";
 import { colors, spacing, borderRadius } from "@mechago/shared";
 
 export default function HomeSOS() {
@@ -31,6 +31,7 @@ export default function HomeSOS() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
+      <AmbientGlow />
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -107,9 +108,7 @@ export default function HomeSOS() {
             styles.sosCard,
             pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
           ]}
-          onPress={() => {
-            // TODO: Navegar para fluxo de serviço
-          }}
+          onPress={() => router.push("/(service-flow)/select-vehicle")}
           accessibilityLabel="Solicitar socorro agora"
           accessibilityRole="button"
         >

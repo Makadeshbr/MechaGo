@@ -25,8 +25,8 @@
 > Nunca entregar só backend. Nunca entregar só frontend. Fatia vertical sempre.
 >
 > **2. Fidelidade visual**: Toda tela segue 100% o design Stitch. Arquivos em:
-> `MechaGo-FrontEnd/MechaGo (App do Cliente)/DesignCliente/` e
-> `MechaGo-FrontEnd/MechaGo Pro (App do Profissional)/DesignPro/`
+> `MechaGro-FrontEnd/MechaGo (App do Cliente)/DesignCliente/` e
+> `MechaGro-FrontEnd/MechaGo Pro (App do Profissional)/DesignPro/`
 > Ver mapa completo de tela → design no Technical Reference seção 12.4.
 >
 > **3. TDD (Akita XP)**: Teste primeiro, código depois. Backend: service.test.ts antes do service.ts.

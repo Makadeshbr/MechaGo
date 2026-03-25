@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock do repository antes de importar o service
-vi.mock("./vehicles.repository", () => ({
+vi.mock("../../vehicles.repository", () => ({
   VehiclesRepository: {
     findById: vi.fn(),
     findByPlate: vi.fn(),
@@ -10,11 +10,12 @@ vi.mock("./vehicles.repository", () => ({
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    hasActiveServiceRequests: vi.fn(),
   },
 }));
 
-import { VehiclesService } from "./vehicles.service";
-import { VehiclesRepository } from "./vehicles.repository";
+import { VehiclesService } from "../../vehicles.service";
+import { VehiclesRepository } from "../../vehicles.repository";
 
 const USER_ID = "user-uuid-123";
 
@@ -28,11 +29,16 @@ const mockVehicle = {
   year: 2019,
   color: "Preto",
   createdAt: new Date("2026-01-15"),
+  deletedAt: null,
 };
 
 describe("VehiclesService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: sem solicitações ativas (cenário mais comum)
+    vi.mocked(VehiclesRepository.hasActiveServiceRequests).mockResolvedValue(
+      false,
+    );
   });
 
   describe("create", () => {
@@ -106,6 +112,30 @@ describe("VehiclesService", () => {
 
       expect(vehicle.id).toBe("vehicle-uuid-5");
     });
+
+    it("deve permitir cadastro com placa de veículo soft-deleted", async () => {
+      // findByPlate filtra por isNull(deletedAt), então retorna undefined
+      // para placas de veículos excluídos — re-cadastro é legítimo
+      vi.mocked(VehiclesRepository.countByUserId).mockResolvedValue(0);
+      vi.mocked(VehiclesRepository.findByPlate).mockResolvedValue(undefined);
+      vi.mocked(VehiclesRepository.create).mockResolvedValue({
+        ...mockVehicle,
+        id: "vehicle-uuid-reused",
+        plate: "OLD-1111",
+      });
+
+      const vehicle = await VehiclesService.create(USER_ID, {
+        type: "car",
+        plate: "OLD-1111",
+        brand: "Fiat",
+        model: "Uno",
+        year: 2015,
+      });
+
+      expect(vehicle.id).toBe("vehicle-uuid-reused");
+      expect(vehicle.plate).toBe("OLD-1111");
+      expect(VehiclesRepository.create).toHaveBeenCalledOnce();
+    });
   });
 
   describe("listByUser", () => {
@@ -146,6 +176,21 @@ describe("VehiclesService", () => {
       expect(vehicle.color).toBe("Branco");
     });
 
+    it("deve retornar veículo inalterado quando nenhum campo é enviado", async () => {
+      vi.mocked(VehiclesRepository.findById).mockResolvedValue(mockVehicle);
+
+      const vehicle = await VehiclesService.update(
+        USER_ID,
+        "vehicle-uuid-1",
+        {},
+      );
+
+      // Quando nenhum campo é alterado, retorna os dados atuais sem chamar update
+      expect(vehicle.id).toBe("vehicle-uuid-1");
+      expect(vehicle.color).toBe("Preto");
+      expect(VehiclesRepository.update).not.toHaveBeenCalled();
+    });
+
     it("deve rejeitar update de veículo inexistente", async () => {
       vi.mocked(VehiclesRepository.findById).mockResolvedValue(undefined);
 
@@ -167,12 +212,34 @@ describe("VehiclesService", () => {
   });
 
   describe("delete", () => {
-    it("deve deletar veículo do usuário", async () => {
+    it("deve deletar veículo do usuário sem solicitações ativas", async () => {
       vi.mocked(VehiclesRepository.findById).mockResolvedValue(mockVehicle);
+      vi.mocked(VehiclesRepository.hasActiveServiceRequests).mockResolvedValue(
+        false,
+      );
 
       await VehiclesService.delete(USER_ID, "vehicle-uuid-1");
 
+      expect(VehiclesRepository.hasActiveServiceRequests).toHaveBeenCalledWith(
+        "vehicle-uuid-1",
+      );
       expect(VehiclesRepository.delete).toHaveBeenCalledWith("vehicle-uuid-1");
+    });
+
+    it("deve rejeitar delete de veículo com solicitação ativa", async () => {
+      vi.mocked(VehiclesRepository.findById).mockResolvedValue(mockVehicle);
+      vi.mocked(VehiclesRepository.hasActiveServiceRequests).mockResolvedValue(
+        true,
+      );
+
+      await expect(
+        VehiclesService.delete(USER_ID, "vehicle-uuid-1"),
+      ).rejects.toThrow(
+        "Não é possível remover veículo com solicitação ativa",
+      );
+
+      // Não deve chamar delete se existe solicitação ativa
+      expect(VehiclesRepository.delete).not.toHaveBeenCalled();
     });
 
     it("deve rejeitar delete de veículo inexistente", async () => {
@@ -195,3 +262,4 @@ describe("VehiclesService", () => {
     });
   });
 });
+

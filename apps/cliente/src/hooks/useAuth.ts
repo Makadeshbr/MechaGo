@@ -23,6 +23,19 @@ interface AuthResponse {
   tokens: { accessToken: string; refreshToken: string };
 }
 
+// Extrai mensagem de erro da resposta HTTP (ky lança HTTPError com body JSON)
+async function extractErrorMessage(error: unknown): Promise<string> {
+  try {
+    if (error && typeof error === "object" && "response" in error) {
+      const body = await (error as { response: Response }).response.json();
+      return body?.error?.message ?? body?.message ?? "Erro inesperado";
+    }
+  } catch {
+    // Body não é JSON — ignorar
+  }
+  return "Erro de conexão. Verifique sua internet.";
+}
+
 // Hook de autenticação — encapsula login, register e logout
 // Persiste tokens no MMKV e atualiza o store de auth
 export function useAuth() {
@@ -30,7 +43,14 @@ export function useAuth() {
 
   const loginMutation = useMutation({
     mutationFn: async (input: LoginInput) => {
-      return api.post("auth/login", { json: input }).json<AuthResponse>();
+      try {
+        return await api
+          .post("auth/login", { json: input })
+          .json<AuthResponse>();
+      } catch (error) {
+        const message = await extractErrorMessage(error);
+        throw new Error(message);
+      }
     },
     onSuccess: (data) => {
       tokenStorage.setTokens(
@@ -43,7 +63,14 @@ export function useAuth() {
 
   const registerMutation = useMutation({
     mutationFn: async (input: RegisterInput) => {
-      return api.post("auth/register", { json: input }).json<AuthResponse>();
+      try {
+        return await api
+          .post("auth/register", { json: input })
+          .json<AuthResponse>();
+      } catch (error) {
+        const message = await extractErrorMessage(error);
+        throw new Error(message);
+      }
     },
     onSuccess: (data) => {
       tokenStorage.setTokens(

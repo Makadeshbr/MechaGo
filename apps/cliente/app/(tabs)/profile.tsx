@@ -10,6 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "@/hooks/queries/useUser";
 import { useAuth } from "@/hooks/useAuth";
+import { AmbientGlow } from "@/components/ui";
 import { colors, spacing, borderRadius } from "@mechago/shared";
 
 // Tela básica de perfil — mostra dados do usuário e botão de logout
@@ -19,6 +20,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
+      <AmbientGlow />
       <View style={styles.header}>
         <Text style={styles.title}>Perfil</Text>
       </View>
