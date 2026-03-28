@@ -51,22 +51,15 @@ export default function RegisterVehicleScreen() {
   const createVehicle = useCreateVehicle();
 
   function onSubmit(data: CreateVehicleFormInput) {
-    const parsed = createVehicleFormSchema.safeParse(data);
-
-    if (!parsed.success) {
-      setError("root", {
-        message: "Revise os dados do veiculo antes de continuar.",
-      });
-      return;
-    }
-
+    // zodResolver já validou e transformou os dados antes de chamar onSubmit
+    // (year virou number, plate virou uppercase) — safeParse redundante removido
     createVehicle.mutate(
       {
-        type: parsed.data.type,
-        brand: parsed.data.brand,
-        model: parsed.data.model,
-        year: parsed.data.year,
-        plate: parsed.data.plate,
+        type: data.type,
+        brand: data.brand,
+        model: data.model,
+        year: data.year as unknown as number,
+        plate: data.plate,
       },
       {
         onSuccess: () => {
