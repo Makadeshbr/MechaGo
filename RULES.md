@@ -977,9 +977,48 @@ chore(deps): update drizzle-orm to 0.36.1
 ### Deploy
 - API: Railway (auto-deploy do branch `main`)
 - Mobile: EAS Build + EAS Submit
-- Banco: Railway PostgreSQL (com PostGIS extension)
+- Banco: Railway PostgreSQL (PostGIS — serviço `postgis/postgis:16-3.4` com volume persistente)
 - Redis: Railway Redis
 - Storage: Cloudflare R2
+
+### Estratégia de Deploy Mobile (OBRIGATÓRIO)
+
+> **Regra inegociável:** Gerar novo APK/AAB APENAS quando houver nova lib nativa.
+> Tudo o mais vai via EAS Update (OTA) — sem envolver o usuário.
+
+```
+FLUXO PADRÃO (toda task):
+1. Implementar feature (código JS/TS/TSX apenas)
+2. git push origin master
+3. eas update --branch preview --message "feat: descrição"
+   → Atualização chega silenciosamente no app em segundos
+
+QUANDO GERAR NOVO APK (rebuild obrigatório):
+□ Instalou nova lib com código nativo (módulo C++/Java/Kotlin)
+□ Alterou app.json (plugins, permissões, scheme, bundleIdentifier)
+□ Alterou eas.json (profiles, canais)
+□ Atualizou Expo SDK (ex: 54 → 55)
+□ Adicionou novo plugin do Expo (expo-camera, expo-location, etc.)
+
+CALENDÁRIO DE REBUILDS PLANEJADOS:
+  MVP (Tasks 05.3-05.4)  → OTA apenas (sem rebuild)
+  V1.0 Sprint 7          → REBUILD #1 (Mercado Pago SDK nativo + Deep linking)
+  V1.0 Sprint 9          → REBUILD #2 (expo-location background task)
+  V1.5 Sprint 11         → REBUILD #3 (react-native-maps / Guincho)
+  V2.0 Sprint 16         → REBUILD #4 (TensorFlow Lite / Triagem IA)
+
+COMANDO OTA:
+  cd apps/cliente && eas update --branch preview --message "feat: ..."
+  cd apps/pro     && eas update --branch preview --message "feat: ..."
+
+COMANDO REBUILD (só quando necessário):
+  cd apps/cliente && eas build --profile preview --platform android
+  cd apps/pro     && eas build --profile preview --platform android
+```
+
+**IDs dos projetos EAS (não alterar):**
+- Cliente: `339fd71f-da7d-42b1-817f-0d963c4388d9` (`@nataliasouza/mechago-cliente`)
+- Pro: `4e523b01-c95d-45e4-a270-3dbfa3ca2d9a` (`@nataliasouza/mechago-pro`)
 
 ---
 

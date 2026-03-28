@@ -1036,7 +1036,71 @@ socket.emit("queue_update", { position, estimatedWait }) // Atualização da fil
 
 ---
 
-## 8. VARIÁVEIS DE AMBIENTE
+## 8. ESTRATÉGIA DE DEPLOY MOBILE (EAS Build + EAS Update)
+
+### 8.1 Infraestrutura atual (MVP — Task 05.2 concluída)
+
+| Serviço | URL / Identificador | Status |
+|---|---|---|
+| API | `https://api-production-f7a8.up.railway.app` | ✅ Live |
+| Banco | `postgis.railway.internal:5432` (PostGIS 3.4 + volume) | ✅ Live |
+| Redis | `redis.railway.internal:6379` | ✅ Live |
+| Storage | Cloudflare R2 (`mechago-uploads`) | ✅ Live |
+| App Cliente | EAS project `339fd71f` (`@nataliasouza/mechago-cliente`) | ✅ APK gerado |
+| App Pro | EAS project `4e523b01` (`@nataliasouza/mechago-pro`) | ✅ APK gerado |
+
+### 8.2 Regra de Deploy Mobile — OTA vs Rebuild
+
+> **REGRA ABSOLUTA**: Gerar novo APK/AAB **SOMENTE** quando houver nova lib nativa.
+> Qualquer mudança em JS/TS/TSX vai via `eas update` (OTA) — silencioso, sem ação do usuário.
+
+**Quando usar `eas update` (OTA):**
+- Qualquer mudança de tela, lógica, hook, store, estilo
+- Correção de bug em código JS/TS
+- Tasks 05.3 e 05.4 inteiras → tudo OTA
+
+**Quando gerar novo APK (`eas build`):**
+- Nova lib com código nativo (módulo C++/Java/Kotlin)
+- Mudança em `app.json` (plugins, permissões, scheme)
+- Atualização do Expo SDK
+- Adição de novo plugin Expo
+
+### 8.3 Calendário de Rebuilds
+
+| Fase | Sprint | Motivo do rebuild | Libs novas |
+|---|---|---|---|
+| MVP (atual) | 05.3–05.4 | OTA apenas | — |
+| V1.0 | Sprint 7 | **REBUILD #1** | Mercado Pago SDK nativo, expo-linking |
+| V1.0 | Sprint 9 | **REBUILD #2** | expo-location background task |
+| V1.5 | Sprint 11 | **REBUILD #3** | react-native-maps / expo-maps |
+| V2.0 | Sprint 16 | **REBUILD #4** | TensorFlow Lite / ML Kit (Triagem IA) |
+
+### 8.4 Comandos
+
+```bash
+# OTA update (uso padrão após cada task)
+cd apps/cliente && eas update --branch preview --message "feat: descrição"
+cd apps/pro     && eas update --branch preview --message "feat: descrição"
+
+# Rebuild APK (apenas quando necessário — ver calendário acima)
+cd apps/cliente && eas build --profile preview --platform android
+cd apps/pro     && eas build --profile preview --platform android
+
+# Build de produção (Play Store)
+cd apps/cliente && eas build --profile production --platform android
+cd apps/pro     && eas build --profile production --platform android
+```
+
+### 8.5 Canais EAS
+
+| Canal | Perfil | Uso |
+|---|---|---|
+| `preview` | APK interno | Testes com equipe/beta |
+| `production` | AAB (Play Store) | Lançamento público |
+
+---
+
+## 9. VARIÁVEIS DE AMBIENTE
 
 ```bash
 # .env (validado por env.ts com Zod)
