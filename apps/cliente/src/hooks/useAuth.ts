@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { tokenStorage } from "@/lib/storage";
 import { useAuthStore } from "@/stores/auth.store";
@@ -30,6 +30,7 @@ async function extractErrorMessage(error: unknown): Promise<string> {
 // Persiste tokens no MMKV e atualiza o store de auth
 export function useAuth() {
   const { setUser, logout: storeLogout } = useAuthStore();
+  const queryClient = useQueryClient();
 
   const loginMutation = useMutation({
     mutationFn: async (input: LoginRequestInput) => {
@@ -48,6 +49,9 @@ export function useAuth() {
         data.tokens.refreshToken,
       );
       setUser(data.user);
+      // Limpa cache de queries stale/com erro para que re-login
+      // não mostre dados ou erros de sessões anteriores
+      void queryClient.resetQueries();
     },
   });
 
@@ -68,6 +72,7 @@ export function useAuth() {
         data.tokens.refreshToken,
       );
       setUser(data.user);
+      void queryClient.resetQueries();
     },
   });
 
