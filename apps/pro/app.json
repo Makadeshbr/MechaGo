@@ -22,7 +22,6 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"
       },
-      "googleServicesFile": "./google-services.json",
       "package": "com.mechago.pro",
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -33,7 +32,6 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-localization",
       [
         "expo-location",
         {
@@ -50,7 +48,8 @@
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#FDD404"
+          "color": "#FDD404",
+          "enableBackgroundRemoteNotifications": false
         }
       ]
     ],
