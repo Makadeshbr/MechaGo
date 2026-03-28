@@ -22,31 +22,53 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"
       },
+      "googleServicesFile": "./google-services.json",
       "package": "com.mechago.pro",
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA"
       ]
     },
     "plugins": [
       "expo-router",
       "expo-font",
+      "expo-localization",
       [
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "O MechaGo Pro precisa da sua localização para mostrar você como disponível para clientes próximos."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O MechaGo Pro precisa acessar sua câmera para tirar fotos do diagnóstico e do serviço realizado."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#FDD404"
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
     },
+    "updates": {
+      "url": "https://u.expo.dev/4e523b01-c95d-45e4-a270-3dbfa3ca2d9a"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "extra": {
       "router": {
         "origin": false
       },
       "eas": {
-        "projectId": "PLACEHOLDER_PRO_PROJECT_ID"
+        "projectId": "4e523b01-c95d-45e4-a270-3dbfa3ca2d9a"
       }
     },
     "owner": "nataliasouza"

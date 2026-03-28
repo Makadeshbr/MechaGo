@@ -21,7 +21,7 @@
       },
       "env": {
         "EXPO_PUBLIC_APP_ENV": "preview",
-        "EXPO_PUBLIC_API_URL": "http://192.168.2.100:3000"
+        "EXPO_PUBLIC_API_URL": "https://api-production-f7a8.up.railway.app"
       }
     },
     "production": {
@@ -31,7 +31,7 @@
       "channel": "production",
       "env": {
         "EXPO_PUBLIC_APP_ENV": "production",
-        "EXPO_PUBLIC_API_URL": "https://api.mechago.com.br"
+        "EXPO_PUBLIC_API_URL": "https://api-production-f7a8.up.railway.app"
       }
     }
   },

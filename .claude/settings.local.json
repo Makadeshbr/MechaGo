@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "mcp__serena__find_file"
+      "mcp__serena__find_file",
+      "Bash(find /c/Users/FLORZINHA/Desktop/Projetos/MechaGo/apps/cliente/src/components -type f -name *.tsx)"
     ]
   }
 }
