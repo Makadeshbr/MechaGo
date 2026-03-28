@@ -31,6 +31,7 @@ export async function verifyPassword(
 export interface TokenPayload {
   userId: string;
   type: "client" | "professional" | "admin";
+  role: "client" | "professional" | "admin";
 }
 
 export async function generateAccessToken(

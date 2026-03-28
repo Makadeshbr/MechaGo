@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
-import { Ionicons } from "@expo/vector-icons";
-import { colors, spacing, borderRadius } from "@mechago/shared";
+import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { colors, spacing, radii, fonts } from "@mechago/shared";
 import { api } from "@/lib/api";
 import { useSocket } from "@/providers/SocketProvider";
-
-const { width } = Dimensions.get("window");
+import { MechaGoModal } from "@/components/ui";
 
 const PROBLEM_LABELS: Record<string, string> = {
   tire: "Pneu",
@@ -19,12 +19,12 @@ const PROBLEM_LABELS: Record<string, string> = {
   other: "Outro",
 };
 
-const PROBLEM_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  tire: "construct",
+const PROBLEM_ICONS: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
+  tire: "car-tire-alert",
   battery: "battery-charging",
   electric: "flash",
-  overheat: "thermometer",
-  fuel: "water",
+  overheat: "thermometer-alert",
+  fuel: "gas-station",
   other: "alert-circle",
 };
 
@@ -36,29 +36,130 @@ function formatTime(seconds: number): string {
 
 export default function NewRequestScreen() {
   const router = useRouter();
-  const { requestData: request, clearRequest } = useSocket();
+  const { requestData: request, clearRequest, socket } = useSocket();
   const [timeLeft, setTimeLeft] = useState(180);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [modal, setModal] = useState<{
+    visible: boolean;
+    title: string;
+    description: string;
+    type: "info" | "danger" | "success";
+    confirmText: string;
+    cancelText?: string;
+    hideCancel?: boolean;
+    onConfirm: () => void;
+  }>({
+    visible: false,
+    title: "",
+    description: "",
+    type: "info",
+    confirmText: "OK",
+    cancelText: "VOLTAR",
+    hideCancel: true,
+    onConfirm: () => undefined,
+  });
 
-  // Efeito para monitorar cancelamento pelo cliente via Socket
+  const closeModal = () => {
+    setModal((current) => ({ ...current, visible: false }));
+  };
+
+  const openInfoModal = (params: {
+    title: string;
+    description: string;
+    type?: "info" | "danger" | "success";
+    confirmText?: string;
+    onConfirm?: () => void;
+  }) => {
+    setModal({
+      visible: true,
+      title: params.title,
+      description: params.description,
+      type: params.type ?? "info",
+      confirmText: params.confirmText ?? "OK",
+      hideCancel: true,
+      onConfirm: () => {
+        closeModal();
+        params.onConfirm?.();
+      },
+    });
+  };
+
+  const openConfirmModal = (params: {
+    title: string;
+    description: string;
+    type?: "info" | "danger" | "success";
+    confirmText?: string;
+    cancelText?: string;
+    onConfirm: () => void;
+  }) => {
+    setModal({
+      visible: true,
+      title: params.title,
+      description: params.description,
+      type: params.type ?? "info",
+      confirmText: params.confirmText ?? "CONFIRMAR",
+      cancelText: params.cancelText ?? "VOLTAR",
+      hideCancel: false,
+      onConfirm: () => {
+        closeModal();
+        params.onConfirm();
+      },
+    });
+  };
+
+  // Reseta o timer quando chega um novo chamado
   useEffect(() => {
-    if (request?.isCancelled) {
-      Alert.alert(
-        "Chamado Cancelado",
-        "O cliente cancelou a solicitação antes de você aceitar.",
-        [{ text: "OK", onPress: () => {
+    if (request?.requestId) {
+      setTimeLeft(180);
+      setIsAccepting(false);
+    }
+  }, [request?.requestId]);
+
+  // Efeito para entrar/sair da sala de matching no Socket
+  useEffect(() => {
+    if (socket && request?.requestId) {
+      console.log("[Socket] Joining matching room for:", request.requestId);
+      socket.emit("join_matching", { requestId: request.requestId });
+
+      return () => {
+        console.log("[Socket] Leaving matching room for:", request.requestId);
+        socket.emit("leave_matching", { requestId: request.requestId });
+      };
+    }
+  }, [socket, request?.requestId]);
+
+  // Efeito para monitorar cancelamento ou se outro profissional aceitou
+  useEffect(() => {
+    if (request?.isCancelled || (request?.isClaimed && !isAccepting)) {
+      const title = request.isCancelled ? "Chamado Cancelado" : "Chamado Indisponível";
+      const message = request.isCancelled 
+        ? "O cliente cancelou a solicitação antes de você aceitar."
+        : "Este chamado já foi aceito por outro profissional.";
+
+      openInfoModal({
+        title,
+        description: message,
+        type: "danger",
+        onConfirm: () => {
           clearRequest();
           router.replace("/(tabs)");
-        }}]
-      );
+        },
+      });
     }
-  }, [request?.isCancelled]);
+  }, [request?.isCancelled, request?.isClaimed, isAccepting]);
 
   useEffect(() => {
     if (!request || timeLeft <= 0 || request.isCancelled) {
       if (timeLeft <= 0 && !request?.isCancelled) {
-        Alert.alert("Tempo Expirado", "O tempo para aceitar este chamado acabou.");
-        clearRequest();
-        router.replace("/(tabs)");
+        openInfoModal({
+          title: "Tempo expirado",
+          description: "O tempo para aceitar este chamado acabou.",
+          type: "danger",
+          onConfirm: () => {
+            clearRequest();
+            router.replace("/(tabs)");
+          },
+        });
       }
       return;
     }
@@ -79,34 +180,40 @@ export default function NewRequestScreen() {
   const handleAccept = async () => {
     if (!request || request.isCancelled) return;
     try {
+      setIsAccepting(true);
+      if (socket) {
+        socket.emit("leave_matching", { requestId: request.requestId });
+      }
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await api.post(`service-requests/${request.requestId}/accept`);
       clearRequest();
-      // Em uma task futura, navegaria para a tela de acompanhamento
-      Alert.alert("Sucesso", "Chamado aceito! Prossiga para o atendimento.");
-      router.replace("/(tabs)");
+      router.replace(`/(service-flow)/navigation?requestId=${request.requestId}`);
     } catch (err) {
-      Alert.alert("Erro", "Não foi possível aceitar este chamado. Ele pode ter sido cancelado ou aceito por outro profissional.");
-      clearRequest();
-      router.replace("/(tabs)");
+      setIsAccepting(false);
+      openInfoModal({
+        title: "Não foi possível aceitar",
+        description: "Este chamado pode ter sido cancelado ou aceito por outro profissional.",
+        type: "danger",
+        onConfirm: () => {
+          clearRequest();
+          router.replace("/(tabs)");
+        },
+      });
     }
   };
 
   const handleRefuse = () => {
-    Alert.alert(
-      "Recusar Chamado",
-      "Tem certeza que não deseja realizar este atendimento?",
-      [
-        { text: "Voltar", style: "cancel" },
-        { 
-          text: "Sim, Recusar", 
-          style: "destructive",
-          onPress: () => {
-            clearRequest();
-            router.replace("/(tabs)");
-          }
-        }
-      ]
-    );
+    openConfirmModal({
+      title: "Recusar chamado",
+      description: "Tem certeza que não deseja realizar este atendimento?",
+      type: "danger",
+      confirmText: "SIM, RECUSAR",
+      cancelText: "VOLTAR",
+      onConfirm: () => {
+        clearRequest();
+        router.replace("/(tabs)");
+      },
+    });
   };
 
   if (!request) {
@@ -129,9 +236,9 @@ export default function NewRequestScreen() {
   const problemLabel = PROBLEM_LABELS[request.problemType] || "Outro";
   const problemIcon = PROBLEM_ICONS[request.problemType] || "alert-circle";
   
-  // Dados reais do veículo (fallbacks para segurança)
+  // Dados reais do veículo (fiel ao contrato brand/model)
   const vehicleInfo = request.vehicle 
-    ? `${request.vehicle.make} ${request.vehicle.model} ${request.vehicle.year || ""}`
+    ? `${request.vehicle.brand} ${request.vehicle.model} ${request.vehicle.year || ""}`
     : "Veículo não informado";
   
   const vehiclePlate = request.vehicle?.plate || "";
@@ -140,18 +247,21 @@ export default function NewRequestScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        {/* Header Fiel ao DS V4 */}
+        {/* Header Fiel ao DS V4 - Branding Centralizado */}
         <View style={styles.header}>
+          <View style={styles.headerSide} />
           <Text style={styles.logo}>MechaGo</Text>
-          <View style={styles.avatar}>
-            <Ionicons name="person" size={20} color={colors.text} />
+          <View style={styles.headerSide}>
+            <View style={styles.avatar}>
+              <MaterialIcons name="person" size={20} color={colors.onSurface} />
+            </View>
           </View>
         </View>
 
         <View style={styles.mainContent}>
-          {/* Card de Notificação com Pulse Animado (Simulado via Opacidade) */}
+          {/* Card de Notificação - Cores DS V4 */}
           <View style={styles.highlightCard}>
-            <Ionicons name="notifications" size={32} color={colors.bg} />
+            <MaterialIcons name="notifications-active" size={32} color={colors.bg} />
             <Text style={styles.highlightTitle}>NOVO CHAMADO!</Text>
             <Text style={styles.timer}>{formatTime(timeLeft)}</Text>
             <Text style={styles.timerLabel}>AGUARDANDO RESPOSTA</Text>
@@ -170,6 +280,7 @@ export default function NewRequestScreen() {
               }}
               scrollEnabled={false}
               zoomEnabled={false}
+              customMapStyle={mapStyle} // Estilo Noir
             >
               <Marker
                 coordinate={{
@@ -178,7 +289,7 @@ export default function NewRequestScreen() {
                 }}
               >
                 <View style={styles.clientMarker}>
-                  <Ionicons name="location" size={24} color={colors.primary} />
+                  <MaterialIcons name="location-on" size={32} color={colors.primary} />
                 </View>
               </Marker>
             </MapView>
@@ -200,8 +311,8 @@ export default function NewRequestScreen() {
                 ) : null}
               </View>
               <View style={styles.vehicleIcon}>
-                <Ionicons 
-                  name={vehicleType === "moto" ? "bicycle" : "car-sport"} 
+                <MaterialCommunityIcons 
+                  name={vehicleType === "moto" ? "motorbike" : "car-side"} 
                   size={32} 
                   color={colors.primary} 
                 />
@@ -212,7 +323,7 @@ export default function NewRequestScreen() {
               <View style={styles.gridItem}>
                 <Text style={styles.labelSmall}>Problema</Text>
                 <View style={styles.problemRow}>
-                  <Ionicons name={problemIcon} size={16} color={colors.text} />
+                  <MaterialCommunityIcons name={problemIcon} size={18} color={colors.onSurface} />
                   <Text style={styles.problemText}>{problemLabel}</Text>
                 </View>
               </View>
@@ -236,54 +347,84 @@ export default function NewRequestScreen() {
 
           {/* Área de Ação com Botões de Elite */}
           <View style={styles.actionArea}>
-            <TouchableOpacity 
-              style={styles.acceptButton} 
+            <TouchableOpacity
+              style={styles.acceptButton}
               onPress={handleAccept}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Aceitar chamado de socorro"
             >
               <Text style={styles.acceptText}>Aceitar Chamado</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.refuseButton}
               onPress={handleRefuse}
               activeOpacity={0.6}
+              accessibilityRole="button"
+              accessibilityLabel="Recusar chamado de socorro"
             >
               <Text style={styles.refuseText}>Recusar Chamado</Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
+
+      <MechaGoModal
+        visible={modal.visible}
+        title={modal.title}
+        description={modal.description}
+        type={modal.type}
+        confirmText={modal.confirmText}
+        cancelText={modal.cancelText}
+        hideCancel={modal.hideCancel}
+        onClose={closeModal}
+        onConfirm={modal.onConfirm}
+      />
     </SafeAreaView>
   );
 }
 
+const mapStyle = [
+  { "elementType": "geometry", "stylers": [{ "color": "#212121" }] },
+  { "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
+  { "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
+  { "elementType": "labels.text.stroke", "stylers": [{ "color": "#212121" }] },
+  { "featureType": "administrative", "elementType": "geometry", "stylers": [{ "color": "#757575" }] },
+  { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#181818" }] },
+  { "featureType": "road", "elementType": "geometry.fill", "stylers": [{ "color": "#2c2c2c" }] },
+  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#000000" }] }
+];
+
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+  safe: { flex: 1, backgroundColor: colors.bg },
   container: { flex: 1 },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: colors.background,
+    backgroundColor: colors.bg,
     padding: spacing.xxl,
   },
   emptyTitle: {
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: fonts.headline,
     fontSize: 20,
-    color: colors.text,
+    color: colors.onSurface,
     textAlign: "center",
   },
   backButton: {
     marginTop: spacing.xl,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
+    minHeight: 44,
+    justifyContent: "center",
     backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.outline,
   },
   backButtonText: {
-    fontFamily: "PlusJakartaSans_700Bold",
+    fontFamily: fonts.body,
+    fontWeight: "700",
     fontSize: 14,
     color: colors.primary,
     letterSpacing: 1,
@@ -295,15 +436,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     height: 64,
   },
+  headerSide: {
+    width: 44,
+    alignItems: "center",
+  },
   logo: {
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: fonts.headline,
     fontSize: 24,
     color: colors.primary,
+    fontStyle: "italic",
   },
   avatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: radii.full,
     borderWidth: 1,
     borderColor: colors.outline,
     justifyContent: "center",
@@ -318,29 +464,25 @@ const styles = StyleSheet.create({
   },
   highlightCard: {
     backgroundColor: colors.primary,
-    borderRadius: borderRadius.xl,
+    borderRadius: radii.xl,
     padding: spacing.xl,
     alignItems: "center",
-    elevation: 8,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
   },
   highlightTitle: {
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: fonts.headline,
     fontSize: 20,
     color: colors.bg,
     marginTop: spacing.sm,
     letterSpacing: 1,
   },
   timer: {
-    fontFamily: "JetBrainsMono_700Bold",
+    fontFamily: fonts.mono,
     fontSize: 48,
     color: colors.bg,
   },
   timerLabel: {
-    fontFamily: "PlusJakartaSans_700Bold",
+    fontFamily: fonts.body,
+    fontWeight: "700",
     fontSize: 10,
     color: colors.bg,
     opacity: 0.8,
@@ -349,7 +491,7 @@ const styles = StyleSheet.create({
   },
   mapWrapper: {
     height: 160,
-    borderRadius: borderRadius.xl,
+    borderRadius: radii.xl,
     overflow: "hidden",
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -367,21 +509,22 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: spacing.md,
     left: spacing.md,
-    backgroundColor: colors.background,
+    backgroundColor: colors.bg,
     paddingHorizontal: spacing.md,
     paddingVertical: 6,
-    borderRadius: borderRadius.full,
+    borderRadius: radii.full,
     borderWidth: 1,
     borderColor: colors.primary,
   },
   distanceText: {
-    fontFamily: "PlusJakartaSans_700Bold",
+    fontFamily: fonts.body,
+    fontWeight: "700",
     fontSize: 11,
     color: colors.primary,
   },
   detailsCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.xl,
+    backgroundColor: colors.surfaceHigh,
+    borderRadius: radii.xl,
     padding: spacing.xl,
     gap: spacing.lg,
     borderWidth: 1,
@@ -394,29 +537,30 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   labelSmall: {
-    fontFamily: "PlusJakartaSans_700Bold",
+    fontFamily: fonts.body,
+    fontWeight: "700",
     fontSize: 10,
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
     textTransform: "uppercase",
     letterSpacing: 1,
     marginBottom: 4,
   },
   vehicleName: {
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: fonts.headline,
     fontSize: 20,
-    color: colors.text,
+    color: colors.onSurface,
   },
   vehiclePlate: {
-    fontFamily: "JetBrainsMono_700Bold",
+    fontFamily: fonts.mono,
     fontSize: 14,
     color: colors.primary,
     marginTop: 2,
   },
   vehicleIcon: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.bg,
     width: 64,
     height: 64,
-    borderRadius: borderRadius.lg,
+    borderRadius: radii.lg,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
@@ -428,8 +572,8 @@ const styles = StyleSheet.create({
   },
   gridItem: {
     flex: 1,
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.lg,
+    backgroundColor: colors.bg,
+    borderRadius: radii.lg,
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.outline,
@@ -441,12 +585,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   problemText: {
-    fontFamily: "PlusJakartaSans_600SemiBold",
+    fontFamily: fonts.body,
+    fontWeight: "600",
     fontSize: 14,
-    color: colors.text,
+    color: colors.onSurface,
   },
   etaText: {
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: fonts.headline,
     fontSize: 16,
     color: colors.primary,
     marginTop: 4,
@@ -460,9 +605,9 @@ const styles = StyleSheet.create({
     borderTopColor: colors.outline,
   },
   priceValue: {
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: fonts.headline,
     fontSize: 26,
-    color: colors.text,
+    color: colors.onSurface,
   },
   actionArea: {
     gap: spacing.md,
@@ -470,17 +615,12 @@ const styles = StyleSheet.create({
   acceptButton: {
     backgroundColor: colors.primary,
     height: 64,
-    borderRadius: borderRadius.lg,
+    borderRadius: radii.lg,
     alignItems: "center",
     justifyContent: "center",
-    elevation: 4,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
   },
   acceptText: {
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: fonts.headline,
     fontSize: 16,
     color: colors.bg,
     textTransform: "uppercase",
@@ -488,14 +628,15 @@ const styles = StyleSheet.create({
   },
   refuseButton: {
     height: 56,
-    borderRadius: borderRadius.lg,
+    borderRadius: radii.lg,
     alignItems: "center",
     justifyContent: "center",
   },
   refuseText: {
-    fontFamily: "PlusJakartaSans_700Bold",
+    fontFamily: fonts.body,
+    fontWeight: "700",
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
     textTransform: "uppercase",
     letterSpacing: 1,
   },

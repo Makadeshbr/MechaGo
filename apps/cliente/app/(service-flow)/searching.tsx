@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Alert } from "react-native";
+import React, { useEffect } from "react";
+import { View, Text, StyleSheet, Alert, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import MapView, { Circle, PROVIDER_GOOGLE } from "react-native-maps";
-import { LogoPin, Button, AmbientGlow } from "@/components/ui";
-import { colors, spacing, borderRadius } from "@mechago/shared";
+import { MaterialIcons } from "@expo/vector-icons";
+import { LogoPin, AmbientGlow } from "@/components/ui";
+import { colors, spacing, radii, fonts } from "@mechago/shared";
 import { useServiceRequest, useCancelServiceRequest } from "@/hooks/queries/useServiceRequest";
 import Animated, {
   useSharedValue,
@@ -15,28 +15,18 @@ import Animated, {
   interpolate,
 } from "react-native-reanimated";
 
-// Estilo Dark para o mapa (MechaGo Noir)
-const MAP_STYLE = [
-  { "elementType": "geometry", "stylers": [{ "color": "#121212" }] },
-  { "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
-  { "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
-  { "elementType": "labels.text.stroke", "stylers": [{ "color": "#121212" }] },
-  { "featureType": "administrative", "elementType": "geometry", "stylers": [{ "color": "#757575" }] },
-  { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#181818" }] },
-  { "featureType": "road", "elementType": "geometry.fill", "stylers": [{ "color": "#2c2c2c" }] },
-  { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#8a8a8a" }] },
-  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#000000" }] }
-];
+function formatEta(minutes?: number | null): string {
+  return minutes !== null && minutes !== undefined ? `~${minutes} min` : "--";
+}
 
 export default function SearchingScreen() {
   const { requestId } = useLocalSearchParams<{ requestId: string }>();
   const router = useRouter();
 
-  // Polling a cada 3 segundos
+  // Polling a cada 3 segundos conforme Task 5.1
   const { data: request, isLoading, error } = useServiceRequest(requestId as string, 3000);
   const cancelMutation = useCancelServiceRequest();
 
-  // Radar Animation (Pulso Visual)
   const pulse = useSharedValue(0);
 
   useEffect(() => {
@@ -54,7 +44,7 @@ export default function SearchingScreen() {
 
   useEffect(() => {
     if (request?.status === "accepted" && request.professionalId) {
-      router.replace(`/(service-flow)/professional-found?requestId=${request.id}` as any);
+      router.replace(`/(service-flow)/professional-found?requestId=${request.id}` as `/(service-flow)/professional-found?requestId=${string}`);
     }
   }, [request?.status]);
 
@@ -80,80 +70,99 @@ export default function SearchingScreen() {
     );
   };
 
-  if (isLoading || !request) {
+  if (error) {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.container}>
-           <Text style={styles.title}>Iniciando busca...</Text>
+        <View style={styles.loadingContainer}>
+           <MaterialIcons name="error-outline" size={48} color={colors.error} />
+           <Text style={styles.loadingText}>Erro ao buscar status</Text>
+           <Pressable
+             style={({ pressed }) => [styles.cancelAction, pressed && styles.cancelActionPressed]}
+             onPress={() => router.back()}
+             accessibilityRole="button"
+           >
+             <Text style={styles.cancelActionText}>VOLTAR</Text>
+           </Pressable>
         </View>
       </SafeAreaView>
     );
   }
 
-  const clientCoords = {
-    latitude: Number(request.clientLatitude),
-    longitude: Number(request.clientLongitude),
-  };
+  if (isLoading || !request) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.loadingContainer}>
+           <LogoPin size="md" />
+           <Text style={styles.loadingText}>Iniciando busca...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
       <AmbientGlow />
-      
-      {/* Mapa Real com Radar Visual conforme solicitado */}
-      <View style={styles.mapContainer}>
-        <MapView
-          provider={PROVIDER_GOOGLE}
-          style={styles.map}
-          customMapStyle={MAP_STYLE}
-          scrollEnabled={false}
-          zoomEnabled={false}
-          pitchEnabled={false}
-          rotateEnabled={false}
-          initialRegion={{
-            ...clientCoords,
-            latitudeDelta: 0.02,
-            longitudeDelta: 0.02,
-          }}
-        >
-          {/* Círculo Estático de Referência (Design Stitch) */}
-          <Circle
-            center={clientCoords}
-            radius={800}
-            fillColor="rgba(253, 212, 4, 0.1)"
-            strokeColor={colors.primary}
-            strokeWidth={1}
-          />
-        </MapView>
-        
-        {/* Radar Pulse Centralizado sobre o PIN do Cliente */}
-        <View style={styles.radarOverlay} pointerEvents="none">
-          <Animated.View style={[styles.pulseCircle, pulseCircleStyle]} />
-          <LogoPin size="lg" />
+
+      {/* Header Focado (Sem Menu Hambúrguer) */}
+      <View style={styles.header}>
+        <View style={styles.headerSide} />
+        <Text style={styles.brand}>MechaGo</Text>
+        <View style={styles.headerSide}>
+           <View style={styles.avatarShell} />
         </View>
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.title}>Buscando profissionais</Text>
-        <Text style={styles.subtitle}>
-          Estamos enviando seu chamado para os profissionais mais próximos da sua região.
-        </Text>
-
-        {request?.status === "waiting_queue" && (
-           <View style={styles.queueBox}>
-              <Text style={styles.queueText}>
-                 Ninguém aceitou ainda. Você está na fila de espera.
-              </Text>
-           </View>
-        )}
-
-        <View style={styles.footer}>
-          <Button 
-            title="Cancelar Busca" 
-            variant="outline" 
-            onPress={handleCancel}
-            loading={cancelMutation.isPending}
-          />
+        <View style={styles.pulseArea}>
+          <Animated.View style={[styles.pulseWave, pulseCircleStyle]} />
+          <Animated.View style={[styles.pulseWaveSecondary, pulseCircleStyle]} />
+          <LogoPin size="lg" />
         </View>
+
+        <Text style={styles.title}>BUSCANDO PROFISSIONAIS...</Text>
+        <Text style={styles.subtitle}>Nossa rede está com alta demanda na sua região</Text>
+
+        {/* Métricas de Fila - Layout Noir */}
+        <View style={styles.metricsGrid}>
+          <View style={styles.metricCard}>
+            <Text style={styles.metricLabel}>Posição</Text>
+            <Text style={styles.metricValue}>
+              {request.queueLabel ?? (request.queuePosition ? `${request.queuePosition}º` : "Buscando")}
+            </Text>
+          </View>
+          <View style={styles.metricCard}>
+            <Text style={styles.metricLabel}>Estimativa</Text>
+            <Text style={styles.metricValue}>
+               {formatEta(request.estimatedArrivalMinutes)}
+             </Text>
+          </View>
+        </View>
+
+        {/* Card de Suporte - Secundário */}
+        <Pressable style={styles.supportCard} accessibilityRole="button">
+          <View style={styles.supportIconWrap}>
+            <MaterialIcons name="support-agent" size={22} color={colors.primary} />
+          </View>
+          <View style={styles.supportTextWrap}>
+            <Text style={styles.supportTitle}>Central de Atendimento</Text>
+            <Text style={styles.supportSubtitle}>
+              {request.supportPhone ? request.supportPhone : "Falar com suporte"}
+            </Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={20} color={colors.onSurfaceVariant} />
+        </Pressable>
+
+        {/* Ação de Cancelamento */}
+        <Pressable
+          style={({ pressed }) => [styles.cancelAction, pressed && styles.cancelActionPressed]}
+          onPress={handleCancel}
+          accessibilityRole="button"
+        >
+          <MaterialIcons name="close" size={18} color={colors.error} />
+          <Text style={styles.cancelActionText}>CANCELAR BUSCA</Text>
+        </Pressable>
+
+        <Text style={styles.footerHint}>Sua solicitação está ativa e segura</Text>
       </View>
     </SafeAreaView>
   );
@@ -161,62 +170,152 @@ export default function SearchingScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  mapContainer: {
-    height: "50%",
-    width: "100%",
-    position: "relative",
-    overflow: "hidden",
-  },
-  map: {
-    flex: 1,
-  },
-  radarOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: "center",
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", gap: spacing.lg },
+  loadingText: { fontFamily: fonts.headline, color: colors.onSurface, fontSize: 16 },
+  header: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.xl,
+    height: 64,
   },
-  pulseCircle: {
-    position: "absolute",
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: colors.primary,
+  headerSide: { width: 44 },
+  brand: {
+    fontFamily: fonts.headline,
+    fontSize: 24,
+    color: colors.primary,
+    textTransform: "uppercase",
+    fontStyle: "italic",
+  },
+  avatarShell: {
+    width: 32,
+    height: 32,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: colors.outline,
+    backgroundColor: colors.surface,
   },
   content: {
     flex: 1,
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
+    paddingTop: spacing.xxl,
     alignItems: "center",
   },
+  pulseArea: {
+    width: 200,
+    height: 200,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: spacing.xxl,
+  },
+  pulseWave: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    borderRadius: radii.full,
+    backgroundColor: colors.primary,
+  },
+  pulseWaveSecondary: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    borderRadius: radii.full,
+    backgroundColor: colors.primaryContainer,
+  },
   title: {
-    fontFamily: "SpaceGrotesk_700Bold",
-    fontSize: 24,
-    color: colors.text,
+    fontFamily: fonts.headline,
+    fontSize: 26,
+    color: colors.onSurface,
     textAlign: "center",
+    textTransform: "uppercase",
   },
   subtitle: {
-    fontFamily: "PlusJakartaSans_400Regular",
-    fontSize: 16,
-    color: colors.textSecondary,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
     textAlign: "center",
-    marginTop: spacing.md,
-    lineHeight: 24,
+    marginTop: spacing.sm,
+    lineHeight: 20,
+    maxWidth: 260,
   },
-  queueBox: {
-    marginTop: spacing.xl,
-    padding: spacing.md,
+  metricsGrid: {
+    flexDirection: "row",
+    gap: spacing.md,
+    marginTop: spacing.xxl,
+    marginBottom: spacing.xl,
+  },
+  metricCard: {
+    flex: 1,
     backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
+    borderRadius: radii.lg,
+    paddingVertical: spacing.lg,
+    alignItems: "center",
     borderWidth: 1,
     borderColor: colors.outline,
   },
-  queueText: {
-    color: colors.primary,
-    fontFamily: "PlusJakartaSans_600SemiBold",
+  metricLabel: {
+    fontFamily: fonts.body,
+    fontWeight: "700",
+    fontSize: 10,
+    color: colors.onSurfaceVariant,
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+    marginBottom: 4,
   },
-  footer: {
-    position: "absolute",
-    bottom: spacing.xxxl,
+  metricValue: {
+    fontFamily: fonts.headline,
+    fontSize: 22,
+    color: colors.primary,
+  },
+  supportCard: {
     width: "100%",
-  }
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    marginBottom: spacing.xxl,
+    borderWidth: 1,
+    borderColor: colors.outline,
+  },
+  supportIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.full,
+    backgroundColor: "rgba(253, 212, 4, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  supportTextWrap: { flex: 1 },
+  supportTitle: { fontFamily: fonts.body, fontWeight: "700", fontSize: 14, color: colors.onSurface },
+  supportSubtitle: { fontFamily: fonts.body, fontSize: 13, color: colors.onSurfaceVariant, marginTop: 2 },
+  cancelAction: {
+    width: "100%",
+    minHeight: 56,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.outline,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+  },
+  cancelActionPressed: { opacity: 0.7, transform: [{ scale: 0.98 }] },
+  cancelActionText: {
+    fontFamily: fonts.headline,
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
+    letterSpacing: 1,
+  },
+  footerHint: {
+    marginTop: spacing.lg,
+    fontFamily: fonts.body,
+    fontWeight: "700",
+    fontSize: 10,
+    color: colors.onSurfaceVariant,
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+    opacity: 0.6,
+  },
 });

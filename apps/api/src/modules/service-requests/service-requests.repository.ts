@@ -3,12 +3,31 @@ import { serviceRequests } from "@/db/schema/service-requests";
 import { roadwayInfo } from "@/db/schema/roadway-info";
 import { users } from "@/db/schema/users";
 import { professionals } from "@/db/schema/professionals";
-import { eq, sql, and, gte, lte } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 export type SelectServiceRequest = InferSelectModel<typeof serviceRequests>;
 export type InsertServiceRequest = InferInsertModel<typeof serviceRequests>;
 export type Roadway = InferSelectModel<typeof roadwayInfo>;
+export interface ServiceRequestProfessionalSummary {
+  id: string;
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+  rating: string | null;
+  specialties: string[];
+  latitude: string | null;
+  longitude: string | null;
+}
+
+export interface ServiceRequestDetails extends SelectServiceRequest {
+  roadwayPhone?: string | null;
+  professional: ServiceRequestProfessionalSummary | null;
+}
+
+export interface CoordinateDistanceResult {
+  distanceMeters: number;
+}
 
 export class ServiceRequestsRepository {
   /**
@@ -22,7 +41,7 @@ export class ServiceRequestsRepository {
   /**
    * Busca um pedido pelo ID com dados do profissional
    */
-  static async findById(id: string) {
+  static async findById(id: string): Promise<ServiceRequestDetails | null> {
     const request = await db.query.serviceRequests.findFirst({
       where: eq(serviceRequests.id, id),
     });
@@ -35,13 +54,17 @@ export class ServiceRequestsRepository {
 
     const professionalData = await db
       .select({
+        id: professionals.id,
+        userId: professionals.userId,
         name: users.name,
         avatarUrl: users.avatarUrl,
         rating: users.rating,
         specialties: professionals.specialties,
+        latitude: professionals.latitude,
+        longitude: professionals.longitude,
       })
       .from(professionals)
-      .join(users, eq(professionals.userId, users.id))
+      .innerJoin(users, eq(professionals.userId, users.id))
       .where(eq(professionals.id, request.professionalId))
       .limit(1);
 
@@ -52,18 +75,24 @@ export class ServiceRequestsRepository {
   }
 
   /**
-   * Atualiza um pedido existente
+   * Atualiza um pedido existente com condição opcional de status (Controle de Concorrência)
    */
   static async update(
     id: string,
-    data: Partial<InsertServiceRequest>
-  ): Promise<SelectServiceRequest> {
+    data: Partial<InsertServiceRequest>,
+    whereStatus?: SelectServiceRequest["status"]
+  ): Promise<SelectServiceRequest | null> {
+    const whereCondition = whereStatus
+      ? and(eq(serviceRequests.id, id), eq(serviceRequests.status, whereStatus))
+      : eq(serviceRequests.id, id);
+
     const [request] = await db
       .update(serviceRequests)
       .set({ ...data, updatedAt: new Date() })
-      .where(eq(serviceRequests.id, id))
+      .where(whereCondition)
       .returning();
-    return request;
+    
+    return request || null;
   }
 
   /**
@@ -90,5 +119,30 @@ export class ServiceRequestsRepository {
       .limit(1);
 
     return roadway || null;
+  }
+
+  static async calculateDistanceToRequest(params: {
+    requestId: string;
+    latitude: number;
+    longitude: number;
+  }): Promise<CoordinateDistanceResult | null> {
+    const result = await db.execute(sql`
+      SELECT ST_Distance(
+        ST_SetSRID(ST_MakePoint(sr.client_longitude, sr.client_latitude), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(${params.longitude}, ${params.latitude}), 4326)::geography
+      ) AS distance_meters
+      FROM service_requests sr
+      WHERE sr.id = ${params.requestId}
+      LIMIT 1
+    `);
+
+    const row = result[0] as { distance_meters: number | string } | undefined;
+    if (!row) {
+      return null;
+    }
+
+    return {
+      distanceMeters: Number(row.distance_meters),
+    };
   }
 }

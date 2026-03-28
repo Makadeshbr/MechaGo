@@ -17,6 +17,7 @@ import {
 import * as SplashScreen from "expo-splash-screen";
 import { queryClient } from "@/lib/query-client";
 import { useAuthStore } from "@/stores/auth.store";
+import { SocketProvider } from "@/providers/SocketProvider";
 import { colors } from "@mechago/shared";
 
 // Manter splash visível até fontes carregarem
@@ -49,19 +50,21 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
-        <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.background },
-            animation: "slide_from_right",
-          }}
-        >
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="(service-flow)" options={{ animation: "slide_from_bottom" }} />
-        </Stack>
+        <SocketProvider>
+          <StatusBar style="light" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.background },
+              animation: "slide_from_right",
+            }}
+          >
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="(service-flow)" options={{ animation: "slide_from_bottom" }} />
+          </Stack>
+        </SocketProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
   );

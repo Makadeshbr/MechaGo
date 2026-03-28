@@ -3,6 +3,18 @@ import { MatchingService } from "./matching.service";
 import { db } from "@/db";
 import { AppError } from "@/utils/errors";
 
+const notifyClientStatusUpdateMock = vi.fn();
+const notifyProfessionalsMock = vi.fn();
+const notifyRequestClaimedMock = vi.fn();
+
+vi.mock("../notifications/notifications.service", () => ({
+  NotificationsService: {
+    notifyClientStatusUpdate: notifyClientStatusUpdateMock,
+    notifyProfessionals: notifyProfessionalsMock,
+    notifyRequestClaimed: notifyRequestClaimedMock,
+  },
+}));
+
 vi.mock("@/db", () => ({
   db: {
     execute: vi.fn(),
@@ -43,6 +55,9 @@ import { VehiclesRepository } from "../vehicles/vehicles.repository";
 describe("MatchingService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    notifyClientStatusUpdateMock.mockResolvedValue(undefined);
+    notifyProfessionalsMock.mockResolvedValue(undefined);
+    notifyRequestClaimedMock.mockResolvedValue(undefined);
   });
 
   describe("findNearbyProfessionals", () => {
@@ -123,21 +138,144 @@ describe("MatchingService", () => {
   });
 
   describe("processMatchingJob", () => {
-    it("deve mudar status para waiting_queue apos timeout se ninguem aceitou", async () => {
-      // Mock request is still 'matching'
+    const mockMatchingRequest = {
+      id: "req-1",
+      status: "matching",
+      vehicleId: "veh-1",
+      clientLatitude: "-23.5505",
+      clientLongitude: "-46.6333",
+      context: "urban",
+      problemType: "battery",
+      estimatedPrice: "115.00",
+      createdAt: new Date("2026-03-01T10:00:00Z"),
+    };
+    const mockVehicle = {
+      id: "veh-1",
+      type: "car",
+      brand: "Honda",
+      model: "Civic",
+      year: 2019,
+      plate: "ABC-1234",
+    };
+
+    it("deve retornar 'waiting' e mudar status para waiting_queue quando nenhum profissional encontrado", async () => {
+      (ServiceRequestsRepository.findById as any).mockResolvedValue(mockMatchingRequest);
+      (VehiclesRepository.findById as any).mockResolvedValue(mockVehicle);
+      (db.execute as any).mockResolvedValue([]); // Sem profissionais
+      (ServiceRequestsRepository.update as any).mockResolvedValue({
+        id: "req-1",
+        status: "waiting_queue",
+      });
+
+      const result = await MatchingService.processMatchingJob("req-1");
+
+      expect(result).toBe("waiting");
+      expect(ServiceRequestsRepository.update).toHaveBeenCalledWith("req-1", {
+        status: "waiting_queue",
+      });
+    });
+
+    it("deve retornar 'notified' quando profissionais encontrados", async () => {
+      (ServiceRequestsRepository.findById as any).mockResolvedValue(mockMatchingRequest);
+      (VehiclesRepository.findById as any).mockResolvedValue(mockVehicle);
+      (db.execute as any).mockResolvedValue([
+        { id: "prof-1", user_id: "user-1", name: "Carlos", rating: "4.8", distance_meters: 2000 },
+      ]);
+
+      const result = await MatchingService.processMatchingJob("req-1");
+
+      expect(result).toBe("notified");
+      expect(notifyProfessionalsMock).toHaveBeenCalledTimes(1);
+      // Verifica que o payload contém os dados do veículo
+      expect(notifyProfessionalsMock).toHaveBeenCalledWith(
+        expect.arrayContaining([expect.objectContaining({ id: "prof-1" })]),
+        expect.objectContaining({
+          id: "req-1",
+          problemType: "battery",
+          vehicle: expect.objectContaining({ brand: "Honda", model: "Civic" }),
+        }),
+      );
+      // Nao deve atualizar status quando profissionais foram notificados
+      expect(ServiceRequestsRepository.update).not.toHaveBeenCalled();
+    });
+
+    it("deve retornar 'skipped' quando request nao existe", async () => {
+      (ServiceRequestsRepository.findById as any).mockResolvedValue(null);
+
+      const result = await MatchingService.processMatchingJob("nonexistent");
+
+      expect(result).toBe("skipped");
+      expect(VehiclesRepository.findById).not.toHaveBeenCalled();
+    });
+
+    it("deve retornar 'skipped' quando status nao e matching", async () => {
+      (ServiceRequestsRepository.findById as any).mockResolvedValue({
+        ...mockMatchingRequest,
+        status: "accepted",
+      });
+
+      const result = await MatchingService.processMatchingJob("req-1");
+
+      expect(result).toBe("skipped");
+      expect(VehiclesRepository.findById).not.toHaveBeenCalled();
+    });
+
+    it("deve retornar 'skipped' quando vehicleId e null", async () => {
+      (ServiceRequestsRepository.findById as any).mockResolvedValue({
+        ...mockMatchingRequest,
+        vehicleId: null,
+      });
+
+      const result = await MatchingService.processMatchingJob("req-1");
+
+      expect(result).toBe("skipped");
+    });
+
+    it("deve retornar 'skipped' quando veiculo nao existe", async () => {
+      (ServiceRequestsRepository.findById as any).mockResolvedValue(mockMatchingRequest);
+      (VehiclesRepository.findById as any).mockResolvedValue(null);
+
+      const result = await MatchingService.processMatchingJob("req-1");
+
+      expect(result).toBe("skipped");
+    });
+  });
+
+  describe("markAsWaiting", () => {
+    it("deve atualizar status para waiting_queue quando request esta em matching", async () => {
       (ServiceRequestsRepository.findById as any).mockResolvedValue({
         id: "req-1",
         status: "matching",
       });
-      
-      (db.execute as any).mockResolvedValue([]); // sem profissionais
-      
-      await MatchingService.processMatchingJob("req-1");
-      
-      // Na verdade, o job vai notificar a galera. E se ninguém aceitar, no job ou schedule, mudaria pra waiting_queue
-      // Mas o teste pede: "deve mudar status para waiting_queue apos timeout"
-      // Vamos assumir que processMatchingJob verifica e, se nao achou ninguem, ja manda pra waiting queue? 
-      // Ou ele agenda timeout? Como é BullMQ, podemos simular que ao rodar o fallback Timeout ele joga pra waiting_queue.
+      (ServiceRequestsRepository.update as any).mockResolvedValue({
+        id: "req-1",
+        status: "waiting_queue",
+      });
+
+      await MatchingService.markAsWaiting("req-1");
+
+      expect(ServiceRequestsRepository.update).toHaveBeenCalledWith("req-1", {
+        status: "waiting_queue",
+      });
+    });
+
+    it("nao deve atualizar se request nao existe", async () => {
+      (ServiceRequestsRepository.findById as any).mockResolvedValue(null);
+
+      await MatchingService.markAsWaiting("nonexistent");
+
+      expect(ServiceRequestsRepository.update).not.toHaveBeenCalled();
+    });
+
+    it("nao deve atualizar se status nao e matching", async () => {
+      (ServiceRequestsRepository.findById as any).mockResolvedValue({
+        id: "req-1",
+        status: "accepted",
+      });
+
+      await MatchingService.markAsWaiting("req-1");
+
+      expect(ServiceRequestsRepository.update).not.toHaveBeenCalled();
     });
   });
 
@@ -147,7 +285,7 @@ describe("MatchingService", () => {
         id: "req-1", status: "matching", vehicleId: "veh-1",
       });
       (ProfessionalsRepository.findByUserId as any).mockResolvedValue({
-        id: "prof-1", isOnline: true, vehicleTypesServed: ["car"],
+        id: "prof-1", userId: "user-prof", isOnline: true, vehicleTypesServed: ["car"],
       });
       (VehiclesRepository.findById as any).mockResolvedValue({
         id: "veh-1", type: "car",
@@ -155,22 +293,89 @@ describe("MatchingService", () => {
       (ServiceRequestsRepository.update as any).mockResolvedValue({
         id: "req-1", status: "accepted",
       });
+      (ServiceRequestsRepository.findById as any)
+        .mockResolvedValueOnce({
+          id: "req-1", status: "matching", vehicleId: "veh-1",
+        })
+        .mockResolvedValueOnce({
+          id: "req-1",
+          status: "accepted",
+          professional: {
+            id: "prof-1",
+            userId: "user-prof",
+            name: "Carlos",
+            avatarUrl: null,
+            rating: "4.8",
+            specialties: ["car_general"],
+          },
+        });
 
       const res = await MatchingService.acceptRequest("user-prof", "req-1");
       expect(res.status).toBe("accepted");
       expect(ServiceRequestsRepository.update).toHaveBeenCalledWith("req-1", expect.objectContaining({
         status: "accepted",
-        professionalId: "prof-1"
-      }));
+        professionalId: "prof-1",
+      }), "matching");
+      expect(notifyClientStatusUpdateMock).toHaveBeenCalledWith(
+        "req-1",
+        "accepted",
+        expect.objectContaining({
+          professionalId: "prof-1",
+        }),
+      );
+    });
+
+    it("deve notificar que o chamado foi reivindicado (limpeza de tela)", async () => {
+      (ServiceRequestsRepository.findById as any)
+        .mockResolvedValueOnce({ id: "req-1", status: "matching", vehicleId: "veh-1" })
+        .mockResolvedValueOnce({ id: "req-1", status: "accepted", professional: null });
+      (ProfessionalsRepository.findByUserId as any).mockResolvedValue({
+        id: "prof-1", userId: "user-prof", isOnline: true, vehicleTypesServed: ["car"],
+      });
+      (VehiclesRepository.findById as any).mockResolvedValue({ id: "veh-1", type: "car" });
+      (ServiceRequestsRepository.update as any).mockResolvedValue({ id: "req-1", status: "accepted" });
+
+      await MatchingService.acceptRequest("user-prof", "req-1");
+
+      expect(notifyRequestClaimedMock).toHaveBeenCalledWith("req-1", "user-prof");
+    });
+
+    it("deve lançar NOT_FOUND quando request nao existe", async () => {
+      (ServiceRequestsRepository.findById as any).mockResolvedValue(null);
+
+      await expect(MatchingService.acceptRequest("user-prof", "nonexistent"))
+        .rejects.toThrow("Chamado não encontrado");
     });
 
     it("deve rejeitar se request nao esta em matching", async () => {
       (ServiceRequestsRepository.findById as any).mockResolvedValue({
         id: "req-1", status: "accepted",
       });
-      
+
       await expect(MatchingService.acceptRequest("user-prof", "req-1"))
         .rejects.toThrow("Chamado já foi aceito");
+    });
+
+    it("deve rejeitar se profissional nao existe", async () => {
+      (ServiceRequestsRepository.findById as any).mockResolvedValue({
+        id: "req-1", status: "matching", vehicleId: "veh-1",
+      });
+      (ProfessionalsRepository.findByUserId as any).mockResolvedValue(null);
+
+      await expect(MatchingService.acceptRequest("user-prof", "req-1"))
+        .rejects.toThrow("Profissional não encontrado");
+    });
+
+    it("deve rejeitar se profissional esta offline", async () => {
+      (ServiceRequestsRepository.findById as any).mockResolvedValue({
+        id: "req-1", status: "matching", vehicleId: "veh-1",
+      });
+      (ProfessionalsRepository.findByUserId as any).mockResolvedValue({
+        id: "prof-1", userId: "user-prof", isOnline: false, vehicleTypesServed: ["car"],
+      });
+
+      await expect(MatchingService.acceptRequest("user-prof", "req-1"))
+        .rejects.toThrow("Você está offline");
     });
 
     it("deve rejeitar se profissional nao atende o tipo de veiculo", async () => {
@@ -178,14 +383,59 @@ describe("MatchingService", () => {
         id: "req-1", status: "matching", vehicleId: "veh-1",
       });
       (ProfessionalsRepository.findByUserId as any).mockResolvedValue({
-        id: "prof-1", isOnline: true, vehicleTypesServed: ["moto"],
+        id: "prof-1", userId: "user-prof", isOnline: true, vehicleTypesServed: ["moto"],
       });
       (VehiclesRepository.findById as any).mockResolvedValue({
         id: "veh-1", type: "car",
       });
-      
+
       await expect(MatchingService.acceptRequest("user-prof", "req-1"))
         .rejects.toThrow("Você não atende este tipo de veículo");
+    });
+
+    it("deve rejeitar se vehicleTypesServed e vazio", async () => {
+      (ServiceRequestsRepository.findById as any).mockResolvedValue({
+        id: "req-1", status: "matching", vehicleId: "veh-1",
+      });
+      (ProfessionalsRepository.findByUserId as any).mockResolvedValue({
+        id: "prof-1", userId: "user-prof", isOnline: true, vehicleTypesServed: [],
+      });
+      (VehiclesRepository.findById as any).mockResolvedValue({
+        id: "veh-1", type: "car",
+      });
+
+      await expect(MatchingService.acceptRequest("user-prof", "req-1"))
+        .rejects.toThrow("Você não atende este tipo de veículo");
+    });
+
+    it("deve lançar ALREADY_ACCEPTED quando update retorna null (race condition)", async () => {
+      (ServiceRequestsRepository.findById as any).mockResolvedValue({
+        id: "req-1", status: "matching", vehicleId: "veh-1",
+      });
+      (ProfessionalsRepository.findByUserId as any).mockResolvedValue({
+        id: "prof-1", userId: "user-prof", isOnline: true, vehicleTypesServed: ["car"],
+      });
+      (VehiclesRepository.findById as any).mockResolvedValue({
+        id: "veh-1", type: "car",
+      });
+      // Simula race condition: update retorna null porque outro profissional aceitou primeiro
+      (ServiceRequestsRepository.update as any).mockResolvedValue(null);
+
+      await expect(MatchingService.acceptRequest("user-prof", "req-1"))
+        .rejects.toThrow("Este chamado já foi aceito por outro profissional");
+    });
+
+    it("deve rejeitar se veiculo nao existe", async () => {
+      (ServiceRequestsRepository.findById as any).mockResolvedValue({
+        id: "req-1", status: "matching", vehicleId: "veh-1",
+      });
+      (ProfessionalsRepository.findByUserId as any).mockResolvedValue({
+        id: "prof-1", userId: "user-prof", isOnline: true, vehicleTypesServed: ["car"],
+      });
+      (VehiclesRepository.findById as any).mockResolvedValue(null);
+
+      await expect(MatchingService.acceptRequest("user-prof", "req-1"))
+        .rejects.toThrow("Veículo não encontrado");
     });
   });
 });

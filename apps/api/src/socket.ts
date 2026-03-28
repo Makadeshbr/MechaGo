@@ -4,13 +4,14 @@ import { logger } from "@/middleware/logger.middleware";
 import { verifyAccessToken } from "@/utils/crypto";
 import { createAdapter } from "@socket.io/redis-adapter";
 import { redis } from "@/lib/redis";
+import { registerTrackingGateway } from "@/modules/tracking/tracking.gateway";
 
 let io: SocketIOServer;
 
 export const initSocketIO = (httpServer: HttpServer) => {
   io = new SocketIOServer(httpServer, {
     cors: {
-      origin: "*",
+      origin: process.env.SOCKET_CORS_ORIGIN?.split(",").map((origin) => origin.trim()) || ["http://localhost:8081"],
     },
   });
 
@@ -25,22 +26,28 @@ export const initSocketIO = (httpServer: HttpServer) => {
       
       const payload = await verifyAccessToken(token);
       socket.data.user = payload;
+      socket.data.userId = payload.userId;
+      socket.data.role = payload.role;
       
-      // Join self room
-      socket.join(`professional:${payload.userId}`);
+      // Profissionais entram na sala individual para receber chamados via push
+      if (payload.role === "professional") {
+        socket.join(`professional:${payload.userId}`);
+      }
       next();
     } catch (error) {
+      logger.warn(
+        { error: error instanceof Error ? error.message : "Unknown error" },
+        "Socket.IO auth failed",
+      );
       next(new Error("Authentication error: Invalid token"));
     }
   });
 
+  // Register tracking gateway for real-time GPS tracking
+  registerTrackingGateway(io);
+
   io.on("connection", (socket) => {
     logger.info({ socketId: socket.id, userId: socket.data.user.userId }, "User connected via Socket.IO");
-
-    socket.on("join_request", ({ requestId }) => {
-      logger.info({ socketId: socket.id, requestId }, "Joined request room");
-      socket.join(`request:${requestId}`);
-    });
 
     socket.on("disconnect", () => {
       logger.info({ socketId: socket.id }, "User disconnected from Socket.IO");

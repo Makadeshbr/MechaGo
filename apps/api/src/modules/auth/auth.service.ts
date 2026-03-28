@@ -45,7 +45,7 @@ export class AuthService {
     });
 
     // Gerar tokens
-    const payload: TokenPayload = { userId: user.id, type: user.type };
+    const payload: TokenPayload = { userId: user.id, type: user.type, role: user.type };
     const [accessToken, refreshToken] = await Promise.all([
       generateAccessToken(payload),
       generateRefreshToken(payload),
@@ -119,7 +119,7 @@ export class AuthService {
       }
     }
 
-    const payload: TokenPayload = { userId: user.id, type: user.type };
+    const payload: TokenPayload = { userId: user.id, type: user.type, role: user.type };
     const [accessToken, refreshToken] = await Promise.all([
       generateAccessToken(payload),
       generateRefreshToken(payload),
@@ -165,7 +165,7 @@ export class AuthService {
     }
 
     // Gerar novo par de tokens (rotation)
-    const newPayload: TokenPayload = { userId: user.id, type: user.type };
+    const newPayload: TokenPayload = { userId: user.id, type: user.type, role: user.type };
     const [accessToken, newRefreshToken] = await Promise.all([
       generateAccessToken(newPayload),
       generateRefreshToken(newPayload),

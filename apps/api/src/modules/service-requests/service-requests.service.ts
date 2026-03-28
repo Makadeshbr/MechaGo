@@ -1,22 +1,76 @@
 import { ServiceRequestsRepository } from "./service-requests.repository";
 import { PricingService } from "./pricing.service";
 import { VehiclesRepository } from "../vehicles/vehicles.repository";
-import { CreateServiceRequestInput, EstimatePriceInput, PricingResult } from "@mechago/shared";
+import { CreateServiceRequestInput, EstimatePriceInput, PricingResult, DEFAULT_ESTIMATE_DISTANCE_KM, ARRIVAL_DISTANCE_THRESHOLD_METERS } from "@mechago/shared";
 import { AppError } from "@/utils/errors";
 import { scheduleMatchingJob } from "../matching/matching.queue";
+import type { DiagnosisInput, ResolveInput, EscalateInput, ContestPriceInput } from "./service-requests.schemas";
 
-const DEFAULT_ESTIMATE_DISTANCE_KM = 5;
+function parseNullableDecimal(value?: string | null): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  return Number(value);
+}
+
+function calculateDistanceInKm(params: {
+  originLat: number;
+  originLng: number;
+  destinationLat: number;
+  destinationLng: number;
+}): number {
+  const earthRadiusKm = 6371;
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+
+  const deltaLat = toRadians(params.destinationLat - params.originLat);
+  const deltaLng = toRadians(params.destinationLng - params.originLng);
+  const originLat = toRadians(params.originLat);
+  const destinationLat = toRadians(params.destinationLat);
+
+  const haversine =
+    Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+    Math.cos(originLat) * Math.cos(destinationLat) *
+      Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2);
+
+  const arc = 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+  return Number((earthRadiusKm * arc).toFixed(1));
+}
+
+function estimateArrivalMinutes(distanceKm: number): number {
+  if (distanceKm <= 0.4) {
+    return 1;
+  }
+
+  return Math.max(2, Math.ceil(distanceKm * 4));
+}
 
 function serializeServiceRequestSummary(params: {
   id: string;
   status: string;
   context: "urban" | "highway";
+  problemType: CreateServiceRequestInput["problemType"];
   estimatedPrice: number;
+  finalPrice?: string | null;
   diagnosticFee: number;
   roadwayPhone: string | null;
   roadwayName: string | null;
+  address?: string | null;
   createdAt: Date;
+  clientLatitude?: string | null;
+  clientLongitude?: string | null;
+  queuePosition?: number | null;
+  estimatedArrivalMinutes?: number | null;
+  distanceKm?: number | null;
+  queueLabel?: string | null;
+  supportPhone?: string | null;
+  diagnosisPhotoUrl?: string | null;
+  completionPhotoUrl?: string | null;
+  priceJustification?: string | null;
+  resolvedOnSite?: boolean | null;
   professionalId?: string | null;
+  professionalLatitude?: number | null;
+  professionalLongitude?: number | null;
   professional?: {
     name: string;
     avatarUrl: string | null;
@@ -28,12 +82,28 @@ function serializeServiceRequestSummary(params: {
     id: params.id,
     status: params.status,
     context: params.context,
+    problemType: params.problemType,
     estimatedPrice: params.estimatedPrice,
+    finalPrice: parseNullableDecimal(params.finalPrice),
     diagnosticFee: params.diagnosticFee,
     roadwayPhone: params.roadwayPhone,
     roadwayName: params.roadwayName,
+    address: params.address ?? null,
     createdAt: params.createdAt.toISOString(),
+    clientLatitude: params.clientLatitude ? Number(params.clientLatitude) : null,
+    clientLongitude: params.clientLongitude ? Number(params.clientLongitude) : null,
+    queuePosition: params.queuePosition ?? null,
+    estimatedArrivalMinutes: params.estimatedArrivalMinutes ?? null,
+    distanceKm: params.distanceKm ?? null,
+    queueLabel: params.queueLabel ?? null,
+    supportPhone: params.supportPhone ?? null,
+    diagnosisPhotoUrl: params.diagnosisPhotoUrl ?? null,
+    completionPhotoUrl: params.completionPhotoUrl ?? null,
+    priceJustification: params.priceJustification ?? null,
+    resolvedOnSite: params.resolvedOnSite ?? null,
     professionalId: params.professionalId || null,
+    professionalLatitude: params.professionalLatitude ?? null,
+    professionalLongitude: params.professionalLongitude ?? null,
     professional: params.professional ? {
       ...params.professional,
       rating: params.professional.rating ? Number(params.professional.rating) : 0,
@@ -67,6 +137,7 @@ export class ServiceRequestsService {
 
     return updated;
   }
+
   /**
    * Calcula apenas a estimativa sem criar o registro.
    * Utilizado para exibir o preço real no frontend.
@@ -157,11 +228,16 @@ export class ServiceRequestsService {
       id: request.id,
       status: request.status,
       context,
+      problemType: request.problemType,
       estimatedPrice: estimate.estimatedPrice,
       diagnosticFee: estimate.diagnosticFee,
       roadwayPhone: roadway?.emergencyPhone || null,
       roadwayName: roadway?.name || null,
+      address: request.address,
       createdAt: request.createdAt,
+      clientLatitude: request.clientLatitude,
+      clientLongitude: request.clientLongitude,
+      supportPhone: roadway?.emergencyPhone || null,
       professionalId: null,
     });
   }
@@ -177,25 +253,79 @@ export class ServiceRequestsService {
 
     const estimatedPrice = request.estimatedPrice ? Number(request.estimatedPrice) : 0;
     const diagnosticFee = Number(request.diagnosticFee);
+    const professionalLatitude = request.professional?.latitude
+      ? Number(request.professional.latitude)
+      : null;
+    const professionalLongitude = request.professional?.longitude
+      ? Number(request.professional.longitude)
+      : null;
+
+    const distanceKm =
+      professionalLatitude !== null &&
+      professionalLongitude !== null &&
+      request.clientLatitude &&
+      request.clientLongitude
+        ? calculateDistanceInKm({
+            originLat: professionalLatitude,
+            originLng: professionalLongitude,
+            destinationLat: Number(request.clientLatitude),
+            destinationLng: Number(request.clientLongitude),
+          })
+        : null;
+
+    const estimatedArrivalMinutes =
+      distanceKm !== null &&
+      ["accepted", "professional_enroute"].includes(request.status)
+        ? estimateArrivalMinutes(distanceKm)
+        : request.status === "professional_arrived"
+          ? 0
+          : null;
 
     return serializeServiceRequestSummary({
       id: request.id,
       status: request.status,
       context: request.context,
+      problemType: request.problemType,
       estimatedPrice,
+      finalPrice: request.finalPrice,
       diagnosticFee,
       roadwayPhone: null,
       roadwayName: null,
+      address: request.address,
       createdAt: request.createdAt,
+      clientLatitude: request.clientLatitude,
+      clientLongitude: request.clientLongitude,
+      professionalLatitude,
+      professionalLongitude,
+      queuePosition: null,
+      estimatedArrivalMinutes,
+      distanceKm,
+      queueLabel: request.status === "waiting_queue" ? "Aguardando profissional" : null,
+      supportPhone: request.roadwayPhone ?? null,
+      diagnosisPhotoUrl: request.diagnosisPhotoUrl,
+      completionPhotoUrl: request.completionPhotoUrl,
+      priceJustification: request.priceJustification,
+      resolvedOnSite: request.resolvedOnSite,
       professionalId: request.professionalId,
-      professional: (request as any).professional,
+      professional: request.professional
+        ? {
+            name: request.professional.name,
+            avatarUrl: request.professional.avatarUrl,
+            rating: request.professional.rating,
+            specialties: request.professional.specialties,
+          }
+        : null,
     });
   }
 
   /**
    * Profissional chegou no local
    */
-  static async arrived(professionalUserId: string, requestId: string) {
+  static async arrived(
+    professionalUserId: string,
+    requestId: string,
+    coordinates?: { latitude: number; longitude: number },
+  ) {
     const request = await ServiceRequestsRepository.findById(requestId);
     if (!request) throw new AppError("NOT_FOUND", "Pedido não encontrado", 404);
 
@@ -212,6 +342,31 @@ export class ServiceRequestsService {
       throw new AppError("FORBIDDEN", "Você não é o profissional deste chamado", 403);
     }
 
+    const professionalLatitude = coordinates?.latitude ?? (professional?.latitude ? Number(professional.latitude) : null);
+    const professionalLongitude = coordinates?.longitude ?? (professional?.longitude ? Number(professional.longitude) : null);
+
+    if (professionalLatitude === null || professionalLongitude === null) {
+      throw new AppError(
+        "LOCATION_REQUIRED",
+        "Localização do profissional é obrigatória para confirmar chegada",
+        422,
+      );
+    }
+
+    const distance = await ServiceRequestsRepository.calculateDistanceToRequest({
+      requestId,
+      latitude: professionalLatitude,
+      longitude: professionalLongitude,
+    });
+
+    if (!distance || distance.distanceMeters > ARRIVAL_DISTANCE_THRESHOLD_METERS) {
+      throw new AppError(
+        "ARRIVAL_DISTANCE_INVALID",
+        "Você precisa estar a menos de 200m do cliente para confirmar chegada",
+        409,
+      );
+    }
+
     const updated = await ServiceRequestsRepository.update(requestId, {
       status: "professional_arrived",
       arrivedAt: new Date(),
@@ -222,4 +377,243 @@ export class ServiceRequestsService {
 
     return updated;
   }
+
+  /**
+   * Profissional registra diagnóstico do serviço
+   * Status: professional_arrived → diagnosing
+   */
+  static async diagnosis(
+    professionalUserId: string,
+    requestId: string,
+    input: DiagnosisInput,
+  ) {
+    const request = await ServiceRequestsRepository.findById(requestId);
+    if (!request) throw new AppError("NOT_FOUND", "Pedido não encontrado", 404);
+
+    if (request.status !== "professional_arrived") {
+      throw new AppError(
+        "INVALID_STATUS",
+        "Chamado não está no status de chegada",
+        409,
+      );
+    }
+
+    const { ProfessionalsRepository } = await import("../professionals/professionals.repository");
+    const professional = await ProfessionalsRepository.findByUserId(professionalUserId);
+    if (request.professionalId !== professional?.id) {
+      throw new AppError("FORBIDDEN", "Você não é o profissional deste chamado", 403);
+    }
+
+    if (!input.diagnosisPhotoUrl) {
+      throw new AppError(
+        "PHOTO_REQUIRED",
+        "Foto do diagnóstico é obrigatória",
+        422,
+      );
+    }
+
+    const updated = await ServiceRequestsRepository.update(requestId, {
+      status: "diagnosing",
+      diagnosis: input.diagnosisNotes,
+      diagnosisPhotoUrl: input.diagnosisPhotoUrl,
+      resolvedOnSite: input.canResolveOnSite,
+    });
+
+    const { NotificationsService } = await import("../notifications/notifications.service");
+    await NotificationsService.notifyClientStatusUpdate(requestId, "diagnosing");
+
+    return updated;
+  }
+
+  /**
+   * Profissional marca serviço como resolvido no local
+   * Status: diagnosing → resolved
+   * Validação: preço ±25% da estimativa original ou justificativa obrigatória
+   */
+  static async resolve(
+    professionalUserId: string,
+    requestId: string,
+    input: ResolveInput,
+  ) {
+    const request = await ServiceRequestsRepository.findById(requestId);
+    if (!request) throw new AppError("NOT_FOUND", "Pedido não encontrado", 404);
+
+    if (request.status !== "diagnosing") {
+      throw new AppError(
+        "INVALID_STATUS",
+        "Chamado não está em diagnóstico",
+        409,
+      );
+    }
+
+    const { ProfessionalsRepository } = await import("../professionals/professionals.repository");
+    const professional = await ProfessionalsRepository.findByUserId(professionalUserId);
+    if (request.professionalId !== professional?.id) {
+      throw new AppError("FORBIDDEN", "Você não é o profissional deste chamado", 403);
+    }
+
+    if (!input.completionPhotoUrl) {
+      throw new AppError(
+        "PHOTO_REQUIRED",
+        "Foto de conclusão é obrigatória para finalizar o serviço",
+        422,
+      );
+    }
+
+    // Validação ±25% da estimativa original
+    const estimatedPrice = Number(request.estimatedPrice);
+    const margin = estimatedPrice * 0.25;
+    const minPrice = estimatedPrice - margin;
+    const maxPrice = estimatedPrice + margin;
+
+    // Se fora da margem, justificativa é obrigatória
+    if ((input.finalPrice < minPrice || input.finalPrice > maxPrice) && !input.priceJustification) {
+      throw new AppError(
+        "PRICE_JUSTIFICATION_REQUIRED",
+        `O preço final (R$ ${input.finalPrice.toFixed(2)}) está fora da margem de 25%. Justificativa é obrigatória.`,
+        422,
+      );
+    }
+
+    // Calcula desvio percentual do preço
+    const priceDeviation = estimatedPrice > 0
+      ? Math.abs(input.finalPrice - estimatedPrice) / estimatedPrice
+      : 0;
+
+    const updated = await ServiceRequestsRepository.update(requestId, {
+      status: "resolved",
+      completionPhotoUrl: input.completionPhotoUrl,
+      finalPrice: input.finalPrice.toString(),
+      priceJustification: input.priceJustification,
+      resolvedOnSite: true,
+    });
+
+    const { NotificationsService } = await import("../notifications/notifications.service");
+    await NotificationsService.notifyClientStatusUpdate(requestId, "resolved", {
+      finalPrice: input.finalPrice,
+      priceDeviation,
+    });
+
+    return updated;
+  }
+
+  /**
+   * Profissional escala caso para guincho/oficina
+   * Status: diagnosing → escalated
+   */
+  static async escalate(
+    professionalUserId: string,
+    requestId: string,
+    input: EscalateInput,
+  ) {
+    const request = await ServiceRequestsRepository.findById(requestId);
+    if (!request) throw new AppError("NOT_FOUND", "Pedido não encontrado", 404);
+
+    if (request.status !== "diagnosing") {
+      throw new AppError(
+        "INVALID_STATUS",
+        "Chamado não está em diagnóstico",
+        409,
+      );
+    }
+
+    const { ProfessionalsRepository } = await import("../professionals/professionals.repository");
+    const professional = await ProfessionalsRepository.findByUserId(professionalUserId);
+    if (request.professionalId !== professional?.id) {
+      throw new AppError("FORBIDDEN", "Você não é o profissional deste chamado", 403);
+    }
+
+    const updated = await ServiceRequestsRepository.update(requestId, {
+      status: input.needsTow ? "tow_requested" : "escalated",
+      diagnosis: input.escalationReason,
+      diagnosisPhotoUrl: input.photoUrl,
+      resolvedOnSite: false,
+    });
+
+    const { NotificationsService } = await import("../notifications/notifications.service");
+    await NotificationsService.notifyClientStatusUpdate(requestId, input.needsTow ? "tow_requested" : "escalated");
+
+    return updated;
+  }
+
+  /**
+   * Cliente aprova o preço do serviço
+   * Status: resolved → completed
+   * Regra de negócio: serviço NUNCA pode ser encerrado sem foto de conclusão
+   */
+  static async approvePrice(clientUserId: string, requestId: string) {
+    const request = await ServiceRequestsRepository.findById(requestId);
+    if (!request) throw new AppError("NOT_FOUND", "Pedido não encontrado", 404);
+
+    if (request.clientId !== clientUserId) {
+      throw new AppError("FORBIDDEN", "Você não tem permissão para aprovar este pedido", 403);
+    }
+
+    if (request.status !== "resolved") {
+      throw new AppError(
+        "INVALID_STATUS",
+        "Chamado não está aguardando aprovação de preço",
+        409,
+      );
+    }
+
+    // Invariante de negócio: foto obrigatória para encerrar serviço
+    if (!request.completionPhotoUrl) {
+      throw new AppError(
+        "PHOTO_REQUIRED",
+        "Foto de conclusão é obrigatória para finalizar o serviço",
+        422,
+      );
+    }
+
+    const updated = await ServiceRequestsRepository.update(requestId, {
+      status: "completed",
+      completedAt: new Date(),
+    });
+
+    const { NotificationsService } = await import("../notifications/notifications.service");
+    await NotificationsService.notifyClientStatusUpdate(requestId, "completed");
+    if (request.professionalId) {
+      await NotificationsService.notifyProfessionalStatusUpdate(requestId, request.professionalId, "completed");
+    }
+
+    return updated;
+  }
+
+  /**
+   * Cliente contesta o preço do serviço
+   * Gera disputa (status: resolved → price_contested)
+   */
+  static async contestPrice(
+    clientUserId: string,
+    requestId: string,
+    input: ContestPriceInput,
+  ) {
+    const request = await ServiceRequestsRepository.findById(requestId);
+    if (!request) throw new AppError("NOT_FOUND", "Pedido não encontrado", 404);
+
+    if (request.clientId !== clientUserId) {
+      throw new AppError("FORBIDDEN", "Você não tem permissão para contestar este pedido", 403);
+    }
+
+    if (request.status !== "resolved") {
+      throw new AppError(
+        "INVALID_STATUS",
+        "Chamado não está aguardando aprovação de preço",
+        409,
+      );
+    }
+
+    // MVP: Contestação é notificada via Socket.IO para ambos os lados.
+    // Não sobrescreve priceJustification (que pertence ao profissional).
+    // Quando houver coluna contestReason no schema, armazenar lá.
+    const { NotificationsService } = await import("../notifications/notifications.service");
+    await NotificationsService.notifyClientStatusUpdate(requestId, "resolved", { contestReason: input.reason });
+    if (request.professionalId) {
+      await NotificationsService.notifyProfessionalStatusUpdate(requestId, request.professionalId, "resolved", { contestReason: input.reason });
+    }
+
+    return request;
+  }
+
 }

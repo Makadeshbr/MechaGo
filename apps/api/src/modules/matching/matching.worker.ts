@@ -1,27 +1,40 @@
 import { Worker, Job } from "bullmq";
 import { redis } from "@/lib/redis";
 import { logger } from "@/middleware/logger.middleware";
+import { ACCEPT_TIMEOUT_MS } from "@mechago/shared";
 import { MATCHING_QUEUE_NAME, scheduleMatchingTimeout } from "./matching.queue";
 import { MatchingService } from "./matching.service";
 
 const processJob = async (job: Job) => {
   const { requestId } = job.data;
 
-  switch (job.name) {
-    case "processMatching":
-      logger.info({ requestId }, "Processing matching job");
-      await MatchingService.processMatchingJob(requestId);
-      // Agenda fallback de 3 minutos
-      await scheduleMatchingTimeout(requestId, 180000);
-      break;
+  try {
+    switch (job.name) {
+      case "processMatching": {
+        logger.info({ requestId }, "Processing matching job");
+        const result = await MatchingService.processMatchingJob(requestId);
 
-    case "matchingTimeout":
-      logger.info({ requestId }, "Processing matching timeout");
-      await MatchingService.markAsWaiting(requestId);
-      break;
+        // Só agenda timeout se profissionais foram notificados (status ainda é matching)
+        if (result === "notified") {
+          await scheduleMatchingTimeout(requestId, ACCEPT_TIMEOUT_MS);
+        }
+        break;
+      }
 
-    default:
-      logger.warn({ jobName: job.name }, "Unknown job name in matching worker");
+      case "matchingTimeout":
+        logger.info({ requestId }, "Processing matching timeout");
+        await MatchingService.markAsWaiting(requestId);
+        break;
+
+      default:
+        logger.warn({ jobName: job.name }, "Unknown job name in matching worker");
+    }
+  } catch (err) {
+    logger.error(
+      { requestId, jobName: job.name, error: err instanceof Error ? err.message : "Unknown error" },
+      "Matching job processing failed",
+    );
+    throw err;
   }
 };
 

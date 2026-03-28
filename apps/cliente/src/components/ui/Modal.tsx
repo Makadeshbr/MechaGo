@@ -1,16 +1,16 @@
 import React from "react";
 import {
-  Modal as RNModal,
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
   Dimensions,
+  Modal as RNModal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { BlurView } from "expo-blur";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 import { Button } from "./Button";
-import { colors, spacing, borderRadius } from "@mechago/shared";
+import { colors, spacing, borderRadius, fonts } from "@mechago/shared";
 
 interface MechaGoModalProps {
   visible: boolean;
@@ -39,15 +39,26 @@ export function MechaGoModal({
   loading = false,
   hideCancel = false,
 }: MechaGoModalProps) {
-  const iconName = 
-    type === "danger" ? "alert-circle" : 
-    type === "success" ? "checkmark-circle" : 
-    "information-circle";
-  
-  const iconColor = 
-    type === "danger" ? colors.error : 
-    type === "success" ? "#4CAF50" : 
-    colors.primary;
+  const iconName =
+    type === "danger"
+      ? "report"
+      : type === "success"
+        ? "check-circle"
+        : "info";
+
+  const accentColor =
+    type === "danger"
+      ? colors.error
+      : type === "success"
+        ? colors.successContainer
+        : colors.primaryContainerSolid;
+
+  const accentTextColor =
+    type === "danger"
+      ? colors.onErrorContainer
+      : type === "success"
+        ? colors.onSuccessContainer
+        : colors.onPrimary;
 
   return (
     <RNModal
@@ -57,15 +68,25 @@ export function MechaGoModal({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
-        
+        <BlurView intensity={32} tint="dark" style={StyleSheet.absoluteFill} />
         <View style={styles.card}>
-          <View style={styles.iconContainer}>
-            <View style={[styles.iconCircle, { backgroundColor: `${iconColor}15` }]}>
-              <Ionicons name={iconName} size={32} color={iconColor} />
-            </View>
+          <View style={styles.headerRow}>
+            <Text style={styles.eyebrow}>MechaGo</Text>
+            <Pressable
+              accessibilityLabel="Fechar modal"
+              accessibilityRole="button"
+              disabled={loading}
+              hitSlop={8}
+              onPress={onClose}
+              style={styles.closeButton}
+            >
+              <MaterialIcons color={colors.onSurfaceVariant} name="close" size={18} />
+            </Pressable>
           </View>
 
+          <View style={[styles.iconCircle, { backgroundColor: `${accentColor}1F` }]}>
+            <MaterialIcons color={accentTextColor} name={iconName} size={30} />
+          </View>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.description}>{description}</Text>
 
@@ -98,22 +119,40 @@ export function MechaGoModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    backgroundColor: `${colors.surfaceLowest}D9`,
     justifyContent: "center",
     alignItems: "center",
     padding: spacing.xl,
   },
   card: {
     width: width - spacing.xl * 2,
-    backgroundColor: colors.surface,
+    backgroundColor: `${colors.surfaceVariant}CC`,
     borderRadius: borderRadius.xl,
     padding: spacing.xl,
-    alignItems: "center",
+    gap: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.outline,
+    borderColor: `${colors.outlineVariant}33`,
   },
-  iconContainer: {
-    marginBottom: spacing.lg,
+  headerRow: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  eyebrow: {
+    fontFamily: fonts.headline,
+    fontSize: 11,
+    color: colors.primaryContainerSolid,
+    textTransform: "uppercase",
+    letterSpacing: 1.8,
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.full,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: `${colors.surfaceContainerHigh}CC`,
   },
   iconCircle: {
     width: 64,
@@ -121,21 +160,19 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     justifyContent: "center",
     alignItems: "center",
+    alignSelf: "flex-start",
   },
   title: {
-    fontFamily: "SpaceGrotesk_700Bold",
-    fontSize: 22,
-    color: colors.text,
-    textAlign: "center",
-    marginBottom: spacing.sm,
+    fontFamily: fonts.headline,
+    fontSize: 28,
+    color: colors.onSurface,
+    letterSpacing: -0.6,
   },
   description: {
-    fontFamily: "PlusJakartaSans_400Regular",
+    fontFamily: fonts.body,
     fontSize: 15,
-    color: colors.textSecondary,
-    textAlign: "center",
+    color: colors.onSurfaceVariant,
     lineHeight: 22,
-    marginBottom: spacing.xxl,
   },
   footer: {
     width: "100%",
@@ -151,10 +188,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cancelText: {
-    fontFamily: "PlusJakartaSans_600SemiBold",
+    fontFamily: fonts.headline,
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
     textTransform: "uppercase",
-    letterSpacing: 1,
+    letterSpacing: 1.2,
   },
 });

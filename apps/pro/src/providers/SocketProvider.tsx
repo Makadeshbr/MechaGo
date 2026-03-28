@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { io, Socket } from "socket.io-client";
+import { AppState, AppStateStatus } from "react-native";
 import { useRouter, usePathname } from "expo-router";
 import { useAuthStore } from "@/stores/auth.store";
 import { useProfessionalStats } from "@/hooks/queries/useProfessional";
@@ -7,10 +8,37 @@ import { tokenStorage } from "@/lib/storage";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.2.100:3000";
 
+interface SocketRequestVehicle {
+  brand: string;
+  model: string;
+  year: number;
+  plate: string;
+  type: string;
+}
+
+interface SocketRequestData {
+  requestId: string;
+  problemType: string;
+  clientLatitude: string;
+  clientLongitude: string;
+  distanceMeters: number;
+  estimatedPrice: string | null;
+  createdAt: string;
+  vehicle: SocketRequestVehicle;
+  isCancelled?: boolean;
+  isClaimed?: boolean;
+  claimedBy?: string;
+}
+
+interface RequestClaimedPayload {
+  requestId: string;
+  claimedBy?: string;
+}
+
 interface SocketContextData {
   socket: Socket | null;
   isConnected: boolean;
-  requestData: any | null; // Dados do chamado atual recebido globalmente
+  requestData: SocketRequestData | null;
   clearRequest: () => void;
 }
 
@@ -27,9 +55,10 @@ const SocketContext = createContext<SocketContextData>({} as SocketContextData);
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [requestData, setRequestData] = useState<any | null>(null);
-  
-  const { isAuthenticated } = useAuthStore();
+  const [requestData, setRequestData] = useState<SocketRequestData | null>(null);
+  const appState = useRef(AppState.currentState);
+
+  const { isAuthenticated, user } = useAuthStore();
   const { data: stats } = useProfessionalStats();
   const router = useRouter();
   const pathname = usePathname();
@@ -93,9 +122,29 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     newSocket.on("request_cancelled", (data) => {
       console.log("[Socket] Global: Request was cancelled by client", data.requestId);
       // Se estivermos na tela de novo chamado deste ID, limpamos e avisamos
-      setRequestData((current: any) => {
+      setRequestData((current) => {
         if (current?.requestId === data.requestId) {
-          return { ...current, isCancelled: true };
+          return { ...current, isCancelled: true } as SocketRequestData;
+        }
+        return current;
+      });
+    });
+
+    // Listener para quando outro profissional aceita (Limpeza de Tela)
+    newSocket.on("request_claimed", (data: RequestClaimedPayload) => {
+      console.log("[Socket] Global: Request claimed by another pro", data.requestId);
+
+      if (data.claimedBy && data.claimedBy === user?.id) {
+        return;
+      }
+
+      setRequestData((current) => {
+        if (current?.requestId === data.requestId) {
+          return {
+            ...current,
+            isClaimed: true,
+            claimedBy: typeof data.claimedBy === "string" ? data.claimedBy : undefined,
+          } as SocketRequestData;
         }
         return current;
       });
@@ -103,11 +152,26 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setSocket(newSocket);
 
+    // Reconectar com token fresco quando o app volta do background
+    const subscription = AppState.addEventListener("change", (nextState: AppStateStatus) => {
+      if (appState.current.match(/inactive|background/) && nextState === "active") {
+        if (newSocket && !newSocket.connected) {
+          const freshToken = tokenStorage.getAccessToken();
+          if (freshToken) {
+            newSocket.auth = { token: freshToken };
+            newSocket.connect();
+          }
+        }
+      }
+      appState.current = nextState;
+    });
+
     return () => {
       console.log("[Socket] Cleaning up global connection");
+      subscription.remove();
       newSocket.disconnect();
     };
-  }, [isAuthenticated, isOnline]);
+  }, [isAuthenticated, isOnline, user?.id]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected, requestData, clearRequest }}>

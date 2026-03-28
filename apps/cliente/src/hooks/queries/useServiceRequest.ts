@@ -61,3 +61,31 @@ export function useCancelServiceRequest() {
     },
   });
 }
+
+export function useApprovePriceServiceRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (requestId: string) => {
+      const response = await api.post(`service-requests/${requestId}/approve-price`);
+      return response.json<{ success: boolean }>();
+    },
+    onSuccess: (_, requestId) => {
+      queryClient.invalidateQueries({ queryKey: serviceRequestKeys.detail(requestId) });
+    },
+  });
+}
+
+export function useContestPriceServiceRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ requestId, reason }: { requestId: string; reason: string }) => {
+      const response = await api.post(`service-requests/${requestId}/contest-price`, {
+        json: { reason }
+      });
+      return response.json<{ success: boolean }>();
+    },
+    onSuccess: (_, { requestId }) => {
+      queryClient.invalidateQueries({ queryKey: serviceRequestKeys.detail(requestId) });
+    },
+  });
+}
