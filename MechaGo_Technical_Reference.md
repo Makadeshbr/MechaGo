@@ -1064,6 +1064,7 @@ MERCADOPAGO_WEBHOOK_SECRET=<hmac-secret>
 
 # Cloudflare R2
 R2_ACCOUNT_ID=<account-id>
+R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 R2_ACCESS_KEY_ID=<key-id>
 R2_SECRET_ACCESS_KEY=<secret>
 R2_BUCKET_NAME=mechago-uploads
