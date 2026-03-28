@@ -54,6 +54,12 @@ export const tokenStorage = {
   clearTokens: () => {
     storage.delete(ACCESS_TOKEN_KEY);
     storage.delete(REFRESH_TOKEN_KEY);
+    // Não limpa ONBOARDING_COMPLETE_KEY aqui — a flag sobrevive a logout/token refresh
+    // para que o profissional não precise refazer o onboarding ao re-logar.
+    // Limpar apenas em reset() explícito do onboarding store.
+  },
+
+  clearOnboardingFlag: () => {
     storage.delete(ONBOARDING_COMPLETE_KEY);
   },
 

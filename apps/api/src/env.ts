@@ -37,6 +37,9 @@ const envSchema = z
     API_CORS_ORIGIN: z.string().default("http://localhost:8081"),
     SOCKET_CORS_ORIGIN: z.string().default("http://localhost:8081"),
 
+    // Distância máxima de chegada em metros (padrão: 200m produção, aumentar para testes)
+    MAX_ARRIVAL_DISTANCE_METERS: z.coerce.number().optional(),
+
     // Uploads — R2 (Cloudflare) optional, local fallback when absent
     API_URL: z.string().optional(),
     R2_ENDPOINT: z.string().optional(),
@@ -60,6 +63,7 @@ const envSchema = z
     JWT_REFRESH_EXPIRY: data.JWT_REFRESH_EXPIRY,
     API_CORS_ORIGIN: data.API_CORS_ORIGIN,
     SOCKET_CORS_ORIGIN: data.SOCKET_CORS_ORIGIN,
+    MAX_ARRIVAL_DISTANCE_METERS: data.MAX_ARRIVAL_DISTANCE_METERS,
     API_URL: data.API_URL,
     R2_ENDPOINT: data.R2_ENDPOINT ?? buildR2Endpoint(data.R2_ACCOUNT_ID),
     R2_ACCESS_KEY_ID: data.R2_ACCESS_KEY_ID ?? data.R2_ACCESS_KEY,

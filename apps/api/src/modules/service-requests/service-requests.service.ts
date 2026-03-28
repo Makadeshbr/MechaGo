@@ -5,6 +5,12 @@ import { CreateServiceRequestInput, EstimatePriceInput, PricingResult, DEFAULT_E
 import { AppError } from "@/utils/errors";
 import { scheduleMatchingJob } from "../matching/matching.queue";
 import type { DiagnosisInput, ResolveInput, EscalateInput, ContestPriceInput } from "./service-requests.schemas";
+import { env } from "@/env";
+
+// MVP: permite override via env var para testes com dispositivos em locais diferentes
+// Em produção, definir MAX_ARRIVAL_DISTANCE_METERS=200 (ou remover a env var)
+const MAX_ARRIVAL_DISTANCE_METERS =
+  env.MAX_ARRIVAL_DISTANCE_METERS ?? ARRIVAL_DISTANCE_THRESHOLD_METERS;
 
 function parseNullableDecimal(value?: string | null): number | null {
   if (value === null || value === undefined) {
@@ -359,10 +365,10 @@ export class ServiceRequestsService {
       longitude: professionalLongitude,
     });
 
-    if (!distance || distance.distanceMeters > ARRIVAL_DISTANCE_THRESHOLD_METERS) {
+    if (!distance || distance.distanceMeters > MAX_ARRIVAL_DISTANCE_METERS) {
       throw new AppError(
         "ARRIVAL_DISTANCE_INVALID",
-        "Você precisa estar a menos de 200m do cliente para confirmar chegada",
+        `Você precisa estar a menos de ${MAX_ARRIVAL_DISTANCE_METERS >= 1000 ? `${MAX_ARRIVAL_DISTANCE_METERS / 1000}km` : `${MAX_ARRIVAL_DISTANCE_METERS}m`} do cliente para confirmar chegada`,
         409,
       );
     }

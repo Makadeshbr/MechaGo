@@ -1,19 +1,45 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { Redirect, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "@/stores/auth.store";
 import { tokenStorage } from "@/lib/storage";
+import { api } from "@/lib/api";
 import { AmbientGlow, Button, LogoPin } from "@/components/ui";
 import { colors, spacing } from "@mechago/shared";
+
+// Estado do check de perfil — evita redirecionar para onboarding
+// quando o profissional já tem cadastro (ex: reinstalação ou refresh de token)
+type ProfileCheckState = "idle" | "checking" | "exists" | "not-found";
 
 // Tela raiz do App Pro — Welcome screen para profissionais
 // Se autenticado, redireciona para Home. Se não, mostra landing pro.
 export default function WelcomeScreen() {
   const { isAuthenticated, isLoading } = useAuthStore();
+  const [profileCheck, setProfileCheck] = useState<ProfileCheckState>("idle");
 
-  if (isLoading) {
+  // Quando autenticado mas a flag de onboarding não está setada,
+  // verifica via API se o profissional já tem perfil cadastrado.
+  // Isso evita que reinstalações ou expirações de token forçem o re-onboarding.
+  useEffect(() => {
+    if (!isAuthenticated || isLoading) return;
+    if (tokenStorage.isOnboardingComplete()) return;
+
+    setProfileCheck("checking");
+    api
+      .get("professionals/me/stats")
+      .json()
+      .then(() => {
+        tokenStorage.setOnboardingComplete();
+        setProfileCheck("exists");
+      })
+      .catch(() => {
+        setProfileCheck("not-found");
+      });
+  }, [isAuthenticated, isLoading]);
+
+  if (isLoading || profileCheck === "checking") {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -22,11 +48,20 @@ export default function WelcomeScreen() {
   }
 
   if (isAuthenticated) {
-    // Redireciona para tabs se onboarding concluído, senão retoma onboarding
-    if (tokenStorage.isOnboardingComplete()) {
+    // Redireciona para tabs se onboarding concluído (flag ou check de API)
+    if (tokenStorage.isOnboardingComplete() || profileCheck === "exists") {
       return <Redirect href="/(tabs)" />;
     }
-    return <Redirect href="/(onboarding)/professional-type" />;
+    // Só vai para onboarding se confirmado que não tem perfil (check feito ou idle em flag setada)
+    if (profileCheck === "not-found") {
+      return <Redirect href="/(onboarding)/professional-type" />;
+    }
+    // idle + !isOnboardingComplete + !isLoading = aguardando check iniciar
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
   }
 
   return (
