@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   mapLoading: { flex: 1, justifyContent: "center", alignItems: "center", gap: spacing.sm },
   mapLoadingText: { color: colors.textSecondary, fontFamily: "PlusJakartaSans_400Regular", fontSize: 12 },
   mapBadge: { position: "absolute", bottom: spacing.md, right: spacing.md, backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full },
-  mapBadgeText: { fontFamily: "JetBrainsMono_700Bold", fontSize: 14, color: "#000000" },
+  mapBadgeText: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 14, color: "#000000" },
   radiusSelector: { marginBottom: spacing.xxl },
   radiusScroll: { gap: spacing.sm },
   radiusChip: { paddingHorizontal: spacing.xl, paddingVertical: spacing.md, borderRadius: borderRadius.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.outline },

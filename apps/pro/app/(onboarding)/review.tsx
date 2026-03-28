@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { AmbientGlow, Button, MechaGoModal } from "@/components/ui";
 import { useOnboardingStore } from "@/stores/onboarding.store";
 import { useRegisterProfessional } from "@/hooks/queries/useProfessional";
+import { tokenStorage } from "@/lib/storage";
 import { colors, spacing, borderRadius } from "@mechago/shared";
 
 interface ReviewModalState {
@@ -92,14 +93,23 @@ export default function ReviewScreen() {
 
     registerProfessional.mutate(registrationData, {
       onSuccess: () => {
-        // Limpa store temporário e navega para o dashboard
+        // Marca onboarding como concluído antes de navegar para o dashboard
+        tokenStorage.setOnboardingComplete();
         reset();
         router.replace("/(tabs)");
       },
       onError: (error) => {
+        // 409 = perfil já existe (usuário retomou o onboarding após crash)
+        // Tratar como sucesso: marcar flag e navegar para tabs
+        const httpError = error as { response?: { status?: number }; message?: string };
+        if (httpError.response?.status === 409) {
+          tokenStorage.setOnboardingComplete();
+          reset();
+          router.replace("/(tabs)");
+          return;
+        }
         const message =
-          (error as { message?: string }).message ??
-          "Erro ao finalizar cadastro. Tente novamente.";
+          httpError.message ?? "Erro ao finalizar cadastro. Tente novamente.";
         openModal("Erro", message, "danger");
       },
     });

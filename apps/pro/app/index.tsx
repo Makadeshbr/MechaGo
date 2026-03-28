@@ -4,6 +4,7 @@ import { Redirect, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "@/stores/auth.store";
+import { tokenStorage } from "@/lib/storage";
 import { AmbientGlow, Button, LogoPin } from "@/components/ui";
 import { colors, spacing } from "@mechago/shared";
 
@@ -21,7 +22,11 @@ export default function WelcomeScreen() {
   }
 
   if (isAuthenticated) {
-    return <Redirect href="/(tabs)" />;
+    // Redireciona para tabs se onboarding concluído, senão retoma onboarding
+    if (tokenStorage.isOnboardingComplete()) {
+      return <Redirect href="/(tabs)" />;
+    }
+    return <Redirect href="/(onboarding)/professional-type" />;
   }
 
   return (

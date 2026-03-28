@@ -38,6 +38,9 @@ export const storage = createStorage();
 // Helpers tipados para tokens
 const ACCESS_TOKEN_KEY = "auth.accessToken";
 const REFRESH_TOKEN_KEY = "auth.refreshToken";
+// Flag persistida após completar o onboarding de profissional (POST /professionals/register)
+// Sem ela, o app redireciona para onboarding em vez de tabs ao abrir autenticado
+const ONBOARDING_COMPLETE_KEY = "onboarding.complete";
 
 export const tokenStorage = {
   getAccessToken: () => storage.getString(ACCESS_TOKEN_KEY) ?? null,
@@ -51,5 +54,12 @@ export const tokenStorage = {
   clearTokens: () => {
     storage.delete(ACCESS_TOKEN_KEY);
     storage.delete(REFRESH_TOKEN_KEY);
+    storage.delete(ONBOARDING_COMPLETE_KEY);
   },
+
+  isOnboardingComplete: () =>
+    storage.getString(ONBOARDING_COMPLETE_KEY) === "true",
+
+  setOnboardingComplete: () =>
+    storage.set(ONBOARDING_COMPLETE_KEY, "true"),
 };
