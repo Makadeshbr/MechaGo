@@ -66,6 +66,13 @@
           "icon": "./assets/notification-icon.png",
           "color": "#FDD404"
         }
+      ],
+      [
+        "expo-updates",
+        {
+          "checkOnLaunch": "ALWAYS",
+          "fallbackToCacheTimeout": 3000
+        }
       ]
     ],
     "experiments": {
