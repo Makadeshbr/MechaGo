@@ -7,7 +7,26 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:93117860563:android:PLACEHOLDER_REGISTER_COM_MECHAGO_PRO",
+        "mobilesdk_app_id": "1:93117860563:android:1908e75717f1c654b76226",
+        "android_client_info": {
+          "package_name": "com.mechago.cliente"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCgKUjONxP2vzjxyX-ARP7p0F1LFqYLgo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:93117860563:android:9e8b0df4354a9252b76226",
         "android_client_info": {
           "package_name": "com.mechago.pro"
         }
