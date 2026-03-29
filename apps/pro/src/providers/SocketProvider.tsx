@@ -6,7 +6,9 @@ import { useAuthStore } from "@/stores/auth.store";
 import { useProfessionalStats } from "@/hooks/queries/useProfessional";
 import { tokenStorage } from "@/lib/storage";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.2.100:3000";
+// Mesma lógica de fallback do api.ts — garante que OTAs sem o env var ainda conectem no Railway
+const API_URL = process.env.EXPO_PUBLIC_API_URL
+  || (__DEV__ ? "http://192.168.2.100:3000" : "https://api-production-f7a8.up.railway.app");
 
 interface SocketRequestVehicle {
   brand: string;

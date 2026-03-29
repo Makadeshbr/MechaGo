@@ -121,6 +121,16 @@ export class ServiceRequestsRepository {
     return roadway || null;
   }
 
+  /**
+   * Busca requests por status — usado para re-matching quando um profissional fica online
+   */
+  static async findByStatus(status: string): Promise<SelectServiceRequest[]> {
+    return db
+      .select()
+      .from(serviceRequests)
+      .where(eq(serviceRequests.status, status));
+  }
+
   static async calculateDistanceToRequest(params: {
     requestId: string;
     latitude: number;

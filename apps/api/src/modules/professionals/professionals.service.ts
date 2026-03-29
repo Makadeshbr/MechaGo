@@ -1,5 +1,8 @@
 import { AppError, Errors } from "@/utils/errors";
 import { ProfessionalsRepository } from "./professionals.repository";
+import { ServiceRequestsRepository } from "../service-requests/service-requests.repository";
+import { scheduleMatchingJob } from "../matching/matching.queue";
+import { logger } from "@/middleware/logger.middleware";
 import type {
   RegisterProfessionalInput,
   UpdateProfessionalInput,
@@ -69,11 +72,43 @@ export class ProfessionalsService {
       );
     }
 
-    return ProfessionalsRepository.update(professional.id, {
+    const updated = await ProfessionalsRepository.update(professional.id, {
       isOnline: true,
       latitude: String(input.latitude),
       longitude: String(input.longitude),
     });
+
+    // Re-matching: quando um profissional fica online, verifica se existem
+    // chamados em waiting_queue (nenhum pro estava disponível quando foram criados).
+    // Muda status de volta para "matching" e re-agenda o job para incluir este pro.
+    void this.rematchWaitingRequests();
+
+    return updated;
+  }
+
+  /**
+   * Busca requests em waiting_queue e re-agenda matching.
+   * Executado em background (fire-and-forget) para não bloquear o goOnline.
+   */
+  private static async rematchWaitingRequests(): Promise<void> {
+    try {
+      const waitingRequests = await ServiceRequestsRepository.findByStatus("waiting_queue");
+      if (waitingRequests.length === 0) return;
+
+      logger.info(
+        { count: waitingRequests.length },
+        "Re-matching waiting_queue requests after professional went online",
+      );
+
+      for (const request of waitingRequests) {
+        // Volta o status para "matching" para que o job de matching funcione
+        await ServiceRequestsRepository.update(request.id, { status: "matching" });
+        await scheduleMatchingJob(request.id);
+      }
+    } catch (error) {
+      // Fire-and-forget: não propaga erro para não falhar o goOnline
+      logger.error({ error }, "Failed to rematch waiting requests");
+    }
   }
 
   // Marca o profissional como offline
