@@ -7,12 +7,14 @@ import { useAuthStore } from "@/stores/auth.store";
 // 192.168.2.100 = IP da máquina na rede Wi-Fi (celular físico + Expo Go)
 const DEV_API_URL = "http://192.168.2.100:3000/api/v1";
 
+// Em prod/preview, EXPO_PUBLIC_API_URL vem do eas.json baked no build ou via env no eas update.
+// Fallback explícito para Railway garante que OTAs publicadas sem o env var ainda funcionem.
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL
     ? `${process.env.EXPO_PUBLIC_API_URL}/api/v1`
     : __DEV__
       ? DEV_API_URL
-      : "https://api.mechago.com.br/api/v1";
+      : "https://api-production-f7a8.up.railway.app/api/v1";
 
 // Cliente HTTP configurado com interceptors de auth
 // Injeta Bearer token automaticamente e trata 401 (token expirado)
