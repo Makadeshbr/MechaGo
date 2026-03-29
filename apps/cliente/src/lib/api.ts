@@ -1,6 +1,7 @@
 import ky from "ky";
 import { tokenStorage } from "./storage";
 import { router } from "expo-router";
+import { useAuthStore } from "@/stores/auth.store";
 
 // EXPO_PUBLIC_API_URL vem do eas.json (preview/production) ou fallback para dev local
 // 192.168.2.100 = IP da máquina na rede Wi-Fi (celular físico + Expo Go)
@@ -42,7 +43,7 @@ export const api = ky.create({
         if (response.status === 401) {
           const refreshToken = tokenStorage.getRefreshToken();
           if (!refreshToken) {
-            tokenStorage.clearTokens();
+            useAuthStore.getState().logout();
             router.replace("/(auth)/login");
             return response;
           }
@@ -69,7 +70,7 @@ export const api = ky.create({
             return ky(_request);
           } catch {
             // Refresh falhou — forçar re-login
-            tokenStorage.clearTokens();
+            useAuthStore.getState().logout();
             router.replace("/(auth)/login");
           }
         }
