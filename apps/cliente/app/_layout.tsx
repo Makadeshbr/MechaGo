@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -17,6 +17,7 @@ import {
 import * as SplashScreen from "expo-splash-screen";
 import { queryClient } from "@/lib/query-client";
 import { useAuthStore } from "@/stores/auth.store";
+import { authEvents } from "@/lib/auth-events";
 import { SocketProvider } from "@/providers/SocketProvider";
 import { colors } from "@mechago/shared";
 
@@ -42,6 +43,14 @@ export default function RootLayout() {
       hydrate();
     }
   }, [fontsLoaded, hydrate]);
+
+  // Escuta eventos de force-logout do interceptor HTTP (api.ts)
+  // para navegar dentro do React tree em vez de chamar router fora do lifecycle
+  useEffect(() => {
+    return authEvents.onForceLogout(() => {
+      router.replace("/(auth)/login");
+    });
+  }, []);
 
   if (!fontsLoaded) {
     return null;
