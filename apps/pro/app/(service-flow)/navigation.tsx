@@ -93,9 +93,17 @@ export default function NavigationScreen() {
       // Se sucesso, navega para diagnóstico
       router.replace(`/(service-flow)/diagnosis?requestId=${requestId}` as `/(service-flow)/diagnosis?requestId=${string}`);
     } catch (err: unknown) {
-      const error = err as { response?: { json?: () => Promise<{ userMessage?: string }> } };
-      const errorMessage = error?.response?.json ? await error.response.json() : null;
-      Alert.alert("Atenção", errorMessage?.userMessage || "Você ainda não está próximo o suficiente do cliente.");
+      try {
+        const error = err as { response?: Response };
+        if (error?.response) {
+          const body = await error.response.json() as { error?: { message?: string } };
+          Alert.alert("Atenção", body?.error?.message || "Não foi possível confirmar chegada.");
+        } else {
+          Alert.alert("Atenção", "Não foi possível confirmar chegada. Verifique sua conexão.");
+        }
+      } catch {
+        Alert.alert("Atenção", "Não foi possível confirmar chegada.");
+      }
     }
   };
 
