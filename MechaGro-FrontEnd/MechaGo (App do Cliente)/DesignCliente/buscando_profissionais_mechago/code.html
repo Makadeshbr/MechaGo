@@ -6,7 +6,6 @@
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
       tailwind.config = {
         darkMode: "class",
@@ -75,130 +74,161 @@
         },
       }
     </script>
-<style>
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-        
-        /* Kinetic Pulsing Background */
-        .pulse-wave {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 100px;
-            height: 100px;
-            background: rgba(253, 212, 4, 0.15);
-            border-radius: 50%;
-            animation: wave-pulse 3s infinite ease-out;
-        }
-        .pulse-wave:nth-child(2) { animation-delay: 1s; }
-        .pulse-wave:nth-child(3) { animation-delay: 2s; }
-
-        @keyframes wave-pulse {
-            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
-            100% { transform: translate(-50%, -50%) scale(5); opacity: 0; }
-        }
-
-        .logo-pulse {
-            animation: logo-glow 2s infinite ease-in-out;
-        }
-
-        @keyframes logo-glow {
-            0%, 100% { filter: drop-shadow(0 0 5px rgba(253, 212, 4, 0.4)); transform: scale(1); }
-            50% { filter: drop-shadow(0 0 20px rgba(253, 212, 4, 0.8)); transform: scale(1.05); }
-        }
-    </style>
-<style>
-    body {
-      min-height: max(884px, 100dvh);
+<style>.material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24
     }
-  </style>
-  </head>
+/* Radar Pulse Animation */
+.radar-pulse {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    background: #fdd404;
+    border-radius: 50%;
+    z-index: 10
+    }
+.radar-pulse::before, .radar-pulse::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    background: rgba(253, 212, 4, 0.4);
+    border-radius: 50%;
+    animation: radar-wave 3s infinite ease-out
+    }
+.radar-pulse::after {
+    animation-delay: 1.5s
+    }
+@keyframes radar-wave {
+    0% {
+        width: 20px;
+        height: 20px;
+        opacity: 0.8;
+        } 100% {
+        width: 400px;
+        height: 400px;
+        opacity: 0;
+        }
+    }
+.map-bg {
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuDdVvOyzDs9XBzQvp2-jMgX9ggNk5UFpDLN0Hj4wQhVt8pD10wP4oiYr7S0KcugmhdOhChb74GAbOA9T1CoVk-wFz_b6HcQdG7F5KDiq1Rkxpt9HUrexqOkbhhIaX1U8y0di0I4mVqdRLArqiZ37ZOlyJj5h-smo5zFQYBzJgBXn4DtzRdt7nDC2xzZk8cBF88L-r2wd9UpiCRvnC0QtjpG-itb5r6V5Rw8yh2Okx6L0pae--0keUhayirNh4XMaJyjHSpH5JDDtUfu);
+    background-size: cover;
+    background-position: center;
+    filter: grayscale(1) brightness(0.3) contrast(1.2)
+    }
+.glass-sheet {
+    background: rgba(26, 25, 25, 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1)
+    }
+body {
+    min-height: max(884px, 100dvh)
+    }</style>
+</head>
 <body class="bg-background text-on-surface font-body min-h-screen flex items-center justify-center p-4">
 <!-- Mobile Container Canvas -->
 <div class="w-full max-w-[420px] bg-surface relative min-h-[844px] flex flex-col overflow-hidden shadow-2xl">
-<!-- Top App Bar (Shared Component Strategy) -->
-<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-[#0e0e0e]">
-<button class="text-primary-container active:scale-90 transition-transform">
+<!-- Fullscreen Map Background -->
+<div class="absolute inset-0 map-bg z-0"></div>
+<!-- Radar Animation Overlay -->
+<div class="absolute inset-0 z-10 flex items-center justify-center">
+<div class="radar-pulse"></div>
+<!-- Decorative subtle grid lines to enhance map feel -->
+<div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(circle, #fdd404 1px, transparent 1px); background-size: 40px 40px;"></div>
+</div>
+<!-- Top App Bar -->
+<header class="absolute top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-gradient-to-b from-black/80 to-transparent">
+<button class="text-white active:scale-90 transition-transform">
 <span class="material-symbols-outlined" data-icon="menu">menu</span>
 </button>
-<h1 class="font-['Space_Grotesk'] text-2xl font-black italic tracking-tighter text-[#fdd404] uppercase">MechaGo</h1>
-<div class="w-8 h-8 rounded-full overflow-hidden border border-primary/20">
+<h1 class="font-headline text-2xl font-black italic tracking-tighter uppercase">
+            MECHA<span class="text-[#fdd404]">GO</span>
+</h1>
+<div class="w-9 h-9 rounded-full overflow-hidden border-2 border-primary/40">
 <img class="w-full h-full object-cover" data-alt="User profile photo avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLpi5yGf-IxC2TzXHdqIbY1ICAZLX2gJjYZFOFRBChetaw49hXWPY3votbcnKdr_38ovpiJQ_9dR56VYoFcGyumqvjzLZkxPe-ZjXsUjnkQeIr7IHbdRei5BdKhQBfZvCRar7QthBBqALXBaX9uMm58590WuDd1T46sR-RHfgqRmDNk6PRiPc6xHrn6FaDdOFeBTHuoqqHPehdJZ4xU44YjM1JSSrPT78SGAKB26AuO1ftOEiNI-3fwAUuQxycbJkXlpNldLsijgj-"/>
 </div>
 </header>
-<!-- Main Kinetic Content -->
-<main class="flex-grow flex flex-col items-center justify-center relative px-8 pt-16 pb-24">
-<!-- Animated Pulse Background Layer -->
-<div class="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
-<div class="pulse-wave"></div>
-<div class="pulse-wave"></div>
-<div class="pulse-wave"></div>
-</div>
-<!-- Central Brand Identity -->
-<div class="relative z-10 mb-12 flex flex-col items-center">
-<div class="logo-pulse mb-6">
-<span class="material-symbols-outlined text-primary text-8xl" style="font-variation-settings: 'FILL' 1;">build_circle</span>
-</div>
-<h2 class="font-headline text-[28px] font-bold uppercase tracking-tight text-center text-on-surface leading-tight">
-                    BUSCANDO PROFISSIONAIS...
-                </h2>
-<p class="text-on-surface-variant text-center mt-3 max-w-[280px] leading-relaxed">
-                    Nossa rede está com alta demanda na sua região
-                </p>
-</div>
-<!-- Fila / Queue Bento Card -->
-<div class="relative z-10 w-full grid grid-cols-2 gap-4 mb-8">
-<div class="bg-surface-container-low p-5 rounded-xl flex flex-col items-center justify-center">
-<span class="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest mb-1">Posição</span>
-<span class="font-headline text-2xl font-bold text-primary">2º da fila</span>
-</div>
-<div class="bg-surface-container-low p-5 rounded-xl flex flex-col items-center justify-center">
-<span class="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest mb-1">Estimativa</span>
-<span class="font-headline text-2xl font-bold text-primary">~8 min</span>
+<!-- Floating Status Pill -->
+<div class="absolute top-20 left-1/2 -translate-x-1/2 z-40 w-max">
+<div class="bg-primary/20 backdrop-blur-md border border-primary/30 px-4 py-2 rounded-full flex items-center gap-2">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+</span>
+<span class="text-[11px] font-bold uppercase tracking-widest text-primary">Buscando mecânicos próximos...</span>
 </div>
 </div>
-<!-- Contact/Support Card -->
-<div class="relative z-10 w-full bg-surface-container-high p-5 rounded-xl flex items-center gap-4 mb-8 transition-colors hover:bg-surface-container-highest cursor-pointer">
-<div class="bg-primary/10 p-3 rounded-full">
+<!-- Main Content Area (Spacer) -->
+<main class="flex-grow z-20"></main>
+<!-- Bottom Sheet -->
+<section class="glass-sheet z-50 px-6 pt-6 pb-8 rounded-t-[24px] flex flex-col gap-6">
+<!-- Handlebar -->
+<div class="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-2"></div>
+<!-- Status & Queue -->
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest mb-1">Status atual</span>
+<h2 class="font-headline text-2xl font-bold text-on-surface">2º na fila</h2>
+</div>
+<div class="text-right">
+<span class="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest mb-1">Chegada estimada</span>
+<div class="flex items-center gap-1 text-primary justify-end">
+<span class="material-symbols-outlined text-sm">schedule</span>
+<span class="font-headline text-2xl font-bold">~8 min</span>
+</div>
+</div>
+</div>
+<!-- Progress Indicator (Subtle) -->
+<div class="w-full bg-white/10 h-1 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-1/3 animate-[progress_2s_ease-in-out_infinite]"></div>
+</div>
+<!-- Quick Action Card -->
+<div class="bg-white/5 border border-white/10 p-4 rounded-xl flex items-center gap-4 active:bg-white/10 transition-colors cursor-pointer">
+<div class="bg-primary/10 p-2.5 rounded-lg">
 <span class="material-symbols-outlined text-primary" data-icon="support_agent">support_agent</span>
 </div>
 <div class="flex flex-col">
-<span class="text-on-surface font-bold">Ligação para atendimento</span>
-<span class="text-on-surface-variant text-sm">Falar com central MechaGo</span>
+<span class="text-on-surface font-bold text-sm">Ligar para suporte</span>
+<span class="text-on-surface-variant text-[11px]">Central de atendimento MechaGo 24h</span>
 </div>
-<span class="material-symbols-outlined ml-auto text-on-surface-variant" data-icon="chevron_right">chevron_right</span>
+<span class="material-symbols-outlined ml-auto text-on-surface-variant text-sm" data-icon="chevron_right">chevron_right</span>
 </div>
-<!-- Action Area -->
-<div class="relative z-10 w-full mt-auto">
-<button class="w-full border-2 border-primary text-primary font-headline font-bold py-4 rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-all group">
-<span class="material-symbols-outlined animate-spin" data-icon="progress_activity">progress_activity</span>
-                    AGUARDANDO VAGA
-                </button>
-<p class="text-center text-on-surface-variant text-xs mt-4 uppercase tracking-widest opacity-60">
-                    Sua solicitação está ativa
-                </p>
+<!-- Action Button -->
+<button class="w-full bg-white/5 hover:bg-error/10 border border-white/10 hover:border-error/30 text-white/70 hover:text-error font-headline font-bold py-4 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-95 group">
+<span class="material-symbols-outlined text-lg group-hover:animate-pulse">cancel</span>
+            CANCELAR BUSCA
+        </button>
+</section>
+<!-- Bottom Navigation Bar Overlay -->
+<nav class="absolute bottom-0 left-0 w-full z-[60] flex justify-around items-center px-4 pb-4 pt-2 bg-black/40 backdrop-blur-md border-t border-white/5">
+<div class="flex flex-col items-center justify-center text-gray-400">
+<span class="material-symbols-outlined text-xl">emergency_share</span>
+<span class="font-headline text-[9px] uppercase font-bold tracking-tighter mt-1">SOS</span>
 </div>
-</main>
-<!-- Bottom Navigation Bar (Shared Component Strategy) -->
-<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-2 bg-[#0e0e0e]/70 backdrop-blur-xl border-t border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.4)]">
-<div class="flex flex-col items-center justify-center text-gray-500 hover:text-[#ffe484] transition-colors active:scale-95 transition-all duration-200">
-<span class="material-symbols-outlined" data-icon="emergency_share">emergency_share</span>
-<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest mt-1">SOS</span>
+<div class="flex flex-col items-center justify-center text-[#fdd404]">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">directions_car</span>
+<span class="font-headline text-[9px] uppercase font-bold tracking-tighter mt-1">Vehicles</span>
 </div>
-<div class="flex flex-col items-center justify-center text-[#fdd404] bg-[#fdd404]/10 rounded-xl px-3 py-1 active:scale-95 transition-all duration-200">
-<span class="material-symbols-outlined" data-icon="directions_car" style="font-variation-settings: 'FILL' 1;">directions_car</span>
-<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest mt-1">Vehicles</span>
+<div class="flex flex-col items-center justify-center text-gray-400">
+<span class="material-symbols-outlined text-xl">history</span>
+<span class="font-headline text-[9px] uppercase font-bold tracking-tighter mt-1">History</span>
 </div>
-<div class="flex flex-col items-center justify-center text-gray-500 hover:text-[#ffe484] transition-colors active:scale-95 transition-all duration-200">
-<span class="material-symbols-outlined" data-icon="history">history</span>
-<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest mt-1">History</span>
-</div>
-<div class="flex flex-col items-center justify-center text-gray-500 hover:text-[#ffe484] transition-colors active:scale-95 transition-all duration-200">
-<span class="material-symbols-outlined" data-icon="person">person</span>
-<span class="font-['Space_Grotesk'] text-[10px] uppercase font-bold tracking-widest mt-1">Profile</span>
+<div class="flex flex-col items-center justify-center text-gray-400">
+<span class="material-symbols-outlined text-xl">person</span>
+<span class="font-headline text-[9px] uppercase font-bold tracking-tighter mt-1">Profile</span>
 </div>
 </nav>
 </div>
+<style>
+    @keyframes progress {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(300%); }
+    }
+</style>
 </body></html>

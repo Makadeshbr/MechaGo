@@ -38,18 +38,21 @@ async function extractErrorMessage(error: unknown): Promise<string> {
   try {
     if (error && typeof error === "object" && "response" in error) {
       const response = (error as { response: Response }).response;
+      if (response.status === 401) {
+        return "Sessão expirada. Faça login novamente para continuar.";
+      }
       const body = await response.json();
       return body?.error?.message ?? body?.userMessage ?? "Não foi possível salvar o diagnóstico.";
     }
   } catch {
-    return "Não foi possível salvar o diagnóstico.";
+    return "Erro de conexão com o servidor. Verifique sua internet.";
   }
 
   if (error instanceof Error) {
     return error.message;
   }
 
-  return "Não foi possível salvar o diagnóstico.";
+  return "Erro inesperado ao salvar o diagnóstico.";
 }
 
 export default function DiagnosisScreen() {

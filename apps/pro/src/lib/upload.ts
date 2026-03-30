@@ -41,25 +41,38 @@ export async function uploadFile(
   if (uploadUrl.includes("/local/")) {
     const accessToken = tokenStorage.getAccessToken();
 
-    await ky.post(uploadUrl, {
-      body: blob,
-      headers: {
-        "Content-Type": contentType,
-        ...(accessToken
-          ? { Authorization: `Bearer ${accessToken}` }
-          : {}),
-      },
-      timeout: 30000,
-    });
+    if (!accessToken) {
+      console.error("[uploadFile] Falha no upload local: Access Token ausente no storage.");
+      throw new Error("Não foi possível autenticar o upload da foto. Tente fazer login novamente.");
+    }
+
+    try {
+      await ky.post(uploadUrl, {
+        body: blob,
+        headers: {
+          "Content-Type": contentType,
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        timeout: 60000, // Aumentado para 60s em uploads
+      });
+    } catch (error: any) {
+      console.error("[uploadFile] Erro no POST local:", error);
+      throw error;
+    }
   } else {
-    // Padrão R2/S3: PUT com o arquivo no body
-    await ky.put(uploadUrl, {
-      body: blob,
-      headers: {
-        "Content-Type": contentType,
-      },
-      timeout: 30000,
-    });
+    // Padrão R2/S3: PUT com o arquivo no body (não requer nosso JWT)
+    try {
+      await ky.put(uploadUrl, {
+        body: blob,
+        headers: {
+          "Content-Type": contentType,
+        },
+        timeout: 60000,
+      });
+    } catch (error: any) {
+      console.error("[uploadFile] Erro no PUT R2:", error);
+      throw error;
+    }
   }
 
   return publicUrl;

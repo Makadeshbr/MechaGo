@@ -161,13 +161,25 @@ export class UploadsService {
   }
 
   private hasR2Config(): boolean {
-    return Boolean(
+    const hasConfig = Boolean(
       env.R2_ENDPOINT &&
         env.R2_ACCESS_KEY_ID &&
         env.R2_SECRET_ACCESS_KEY &&
         env.R2_BUCKET &&
         env.R2_PUBLIC_URL,
     );
+
+    if (!hasConfig) {
+      console.warn("[UploadsService] R2 não configurado totalmente. Variáveis presentes:", {
+        endpoint: !!env.R2_ENDPOINT,
+        accessKey: !!env.R2_ACCESS_KEY_ID,
+        secretKey: !!env.R2_SECRET_ACCESS_KEY,
+        bucket: !!env.R2_BUCKET,
+        publicUrl: !!env.R2_PUBLIC_URL,
+      });
+    }
+
+    return hasConfig;
   }
 
   private buildR2PublicUrl(fileKey: string): string {
