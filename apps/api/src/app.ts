@@ -50,6 +50,41 @@ export function createApp() {
     c.json({ status: "ready", timestamp: new Date().toISOString() }),
   );
 
+  // Diagnóstico R2 — testa credenciais fazendo um PutObject real com 1 byte
+  // Remover antes do launch de produção
+  app.get("/health/r2", async (c) => {
+    const { env: appEnv } = await import("@/env");
+    const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+
+    if (!appEnv.R2_ENDPOINT || !appEnv.R2_ACCESS_KEY_ID || !appEnv.R2_SECRET_ACCESS_KEY || !appEnv.R2_BUCKET) {
+      return c.json({ ok: false, reason: "R2 env vars not configured" }, 200);
+    }
+
+    const client = new S3Client({
+      region: "auto",
+      endpoint: appEnv.R2_ENDPOINT,
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
+      credentials: {
+        accessKeyId: appEnv.R2_ACCESS_KEY_ID,
+        secretAccessKey: appEnv.R2_SECRET_ACCESS_KEY,
+      },
+    });
+
+    try {
+      await client.send(new PutObjectCommand({
+        Bucket: appEnv.R2_BUCKET,
+        Key: "_healthcheck/test.txt",
+        Body: Buffer.from("ok"),
+        ContentType: "text/plain",
+      }));
+      return c.json({ ok: true, bucket: appEnv.R2_BUCKET, endpoint: appEnv.R2_ENDPOINT }, 200);
+    } catch (err) {
+      const error = err as Error;
+      return c.json({ ok: false, reason: error.message }, 200);
+    }
+  });
+
   // OpenAPI spec
   app.doc("/openapi.json", {
     openapi: "3.1.0",
