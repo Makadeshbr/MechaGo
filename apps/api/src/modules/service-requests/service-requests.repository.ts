@@ -124,7 +124,7 @@ export class ServiceRequestsRepository {
   /**
    * Busca requests por status — usado para re-matching quando um profissional fica online
    */
-  static async findByStatus(status: string): Promise<SelectServiceRequest[]> {
+  static async findByStatus(status: typeof serviceRequests.status.columnType.data): Promise<SelectServiceRequest[]> {
     return db
       .select()
       .from(serviceRequests)

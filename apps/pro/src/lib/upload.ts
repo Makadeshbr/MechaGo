@@ -24,56 +24,54 @@ export async function uploadFile(
   contentType: string,
   context: UploadContext,
 ): Promise<string> {
-  // 1. Obter Presigned URL
+  // 1. Obter Presigned URL (Usa a instância 'api' que tem refresh token automático)
   const response = await api.post("uploads/presigned-url", {
     json: { fileName, contentType, context },
   }).json<UploadResponse>();
 
   const { uploadUrl, publicUrl } = response;
+  
+  // LOGS PARA DEBUG NO EXPO GO
+  console.log(`[Upload] Destino: ${uploadUrl.includes("r2.cloudflarestorage.com") ? "CLOUDFLARE R2" : "RAILWAY LOCAL"}`);
+  console.log(`[Upload] URL: ${uploadUrl.substring(0, 60)}...`);
 
   // 2. Preparar o arquivo para upload
-  // No React Native/Expo, usamos fetch para pegar o blob do arquivo local
   const fileResponse = await fetch(uri);
   const blob = await fileResponse.blob();
 
   // 3. Executar o Upload (PUT para R2 ou POST para Local)
-  // Se a URL contém "local/", usamos POST e enviamos como binary body ou form-data
-  if (uploadUrl.includes("/local/")) {
-    const accessToken = tokenStorage.getAccessToken();
-
-    if (!accessToken) {
-      console.error("[uploadFile] Falha no upload local: Access Token ausente no storage.");
-      throw new Error("Não foi possível autenticar o upload da foto. Tente fazer login novamente.");
+  try {
+    const isLocal = uploadUrl.includes("/local/");
+    
+    // Configuração de headers
+    const headers: Record<string, string> = {
+      "Content-Type": contentType,
+    };
+    
+    if (isLocal) {
+      const accessToken = tokenStorage.getAccessToken();
+      if (accessToken) {
+        headers["Authorization"] = `Bearer ${accessToken}`;
+      }
     }
 
-    try {
-      await ky.post(uploadUrl, {
-        body: blob,
-        headers: {
-          "Content-Type": contentType,
-          "Authorization": `Bearer ${accessToken}`,
-        },
-        timeout: 60000, // Aumentado para 60s em uploads
-      });
-    } catch (error: any) {
-      console.error("[uploadFile] Erro no POST local:", error);
-      throw error;
+    // Execução do upload binário
+    await ky(uploadUrl, {
+      method: isLocal ? "post" : "put",
+      body: blob,
+      headers,
+      timeout: 120000, // 2 minutos para uploads em conexões móveis
+    });
+
+    return publicUrl;
+  } catch (error: any) {
+    console.error("[uploadFile] Erro fatal no upload:", error);
+    if (error.response) {
+      const status = error.response.status;
+      if (status === 401) throw new Error("Sessão expirada no envio da foto. Tente novamente.");
+      if (status === 413) throw new Error("A imagem é muito grande (limite 10MB).");
+      if (status === 403) throw new Error("Acesso negado ao storage. Verifique as chaves R2.");
     }
-  } else {
-    // Padrão R2/S3: PUT com o arquivo no body (não requer nosso JWT)
-    try {
-      await ky.put(uploadUrl, {
-        body: blob,
-        headers: {
-          "Content-Type": contentType,
-        },
-        timeout: 60000,
-      });
-    } catch (error: any) {
-      console.error("[uploadFile] Erro no PUT R2:", error);
-      throw error;
-    }
+    throw new Error("Falha na conexão de upload. Verifique seu sinal de internet.");
   }
-
-  return publicUrl;
 }
