@@ -83,7 +83,7 @@ export class UploadsService {
    */
   private async getR2PresignedUrl(
     fileKey: string,
-    contentType: string,
+    _contentType: string,
   ): Promise<PresignedUrlResponse> {
     if (!env.R2_BUCKET || !env.R2_ENDPOINT) {
       throw Errors.internal("R2 configuration missing bucket or endpoint");
@@ -100,12 +100,17 @@ export class UploadsService {
       },
     });
 
+    // ContentType é omitido intencionalmente do PutObjectCommand.
+    // Quando incluído, o AWS SDK adiciona 'content-type' aos signed headers —
+    // o R2 então EXIGE que o cliente envie o header com valor idêntico.
+    // Clientes móveis (expo-file-system BINARY_CONTENT) nem sempre enviam
+    // o header exato, resultando em 403. Sem ContentType na assinatura,
+    // o R2 aceita o PUT independentemente do header Content-Type enviado.
     const uploadUrl = await getSignedUrl(
       client,
       new PutObjectCommand({
         Bucket: env.R2_BUCKET,
         Key: fileKey,
-        ContentType: contentType,
       }),
       { expiresIn: PRESIGNED_URL_EXPIRES_IN_SECONDS },
     );
