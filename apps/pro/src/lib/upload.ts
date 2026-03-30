@@ -1,25 +1,18 @@
-import * as FileSystem from "expo-file-system/legacy";
 import { api } from "./api";
 
 type UploadContext = "diagnosis" | "completion" | "avatar";
 
-interface PresignedUrlResponse {
-  uploadUrl: string;
-  fileKey: string;
+interface UploadResult {
   publicUrl: string;
-  expiresIn: number;
+  fileKey: string;
 }
 
 /**
- * Upload de arquivo para o Cloudflare R2 via presigned URL.
+ * Upload de arquivo para o servidor (R2 via backend).
  *
- * Fluxo enterprise em dois passos:
- *   1. POST /api/v1/uploads/presigned-url → recebe URL temporária do R2
- *   2. PUT direto ao R2 usando FileSystem.uploadAsync (BINARY_CONTENT)
- *
- * O arquivo nunca passa pelo servidor Railway — zero overhead de memória e banda.
- * A URL é assinada com unsignableHeaders para content-type, eliminando o 403
- * causado por divergência de headers entre AWS SDK e clientes móveis nativos.
+ * O arquivo é enviado como multipart/form-data para a Railway API, que faz
+ * o PutObject para o R2 server-side. Abordagem correta para mobile: sem
+ * presigned URL, sem problemas de headers de assinatura.
  */
 export async function uploadFile(
   uri: string,
@@ -29,29 +22,17 @@ export async function uploadFile(
 ): Promise<string> {
   console.log(`[Upload] Iniciando: ${fileName} (${contentType})`);
 
-  // Passo 1: solicitar presigned URL ao backend
-  const presigned = await api
-    .post("uploads/presigned-url", {
-      json: { fileName, contentType, context },
-    })
-    .json<PresignedUrlResponse>();
+  const formData = new FormData();
+  formData.append("file", {
+    uri,
+    name: fileName,
+    type: contentType,
+  } as unknown as Blob);
 
-  console.log(`[Upload] Presigned URL obtida. fileKey: ${presigned.fileKey}`);
+  const response = await api
+    .post(`uploads?context=${context}`, { body: formData })
+    .json<UploadResult>();
 
-  // Passo 2: PUT direto ao R2 com o binário do arquivo
-  const uploadResult = await FileSystem.uploadAsync(presigned.uploadUrl, uri, {
-    httpMethod: "PUT",
-    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-    headers: {
-      "Content-Type": contentType,
-    },
-  });
-
-  if (uploadResult.status < 200 || uploadResult.status >= 300) {
-    console.error(`[Upload] R2 recusou PUT: status ${uploadResult.status}`, uploadResult.body);
-    throw new Error(`Upload falhou com status ${uploadResult.status}`);
-  }
-
-  console.log(`[Upload] Sucesso. publicUrl: ${presigned.publicUrl.substring(0, 80)}`);
-  return presigned.publicUrl;
+  console.log(`[Upload] Sucesso. publicUrl: ${response.publicUrl.substring(0, 80)}`);
+  return response.publicUrl;
 }

@@ -2,10 +2,9 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "../../env";
 import { Errors } from "../../utils/errors";
-import type { PresignedUrlRequest, PresignedUrlResponse, UploadContext } from "./uploads.schemas";
+import type { UploadContext } from "./uploads.schemas";
 
 const ALLOWED_CONTENT_TYPES = [
   "image/jpeg",
@@ -15,24 +14,8 @@ const ALLOWED_CONTENT_TYPES = [
   "image/heif",
 ] as const;
 
-// URL presigned expira em 15 minutos — tempo suficiente para o cliente fazer o PUT
-const PRESIGNED_URL_EXPIRES_IN = 900;
-
 function trimTrailingSlash(value: string): string {
   return value.endsWith("/") ? value.slice(0, -1) : value;
-}
-
-function buildR2Client(): S3Client {
-  return new S3Client({
-    region: "auto",
-    endpoint: env.R2_ENDPOINT!,
-    requestChecksumCalculation: "WHEN_REQUIRED",
-    responseChecksumValidation: "WHEN_REQUIRED",
-    credentials: {
-      accessKeyId: env.R2_ACCESS_KEY_ID ?? "",
-      secretAccessKey: env.R2_SECRET_ACCESS_KEY ?? "",
-    },
-  });
 }
 
 export interface DirectUploadResult {
@@ -44,53 +27,11 @@ export class UploadsService {
   private readonly localUploadDir = join(process.cwd(), "uploads");
 
   /**
-   * Gera uma presigned URL para upload direto do cliente para o R2.
+   * Recebe o buffer do arquivo e faz upload server-side para o R2.
    *
-   * A URL tem validade de 15 minutos. O content-type é marcado como unsignable
-   * para evitar incompatibilidade de headers entre o AWS SDK e o cliente móvel,
-   * que é o principal vetor de 403 com presigned URLs em React Native.
-   */
-  async getPresignedUrl(params: PresignedUrlRequest): Promise<PresignedUrlResponse> {
-    if (!this.hasR2Config()) {
-      throw Errors.internal("R2 não configurado — presigned URL indisponível");
-    }
-
-    if (!ALLOWED_CONTENT_TYPES.includes(params.contentType as (typeof ALLOWED_CONTENT_TYPES)[number])) {
-      throw Errors.validation(
-        `Tipo de arquivo não permitido: ${params.contentType}. Aceitos: ${ALLOWED_CONTENT_TYPES.join(", ")}`,
-      );
-    }
-
-    const ext = this.getExtension(params.fileName, params.contentType);
-    const fileKey = `${params.context}_${Date.now()}_${randomUUID()}${ext}`;
-
-    const client = buildR2Client();
-
-    const command = new PutObjectCommand({
-      Bucket: env.R2_BUCKET!,
-      Key: fileKey,
-      ContentType: params.contentType,
-    });
-
-    // unsignableHeaders exclui content-type da assinatura — o cliente pode
-    // enviar o header sem quebrar a verificação de assinatura do R2
-    const uploadUrl = await getSignedUrl(client, command, {
-      expiresIn: PRESIGNED_URL_EXPIRES_IN,
-      unhoistableHeaders: new Set(["content-type", "x-amz-content-sha256"]),
-      unsignableHeaders: new Set(["content-type"]),
-    });
-
-    return {
-      uploadUrl,
-      fileKey,
-      publicUrl: this.buildR2PublicUrl(fileKey),
-      expiresIn: PRESIGNED_URL_EXPIRES_IN,
-    };
-  }
-
-  /**
-   * Upload server-side para fallback local (dev/MVP sem R2).
-   * Em produção, o cliente usa presigned URL e faz PUT direto no R2.
+   * Upload server-side é o padrão correto para mobile: o cliente envia multipart
+   * para o backend, que faz PutObject para o R2. Elimina toda a complexidade de
+   * presigned URL (headers de assinatura, CORS, incompatibilidade com expo-file-system).
    */
   async uploadFile(params: {
     buffer: Buffer;
@@ -108,7 +49,50 @@ export class UploadsService {
     const ext = this.getExtension(params.fileName, params.contentType);
     const fileKey = `${params.context}_${Date.now()}_${randomUUID()}${ext}`;
 
+    if (this.hasR2Config()) {
+      return this.uploadToR2(fileKey, params.buffer, params.contentType);
+    }
+
     return this.saveLocally(fileKey, params.buffer, params.baseUrl);
+  }
+
+  /**
+   * Upload direto para o R2 via SDK server-side (PutObjectCommand).
+   * O Railway faz o PUT — sem presigned URL, sem problemas de headers móveis.
+   */
+  private async uploadToR2(
+    fileKey: string,
+    buffer: Buffer,
+    contentType: string,
+  ): Promise<DirectUploadResult> {
+    if (!env.R2_BUCKET || !env.R2_ENDPOINT) {
+      throw Errors.internal("R2 configuration missing bucket or endpoint");
+    }
+
+    const client = new S3Client({
+      region: "auto",
+      endpoint: env.R2_ENDPOINT,
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
+      credentials: {
+        accessKeyId: env.R2_ACCESS_KEY_ID ?? "",
+        secretAccessKey: env.R2_SECRET_ACCESS_KEY ?? "",
+      },
+    });
+
+    await client.send(
+      new PutObjectCommand({
+        Bucket: env.R2_BUCKET,
+        Key: fileKey,
+        Body: buffer,
+        ContentType: contentType,
+      }),
+    );
+
+    return {
+      publicUrl: this.buildR2PublicUrl(fileKey),
+      fileKey,
+    };
   }
 
   private async saveLocally(
