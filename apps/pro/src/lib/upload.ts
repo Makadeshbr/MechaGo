@@ -12,11 +12,13 @@ interface UploadResponse {
 type UploadContext = "diagnosis" | "completion" | "avatar";
 
 /**
- * Enterprise Upload Helper
- * 
- * 1. Pede presigned URL para a API
- * 2. Faz o upload binário direto para o storage (R2 ou Local Fallback)
- * 3. Retorna a URL pública final
+ * Realiza upload de arquivo para R2 (produção) ou fallback local (MVP).
+ *
+ * Para uploads locais no Railway: usa FormData — método confiável no React Native Android.
+ * Para R2: usa PUT binário com presigned URL (padrão S3).
+ *
+ * O fetch(uri).blob() é instável em Android para URIs de arquivo local,
+ * por isso usamos FormData para o caminho local.
  */
 export async function uploadFile(
   uri: string,
@@ -24,54 +26,64 @@ export async function uploadFile(
   contentType: string,
   context: UploadContext,
 ): Promise<string> {
-  // 1. Obter Presigned URL (Usa a instância 'api' que tem refresh token automático)
-  const response = await api.post("uploads/presigned-url", {
-    json: { fileName, contentType, context },
-  }).json<UploadResponse>();
+  // 1. Obter Presigned URL — usa a instância 'api' com refresh token automático
+  const response = await api
+    .post("uploads/presigned-url", {
+      json: { fileName, contentType, context },
+    })
+    .json<UploadResponse>();
 
   const { uploadUrl, publicUrl } = response;
-  
-  // LOGS PARA DEBUG NO EXPO GO
-  console.log(`[Upload] Destino: ${uploadUrl.includes("r2.cloudflarestorage.com") ? "CLOUDFLARE R2" : "RAILWAY LOCAL"}`);
-  console.log(`[Upload] URL: ${uploadUrl.substring(0, 60)}...`);
+  const isLocal = uploadUrl.includes("/local/");
 
-  // 2. Preparar o arquivo para upload
-  const fileResponse = await fetch(uri);
-  const blob = await fileResponse.blob();
+  console.log(`[Upload] Storage: ${isLocal ? "RAILWAY LOCAL" : "CLOUDFLARE R2"}`);
+  console.log(`[Upload] URI local: ${uri.substring(0, 80)}`);
 
-  // 3. Executar o Upload (PUT para R2 ou POST para Local)
   try {
-    const isLocal = uploadUrl.includes("/local/");
-    
-    // Configuração de headers
-    const headers: Record<string, string> = {
-      "Content-Type": contentType,
-    };
-    
     if (isLocal) {
+      // Fallback local: FormData é o método mais robusto em React Native Android
+      // O campo 'file' corresponde ao que o servidor espera em c.req.parseBody()
       const accessToken = tokenStorage.getAccessToken();
-      if (accessToken) {
-        headers["Authorization"] = `Bearer ${accessToken}`;
-      }
+      const formData = new FormData();
+      formData.append("file", {
+        uri,
+        name: fileName,
+        type: contentType,
+      } as unknown as Blob);
+
+      await ky.post(uploadUrl, {
+        body: formData,
+        headers: {
+          // Não definir Content-Type — o FormData define automaticamente com boundary
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        timeout: 120000,
+      });
+    } else {
+      // Produção R2: PUT com binário direto (padrão presigned URL S3/R2)
+      const fileResponse = await fetch(uri);
+      const blob = await fileResponse.blob();
+
+      await ky.put(uploadUrl, {
+        body: blob,
+        headers: { "Content-Type": contentType },
+        timeout: 120000,
+      });
     }
 
-    // Execução do upload binário
-    await ky(uploadUrl, {
-      method: isLocal ? "post" : "put",
-      body: blob,
-      headers,
-      timeout: 120000, // 2 minutos para uploads em conexões móveis
-    });
-
+    console.log(`[Upload] Sucesso. URL pública: ${publicUrl.substring(0, 80)}`);
     return publicUrl;
-  } catch (error: any) {
-    console.error("[uploadFile] Erro fatal no upload:", error);
-    if (error.response) {
-      const status = error.response.status;
-      if (status === 401) throw new Error("Sessão expirada no envio da foto. Tente novamente.");
-      if (status === 413) throw new Error("A imagem é muito grande (limite 10MB).");
-      if (status === 403) throw new Error("Acesso negado ao storage. Verifique as chaves R2.");
+  } catch (error: unknown) {
+    console.error("[uploadFile] Erro no upload:", error);
+
+    const httpError = error as { response?: { status?: number } };
+    if (httpError?.response?.status) {
+      const status = httpError.response.status;
+      if (status === 401) throw new Error("Sessão expirada. Faça login novamente para continuar.");
+      if (status === 413) throw new Error("A imagem é muito grande. Limite de 10MB.");
+      if (status === 400) throw new Error("Formato de imagem inválido. Use JPG ou PNG.");
     }
-    throw new Error("Falha na conexão de upload. Verifique seu sinal de internet.");
+
+    throw new Error("Falha no envio da foto. Verifique seu sinal de internet e tente novamente.");
   }
 }
