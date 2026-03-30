@@ -1,4 +1,6 @@
-import ky from "ky";
+// expo-file-system v19 separou a API legada. uploadAsync e FileSystemUploadType
+// vivem em 'expo-file-system/legacy' — import correto para SDK 54.
+import * as FileSystem from "expo-file-system/legacy";
 import { api } from "./api";
 import { tokenStorage } from "./storage";
 
@@ -12,13 +14,13 @@ interface UploadResponse {
 type UploadContext = "diagnosis" | "completion" | "avatar";
 
 /**
- * Realiza upload de arquivo para R2 (produção) ou fallback local (MVP).
+ * Realiza upload de arquivo para R2 (produção) ou fallback local (Railway).
  *
- * Para uploads locais no Railway: usa FormData — método confiável no React Native Android.
- * Para R2: usa PUT binário com presigned URL (padrão S3).
+ * Usa expo-file-system/legacy uploadAsync — a API mais confiável do Expo para
+ * upload de arquivo, funciona em todos os Android sem os bugs do fetch().blob().
  *
- * O fetch(uri).blob() é instável em Android para URIs de arquivo local,
- * por isso usamos FormData para o caminho local.
+ * Local (Railway): multipart/form-data, campo 'file', método POST.
+ * R2 (produção):   binário raw, método PUT (exigido pelo presigned URL do R2).
  */
 export async function uploadFile(
   uri: string,
@@ -27,63 +29,65 @@ export async function uploadFile(
   context: UploadContext,
 ): Promise<string> {
   // 1. Obter Presigned URL — usa a instância 'api' com refresh token automático
-  const response = await api
+  const presignedResponse = await api
     .post("uploads/presigned-url", {
       json: { fileName, contentType, context },
     })
     .json<UploadResponse>();
 
-  const { uploadUrl, publicUrl } = response;
+  const { uploadUrl, publicUrl } = presignedResponse;
   const isLocal = uploadUrl.includes("/local/");
 
   console.log(`[Upload] Storage: ${isLocal ? "RAILWAY LOCAL" : "CLOUDFLARE R2"}`);
-  console.log(`[Upload] URI local: ${uri.substring(0, 80)}`);
+  console.log(`[Upload] fileURI: ${uri.substring(0, 80)}`);
+  console.log(`[Upload] uploadURL: ${uploadUrl.substring(0, 80)}`);
+
+  // 2. Executar upload via FileSystem.uploadAsync
+  let result: FileSystem.FileSystemUploadResult;
 
   try {
     if (isLocal) {
-      // Fallback local: FormData é o método mais robusto em React Native Android
-      // O campo 'file' corresponde ao que o servidor espera em c.req.parseBody()
+      // Fallback Railway: multipart/form-data — o servidor Hono lê via body.file
       const accessToken = tokenStorage.getAccessToken();
-      const formData = new FormData();
-      formData.append("file", {
-        uri,
-        name: fileName,
-        type: contentType,
-      } as unknown as Blob);
-
-      await ky.post(uploadUrl, {
-        body: formData,
-        headers: {
-          // Não definir Content-Type — o FormData define automaticamente com boundary
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-        timeout: 120000,
+      result = await FileSystem.uploadAsync(uploadUrl, uri, {
+        httpMethod: "POST",
+        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        fieldName: "file",
+        mimeType: contentType,
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       });
     } else {
-      // Produção R2: PUT com binário direto (padrão presigned URL S3/R2)
-      const fileResponse = await fetch(uri);
-      const blob = await fileResponse.blob();
-
-      await ky.put(uploadUrl, {
-        body: blob,
+      // R2 presigned PUT: envia binário raw (padrão S3/R2 — não aceita multipart)
+      result = await FileSystem.uploadAsync(uploadUrl, uri, {
+        httpMethod: "PUT",
+        uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
         headers: { "Content-Type": contentType },
-        timeout: 120000,
       });
     }
-
-    console.log(`[Upload] Sucesso. URL pública: ${publicUrl.substring(0, 80)}`);
-    return publicUrl;
-  } catch (error: unknown) {
-    console.error("[uploadFile] Erro no upload:", error);
-
-    const httpError = error as { response?: { status?: number } };
-    if (httpError?.response?.status) {
-      const status = httpError.response.status;
-      if (status === 401) throw new Error("Sessão expirada. Faça login novamente para continuar.");
-      if (status === 413) throw new Error("A imagem é muito grande. Limite de 10MB.");
-      if (status === 400) throw new Error("Formato de imagem inválido. Use JPG ou PNG.");
-    }
-
-    throw new Error("Falha no envio da foto. Verifique seu sinal de internet e tente novamente.");
+  } catch (networkError) {
+    console.error("[Upload] Erro de rede antes de atingir o servidor:", networkError);
+    throw new Error(
+      "Sem conexão com o servidor de upload. Verifique seu sinal de internet.",
+    );
   }
+
+  console.log(`[Upload] HTTP status: ${result.status}`);
+
+  if (result.status === 401) {
+    throw new Error("Sessão expirada. Faça login novamente para continuar.");
+  }
+  if (result.status === 413) {
+    throw new Error("A imagem é muito grande. Limite de 10MB.");
+  }
+  if (result.status === 400) {
+    console.error("[Upload] Resposta 400:", result.body);
+    throw new Error("Formato de imagem inválido (400). Use JPG ou PNG.");
+  }
+  if (result.status < 200 || result.status >= 300) {
+    console.error(`[Upload] Falha HTTP ${result.status}:`, result.body);
+    throw new Error(`Falha no upload (HTTP ${result.status}). Tente novamente.`);
+  }
+
+  console.log(`[Upload] Sucesso. publicUrl: ${publicUrl.substring(0, 80)}`);
+  return publicUrl;
 }
