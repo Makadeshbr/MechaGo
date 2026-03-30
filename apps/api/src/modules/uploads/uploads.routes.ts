@@ -1,57 +1,37 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
+import { z } from "@hono/zod-openapi";
 import { authMiddleware } from "../../middleware/auth.middleware";
 import { uploadsService } from "./uploads.service";
-import {
-  localUploadParamsSchema,
-  localUploadResponseSchema,
-  presignedUrlRequestSchema,
-  presignedUrlResponseSchema,
-} from "./uploads.schemas";
+import { uploadContextSchema } from "./uploads.schemas";
 
-const getPresignedUrlRoute = createRoute({
+const MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10MB
+
+const uploadRoute = createRoute({
   method: "post",
-  path: "/presigned-url",
+  path: "/",
   tags: ["Uploads"],
-  summary: "Get presigned URL for file upload",
+  summary: "Upload de arquivo (foto de diagnóstico, conclusão ou avatar)",
   description:
-    "Returns a presigned URL for uploading a file. Uses R2 in production, local fallback in dev.",
-  request: { body: { content: { "application/json": { schema: presignedUrlRequestSchema } } } },
-  responses: {
-    200: {
-      content: { "application/json": { schema: presignedUrlResponseSchema } },
-      description: "Presigned URL generated successfully",
-    },
-    401: { description: "Unauthorized" },
-    422: { description: "Validation error" },
-  },
-  middleware: [authMiddleware] as const,
-});
-
-// Limite de 10MB para uploads
-const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
-
-const localUploadRoute = createRoute({
-  method: "post",
-  path: "/local/:fileKey",
-  tags: ["Uploads"],
-  summary: "Upload file to local storage (MVP fallback)",
-  description:
-    "Accepts multipart/form-data file upload and saves to local disk. Used when R2 is not configured.",
+    "Recebe o arquivo via multipart/form-data e faz o upload para R2 (produção) ou " +
+    "armazenamento local (MVP). Retorna a URL pública do arquivo.",
   request: {
-    params: localUploadParamsSchema,
+    body: {
+      content: { "multipart/form-data": { schema: z.object({ file: z.any() }) } },
+    },
   },
   responses: {
     200: {
       content: {
         "application/json": {
-          schema: localUploadResponseSchema,
+          schema: z.object({ publicUrl: z.string().url(), fileKey: z.string() }),
         },
       },
-      description: "File uploaded successfully",
+      description: "Upload realizado com sucesso",
     },
-    400: { description: "No file provided" },
-    401: { description: "Unauthorized" },
-    413: { description: "File too large" },
+    400: { description: "Arquivo ausente ou inválido" },
+    401: { description: "Não autenticado" },
+    413: { description: "Arquivo muito grande (máx 10MB)" },
+    422: { description: "Tipo de arquivo não permitido" },
   },
   middleware: [authMiddleware] as const,
 });
@@ -60,67 +40,50 @@ export const uploadsApp = new OpenAPIHono();
 
 function getBaseUrl(requestUrl: string, forwardedHost?: string, forwardedProto?: string) {
   const parsedUrl = new URL(requestUrl);
-
   if (forwardedHost) {
     return `${forwardedProto ?? parsedUrl.protocol.replace(":", "")}://${forwardedHost}`;
   }
-
   return parsedUrl.origin;
 }
 
-uploadsApp.openapi(getPresignedUrlRoute, async (c) => {
-  const body = c.req.valid("json");
+uploadsApp.openapi(uploadRoute, async (c) => {
   const baseUrl = getBaseUrl(
     c.req.url,
     c.req.header("x-forwarded-host"),
     c.req.header("x-forwarded-proto"),
   );
 
-  const result = await uploadsService.getPresignedUrl({
-    ...body,
+  // Contexto do upload (diagnosis | completion | avatar) — query param opcional
+  const contextParam = c.req.query("context");
+  const contextResult = uploadContextSchema.safeParse(contextParam ?? "diagnosis");
+  const context = contextResult.success ? contextResult.data : "diagnosis" as const;
+
+  // Lê o arquivo do multipart
+  const body = await c.req.parseBody();
+  const file = body.file;
+
+  if (!file || !(file instanceof File)) {
+    return c.json({ error: "Arquivo ausente. Envie o campo 'file' como multipart/form-data." }, 400);
+  }
+
+  if (file.size === 0) {
+    return c.json({ error: "Arquivo vazio." }, 400);
+  }
+
+  if (file.size > MAX_UPLOAD_SIZE) {
+    return c.json({ error: "Arquivo muito grande. Limite de 10MB." }, 413);
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const contentType = file.type || "image/jpeg";
+
+  const result = await uploadsService.uploadFile({
+    buffer,
+    fileName: file.name || `upload_${Date.now()}.jpg`,
+    contentType,
+    context,
     baseUrl,
   });
+
   return c.json(result, 200);
-});
-
-uploadsApp.openapi(localUploadRoute, async (c) => {
-  const { fileKey } = c.req.valid("param");
-  const baseUrl = getBaseUrl(
-    c.req.url,
-    c.req.header("x-forwarded-host"),
-    c.req.header("x-forwarded-proto"),
-  );
-
-  const contentType = c.req.header("content-type") || "";
-
-  let buffer: Buffer;
-
-  if (contentType.includes("multipart/form-data")) {
-    const body = await c.req.parseBody();
-    const file = body.file;
-
-    if (!file || !(file instanceof File)) {
-      return c.json({ error: "No file provided" }, 400);
-    }
-
-    buffer = Buffer.from(await file.arrayBuffer());
-  } else {
-    // Raw binary upload
-    buffer = Buffer.from(await c.req.arrayBuffer());
-  }
-
-  if (buffer.length === 0) {
-    return c.json({ error: "No file provided" }, 400);
-  }
-
-  if (buffer.length > MAX_UPLOAD_SIZE) {
-    return c.json({ error: "File too large. Maximum size is 10MB" }, 413);
-  }
-
-  const publicUrl = await uploadsService.saveLocalFileWithBaseUrl(
-    fileKey,
-    buffer,
-    baseUrl,
-  );
-  return c.json({ publicUrl }, 200);
 });

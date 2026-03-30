@@ -2,15 +2,10 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "../../env";
 import { Errors } from "../../utils/errors";
-import type {
-  PresignedUrlResponse,
-  UploadContext,
-} from "./uploads.schemas";
+import type { UploadContext } from "./uploads.schemas";
 
-const PRESIGNED_URL_EXPIRES_IN_SECONDS = 15 * 60;
 const ALLOWED_CONTENT_TYPES = [
   "image/jpeg",
   "image/png",
@@ -23,25 +18,35 @@ function trimTrailingSlash(value: string): string {
   return value.endsWith("/") ? value.slice(0, -1) : value;
 }
 
+export interface DirectUploadResult {
+  publicUrl: string;
+  fileKey: string;
+}
+
 export class UploadsService {
   private readonly localUploadDir = join(process.cwd(), "uploads");
 
   /**
-   * Generate a presigned URL for file upload.
+   * Recebe o buffer do arquivo já lido pelo handler da rota e faz o upload
+   * para R2 (se configurado) ou salva localmente (fallback MVP).
    *
-   * Strategy:
-   *   - If R2 env vars are configured → return R2 presigned URL (production)
-   *   - Otherwise → return local upload URL with fallback (MVP/dev)
+   * Abandonamos o fluxo de presigned URL porque o AWS SDK v3 adiciona headers
+   * à assinatura (x-amz-content-sha256, etc.) que clientes móveis nativos não
+   * enviam de forma confiável, gerando 403 no R2.
+   *
+   * Com o upload server-side, o Railway faz o PUT para o R2 — sem problemas
+   * de assinatura nem de Content-Type no lado do cliente.
    */
-  async getPresignedUrl(params: {
+  async uploadFile(params: {
+    buffer: Buffer;
     fileName: string;
     contentType: string;
     context: UploadContext;
     baseUrl?: string;
-  }): Promise<PresignedUrlResponse> {
+  }): Promise<DirectUploadResult> {
     if (!ALLOWED_CONTENT_TYPES.includes(params.contentType as (typeof ALLOWED_CONTENT_TYPES)[number])) {
       throw Errors.validation(
-        `Content type '${params.contentType}' not allowed. Accepted: ${ALLOWED_CONTENT_TYPES.join(", ")}`,
+        `Tipo de arquivo não permitido: ${params.contentType}. Aceitos: ${ALLOWED_CONTENT_TYPES.join(", ")}`,
       );
     }
 
@@ -49,42 +54,21 @@ export class UploadsService {
     const fileKey = `${params.context}_${Date.now()}_${randomUUID()}${ext}`;
 
     if (this.hasR2Config()) {
-      return this.getR2PresignedUrl(fileKey, params.contentType);
+      return this.uploadToR2(fileKey, params.buffer, params.contentType);
     }
 
-    return this.getLocalUploadUrl(fileKey, params.baseUrl);
+    return this.saveLocally(fileKey, params.buffer, params.baseUrl);
   }
 
   /**
-   * Local fallback: returns a POST endpoint URL.
-   * The client uploads via multipart/form-data to this URL.
+   * Upload para Cloudflare R2 via AWS SDK (server-side).
+   * O Railway faz o PutObject diretamente — sem presigned URL, sem problemas de CORS/headers.
    */
-  private async getLocalUploadUrl(
+  private async uploadToR2(
     fileKey: string,
-    baseUrl?: string,
-  ): Promise<PresignedUrlResponse> {
-    await mkdir(this.localUploadDir, { recursive: true });
-
-    const resolvedBaseUrl = trimTrailingSlash(baseUrl ?? env.API_URL ?? "http://localhost:3000");
-    const uploadUrl = `${resolvedBaseUrl}/api/v1/uploads/local/${fileKey}`;
-    const publicUrl = `${resolvedBaseUrl}/uploads/${fileKey}`;
-
-    return {
-      uploadUrl,
-      fileKey,
-      publicUrl,
-      expiresIn: PRESIGNED_URL_EXPIRES_IN_SECONDS,
-    };
-  }
-
-  /**
-   * R2 presigned URL (production).
-   * Uses AWS S3-compatible presigned PUT URL.
-   */
-  private async getR2PresignedUrl(
-    fileKey: string,
-    _contentType: string,
-  ): Promise<PresignedUrlResponse> {
+    buffer: Buffer,
+    contentType: string,
+  ): Promise<DirectUploadResult> {
     if (!env.R2_BUCKET || !env.R2_ENDPOINT) {
       throw Errors.internal("R2 configuration missing bucket or endpoint");
     }
@@ -100,41 +84,29 @@ export class UploadsService {
       },
     });
 
-    // ContentType é omitido intencionalmente do PutObjectCommand.
-    // Quando incluído, o AWS SDK adiciona 'content-type' aos signed headers —
-    // o R2 então EXIGE que o cliente envie o header com valor idêntico.
-    // Clientes móveis (expo-file-system BINARY_CONTENT) nem sempre enviam
-    // o header exato, resultando em 403. Sem ContentType na assinatura,
-    // o R2 aceita o PUT independentemente do header Content-Type enviado.
-    const uploadUrl = await getSignedUrl(
-      client,
+    await client.send(
       new PutObjectCommand({
         Bucket: env.R2_BUCKET,
         Key: fileKey,
+        Body: buffer,
+        ContentType: contentType,
       }),
-      { expiresIn: PRESIGNED_URL_EXPIRES_IN_SECONDS },
     );
 
     return {
-      uploadUrl,
-      fileKey,
       publicUrl: this.buildR2PublicUrl(fileKey),
-      expiresIn: PRESIGNED_URL_EXPIRES_IN_SECONDS,
+      fileKey,
     };
   }
 
   /**
-   * Save a file locally (used by the local upload endpoint).
+   * Fallback local para MVP sem R2 configurado.
    */
-  async saveLocalFile(fileKey: string, buffer: Buffer): Promise<string> {
-    return this.saveLocalFileWithBaseUrl(fileKey, buffer);
-  }
-
-  async saveLocalFileWithBaseUrl(
+  private async saveLocally(
     fileKey: string,
     buffer: Buffer,
     baseUrl?: string,
-  ): Promise<string> {
+  ): Promise<DirectUploadResult> {
     await mkdir(this.localUploadDir, { recursive: true });
     const filePath = join(this.localUploadDir, fileKey);
     await writeFile(filePath, buffer);
@@ -142,17 +114,19 @@ export class UploadsService {
     const resolvedBaseUrl = trimTrailingSlash(
       baseUrl ?? env.API_URL ?? "http://localhost:3000",
     );
-    return `${resolvedBaseUrl}/uploads/${fileKey}`;
+
+    return {
+      publicUrl: `${resolvedBaseUrl}/uploads/${fileKey}`,
+      fileKey,
+    };
   }
 
   private getExtension(fileName: string, contentType: string): string {
     const sanitizedFileName = fileName.trim().toLowerCase();
     const lastDotIndex = sanitizedFileName.lastIndexOf(".");
     if (lastDotIndex > -1) {
-      const extensionFromName = sanitizedFileName.slice(lastDotIndex);
-      if (/^\.[a-z0-9]+$/.test(extensionFromName)) {
-        return extensionFromName;
-      }
+      const ext = sanitizedFileName.slice(lastDotIndex);
+      if (/^\.[a-z0-9]+$/.test(ext)) return ext;
     }
 
     const map: Record<string, string> = {
@@ -162,38 +136,23 @@ export class UploadsService {
       "image/heic": ".heic",
       "image/heif": ".heif",
     };
-    return map[contentType] || ".jpg";
+    return map[contentType] ?? ".jpg";
   }
 
   private hasR2Config(): boolean {
-    const hasConfig = Boolean(
+    return Boolean(
       env.R2_ENDPOINT &&
         env.R2_ACCESS_KEY_ID &&
         env.R2_SECRET_ACCESS_KEY &&
         env.R2_BUCKET &&
         env.R2_PUBLIC_URL,
     );
-
-    if (!hasConfig) {
-      console.warn("[UploadsService] R2 não configurado totalmente. Variáveis presentes:", {
-        endpoint: !!env.R2_ENDPOINT,
-        accessKey: !!env.R2_ACCESS_KEY_ID,
-        secretKey: !!env.R2_SECRET_ACCESS_KEY,
-        bucket: !!env.R2_BUCKET,
-        publicUrl: !!env.R2_PUBLIC_URL,
-      });
-    }
-
-    return hasConfig;
   }
 
   private buildR2PublicUrl(fileKey: string): string {
     if (!env.R2_PUBLIC_URL) {
-      throw Errors.internal(
-        "R2 public URL configuration missing. Configure R2_PUBLIC_URL to serve uploaded files.",
-      );
+      throw Errors.internal("R2_PUBLIC_URL não configurada.");
     }
-
     return `${trimTrailingSlash(env.R2_PUBLIC_URL)}/${fileKey}`;
   }
 }

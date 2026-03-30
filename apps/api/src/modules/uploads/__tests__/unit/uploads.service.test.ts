@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getSignedUrlMock, mkdirMock, writeFileMock } = vi.hoisted(() => ({
-  getSignedUrlMock: vi.fn(),
+const { s3SendMock, mkdirMock, writeFileMock } = vi.hoisted(() => ({
+  s3SendMock: vi.fn(),
   mkdirMock: vi.fn(),
   writeFileMock: vi.fn(),
 }));
 
-vi.mock("@aws-sdk/s3-request-presigner", () => ({
-  getSignedUrl: getSignedUrlMock,
+vi.mock("@aws-sdk/client-s3", () => ({
+  S3Client: vi.fn().mockImplementation(() => ({ send: s3SendMock })),
+  PutObjectCommand: vi.fn(),
 }));
 
 vi.mock("node:fs/promises", () => ({
@@ -24,26 +25,37 @@ describe("UploadsService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     Object.assign(env, originalEnv);
-    getSignedUrlMock.mockResolvedValue("https://uploads.example.com/signed-put-url");
+    s3SendMock.mockResolvedValue({});
     mkdirMock.mockResolvedValue(undefined);
     writeFileMock.mockResolvedValue(undefined);
   });
 
-  describe("getPresignedUrl", () => {
-    it("deve gerar upload local com contexto e expiração", async () => {
-      const result = await uploadsService.getPresignedUrl({
+  describe("uploadFile — fallback local (sem R2)", () => {
+    it("deve salvar localmente e retornar URL pública quando R2 não configurado", async () => {
+      Object.assign(env, {
+        R2_ENDPOINT: undefined,
+        R2_ACCESS_KEY_ID: undefined,
+        R2_SECRET_ACCESS_KEY: undefined,
+        R2_BUCKET: undefined,
+        R2_PUBLIC_URL: undefined,
+      });
+
+      const result = await uploadsService.uploadFile({
+        buffer: Buffer.from("image-binary"),
         fileName: "diagnostico.jpg",
         contentType: "image/jpeg",
         context: "diagnosis",
       });
 
-      expect(result.uploadUrl).toContain("/api/v1/uploads/local/");
+      expect(mkdirMock).toHaveBeenCalled();
+      expect(writeFileMock).toHaveBeenCalled();
       expect(result.publicUrl).toContain("/uploads/");
       expect(result.fileKey).toMatch(/^diagnosis_\d+_[a-f0-9-]+\.jpg$/);
-      expect(result.expiresIn).toBe(900);
     });
+  });
 
-    it("deve usar R2 quando a configuração estiver completa", async () => {
+  describe("uploadFile — R2 (produção)", () => {
+    beforeEach(() => {
       Object.assign(env, {
         R2_ENDPOINT: "https://account-id.r2.cloudflarestorage.com",
         R2_ACCESS_KEY_ID: "key-id",
@@ -51,64 +63,47 @@ describe("UploadsService", () => {
         R2_BUCKET: "mechago-uploads",
         R2_PUBLIC_URL: "https://uploads.mechago.com.br",
       });
+    });
 
-      const result = await uploadsService.getPresignedUrl({
+    it("deve fazer PutObject no R2 e retornar URL pública", async () => {
+      const result = await uploadsService.uploadFile({
+        buffer: Buffer.from("image-binary"),
         fileName: "avatar.png",
         contentType: "image/png",
         context: "avatar",
       });
 
-      expect(getSignedUrlMock).toHaveBeenCalledOnce();
-      expect(result.uploadUrl).toBe("https://uploads.example.com/signed-put-url");
+      expect(s3SendMock).toHaveBeenCalledOnce();
       expect(result.publicUrl).toMatch(
         /^https:\/\/uploads\.mechago\.com\.br\/avatar_\d+_[a-f0-9-]+\.png$/,
       );
+      expect(mkdirMock).not.toHaveBeenCalled();
     });
 
-    it("deve cair para upload local quando faltar R2_PUBLIC_URL", async () => {
-      Object.assign(env, {
-        R2_ENDPOINT: "https://account-id.r2.cloudflarestorage.com",
-        R2_ACCESS_KEY_ID: "key-id",
-        R2_SECRET_ACCESS_KEY: "secret-key",
-        R2_BUCKET: "mechago-uploads",
-        R2_PUBLIC_URL: undefined,
-      });
+    it("deve propagar erro quando o R2 recusar o upload", async () => {
+      s3SendMock.mockRejectedValue(new Error("R2 access denied"));
 
-      const result = await uploadsService.getPresignedUrl({
-        fileName: "diagnostico.jpg",
-        contentType: "image/jpeg",
-        context: "diagnosis",
-      });
-
-      expect(getSignedUrlMock).not.toHaveBeenCalled();
-      expect(result.uploadUrl).toContain("/api/v1/uploads/local/");
-      expect(result.publicUrl).toContain("/uploads/");
-    });
-
-    it("deve rejeitar content type inválido", async () => {
       await expect(
-        uploadsService.getPresignedUrl({
+        uploadsService.uploadFile({
+          buffer: Buffer.from("img"),
+          fileName: "photo.jpg",
+          contentType: "image/jpeg",
+          context: "completion",
+        }),
+      ).rejects.toThrow("R2 access denied");
+    });
+  });
+
+  describe("uploadFile — validação de content type", () => {
+    it("deve rejeitar tipos de arquivo não permitidos", async () => {
+      await expect(
+        uploadsService.uploadFile({
+          buffer: Buffer.from("exe-binary"),
           fileName: "malicioso.exe",
           contentType: "application/octet-stream",
           context: "diagnosis",
         }),
-      ).rejects.toThrow("Content type 'application/octet-stream' not allowed");
-    });
-  });
-
-  describe("saveLocalFile", () => {
-    it("deve persistir arquivo e retornar URL pública", async () => {
-      const publicUrl = await uploadsService.saveLocalFileWithBaseUrl(
-        "completion_123_photo.jpg",
-        Buffer.from("image-binary"),
-        "https://api.mechago.com.br",
-      );
-
-      expect(mkdirMock).toHaveBeenCalled();
-      expect(writeFileMock).toHaveBeenCalled();
-      expect(publicUrl).toBe(
-        "https://api.mechago.com.br/uploads/completion_123_photo.jpg",
-      );
+      ).rejects.toThrow("não permitido");
     });
   });
 });
