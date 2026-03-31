@@ -30,11 +30,8 @@ export default function ServiceCompletedScreen() {
   const [rating, setRating] = useState(0);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [showModal, setShowModal] = useState(false);
-  const [reviewSent, setReviewSent] = useState(false);
 
   const finalPrice = request?.finalPrice ?? 0;
-  // MVP: comissão 0%, profissional recebe 100%
-  const professionalAmount = Number(finalPrice);
   const diagnosticFee = Number(request?.diagnosticFee ?? 0);
 
   const formattedFinal = Number(finalPrice).toLocaleString("pt-BR", {
@@ -77,8 +74,7 @@ export default function ServiceCompletedScreen() {
       tags: Array.from(selectedTags),
     });
 
-    setReviewSent(true);
-    router.replace("/(tabs)/");
+    router.replace("/(tabs)");
   };
 
   return (

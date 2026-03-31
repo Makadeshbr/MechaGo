@@ -42,7 +42,7 @@ export default function EscalationScreen() {
   const router = useRouter();
   const { data: request } = useServiceRequest(requestId ?? "");
 
-  const diagnosis = request?.diagnosis ?? "Problema não identificado";
+  const diagnosis = request?.priceJustification ?? "Problema não identificado";
   const supportPhone = request?.roadwayPhone;
 
   const handleCall = () => {
@@ -120,7 +120,7 @@ export default function EscalationScreen() {
       {/* Botão voltar */}
       <View style={styles.footer}>
         <Button
-          onPress={() => router.replace("/(tabs)/")}
+          onPress={() => router.replace("/(tabs)")}
           title="VOLTAR PARA HOME"
           variant="outline"
         />

@@ -52,7 +52,7 @@ export default function RatingScreen() {
   const createReview = useCreateReview();
 
   const [rating, setRating] = useState(0);
-  const [hoveredStar, setHoveredStar] = useState(0);
+  const [hoveredStar] = useState(0);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [comment, setComment] = useState("");
 
@@ -93,7 +93,8 @@ export default function RatingScreen() {
       comment: comment.trim() || undefined,
     });
 
-    router.replace({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (router as any).replace({
       pathname: "/(service-flow)/completed",
       params: { requestId, finalPrice },
     });
