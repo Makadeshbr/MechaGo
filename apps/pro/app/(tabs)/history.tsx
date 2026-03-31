@@ -1,60 +1,73 @@
 import React from "react";
 import {
-  View,
-  Text,
   FlatList,
+  RefreshControl,
   StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 import { AmbientGlow } from "@/components/ui";
-import { colors, spacing, borderRadius } from "@mechago/shared";
+import { colors, fonts, spacing, borderRadius } from "@mechago/shared";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useProfessionalHistory } from "@/hooks/queries/useProfessionalHistory";
+
+const PROBLEM_LABELS: Record<string, string> = {
+  tire: "Troca de Pneu",
+  battery: "Reparo de Bateria",
+  electric: "Problema Elétrico",
+  overheat: "Superaquecimento",
+  fuel: "Abastecimento",
+  other: "Serviço automotivo",
+};
+
+function formatCurrency(value: number) {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function formatDate(iso: string | null) {
+  if (!iso) return "--";
+  return new Date(iso).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 interface HistoryItem {
   id: string;
-  type: string;
-  client: string;
-  date: string;
-  value: string;
-  rating: number;
+  problemType: string;
+  finalPrice: number;
+  completedAt: string | null;
+  createdAt: string;
 }
 
-function StarRating({ rating }: { rating: number }) {
+function HistoryCard({ item }: { item: HistoryItem }) {
   return (
-    <View style={{ flexDirection: "row", gap: 2 }}>
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Ionicons
-          key={i}
-          name={i <= rating ? "star" : "star-outline"}
-          size={12}
-          color={colors.primary}
-        />
-      ))}
+    <View style={styles.card}>
+      <View style={styles.iconBox}>
+        <MaterialIcons name="build" size={20} color={colors.primary} />
+      </View>
+      <View style={styles.cardContent}>
+        <Text style={styles.serviceType}>
+          {PROBLEM_LABELS[item.problemType] ?? "Serviço automotivo"}
+        </Text>
+        <Text style={styles.date}>{formatDate(item.completedAt)}</Text>
+      </View>
+      <Text style={styles.value}>{formatCurrency(item.finalPrice)}</Text>
     </View>
   );
 }
 
 export default function HistoryScreen() {
-  const historyItems: HistoryItem[] = [];
+  const { data, isLoading, refetch, isRefetching } = useProfessionalHistory();
 
-  function renderItem({ item }: { item: HistoryItem }) {
-    return (
-      <View style={styles.card}>
-        <View style={styles.cardLeft}>
-          <View style={styles.iconBox}>
-            <Ionicons name="construct-outline" size={20} color={colors.primary} />
-          </View>
-        </View>
-        <View style={styles.cardContent}>
-          <Text style={styles.serviceType}>{item.type}</Text>
-          <Text style={styles.client}>{item.client}</Text>
-          <Text style={styles.date}>{item.date}</Text>
-          <StarRating rating={item.rating} />
-        </View>
-        <Text style={styles.value}>{item.value}</Text>
-      </View>
-    );
-  }
+  const history = data?.history ?? [];
+  const earnings = data?.earnings;
+
+  const now = new Date();
+  const monthName = now.toLocaleString("pt-BR", { month: "long" });
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -66,40 +79,65 @@ export default function HistoryScreen() {
       </View>
 
       {/* Resumo do mês */}
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryValue}>R$ --,--</Text>
-          <Text style={styles.summaryLabel}>Janeiro</Text>
+      {isLoading ? (
+        <Skeleton height={80} style={styles.skeletonSummary} />
+      ) : (
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>
+              {earnings ? formatCurrency(earnings.month) : "R$ 0,00"}
+            </Text>
+            <Text style={styles.summaryLabel}>{monthName}</Text>
+          </View>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>{history.length}</Text>
+            <Text style={styles.summaryLabel}>Atendimentos</Text>
+          </View>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>
+              {earnings ? formatCurrency(earnings.today) : "R$ 0,00"}
+            </Text>
+            <Text style={styles.summaryLabel}>Hoje</Text>
+          </View>
         </View>
-        <View style={styles.summaryDivider} />
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryValue}>0</Text>
-          <Text style={styles.summaryLabel}>Atendimentos</Text>
-        </View>
-        <View style={styles.summaryDivider} />
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryValue}>--</Text>
-          <Text style={styles.summaryLabel}>Avaliação</Text>
-        </View>
-      </View>
+      )}
 
       <FlatList
-        data={historyItems}
-        renderItem={renderItem}
+        data={history}
+        renderItem={({ item }) => <HistoryCard item={item} />}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            tintColor={colors.primary}
+          />
+        }
         ListHeaderComponent={
-          <Text style={styles.listTitle}>ESTE MÊS</Text>
+          history.length > 0 ? (
+            <Text style={styles.listTitle}>CONCLUÍDOS</Text>
+          ) : null
         }
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Ionicons name="time-outline" size={48} color={colors.textSecondary} />
-            <Text style={styles.emptyTitle}>Sem histórico ainda</Text>
-            <Text style={styles.emptyText}>
-              Seus atendimentos concluídos aparecerão aqui quando o backend deste fluxo estiver conectado.
-            </Text>
-          </View>
+          isLoading ? (
+            <View style={styles.listContent}>
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} height={72} style={styles.skeletonCard} />
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <MaterialIcons name="history" size={48} color={colors.onSurfaceVariant} />
+              <Text style={styles.emptyTitle}>Sem histórico ainda</Text>
+              <Text style={styles.emptyText}>
+                Seus atendimentos concluídos aparecerão aqui.
+              </Text>
+            </View>
+          )
         }
       />
     </SafeAreaView>
@@ -107,112 +145,113 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+  safe: { flex: 1, backgroundColor: colors.surfaceLowest },
   header: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
     paddingBottom: spacing.md,
   },
   title: {
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: fonts.headline,
     fontSize: 28,
-    color: colors.text,
+    color: colors.onSurface,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontFamily: "PlusJakartaSans_400Regular",
+    fontFamily: fonts.body,
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
     marginTop: 4,
   },
   summaryCard: {
     flexDirection: "row",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceVariant,
     borderRadius: borderRadius.xl,
     marginHorizontal: spacing.xl,
     marginBottom: spacing.xl,
     padding: spacing.xl,
     borderWidth: 1,
-    borderColor: colors.outline,
+    borderColor: `${colors.outlineVariant}33`,
   },
   summaryItem: { flex: 1, alignItems: "center", gap: 4 },
   summaryValue: {
-    fontFamily: "SpaceGrotesk_700Bold",
-    fontSize: 18,
+    fontFamily: fonts.mono,
+    fontSize: 16,
     color: colors.primary,
   },
   summaryLabel: {
-    fontFamily: "PlusJakartaSans_400Regular",
+    fontFamily: fonts.body,
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
+    textTransform: "capitalize",
   },
-  summaryDivider: { width: 1, backgroundColor: colors.outline },
+  summaryDivider: { width: 1, backgroundColor: `${colors.outlineVariant}33` },
+  skeletonSummary: {
+    borderRadius: borderRadius.xl,
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.xl,
+  },
   listContent: {
     paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xxxl,
+    paddingBottom: 100,
     gap: spacing.md,
   },
   listTitle: {
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: fonts.headline,
     fontSize: 11,
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
     letterSpacing: 2,
     marginBottom: spacing.lg,
   },
   card: {
     flexDirection: "row",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceVariant,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     gap: spacing.md,
     borderWidth: 1,
-    borderColor: colors.outline,
+    borderColor: `${colors.outlineVariant}33`,
     alignItems: "center",
   },
-  cardLeft: {},
   iconBox: {
     width: 44,
     height: 44,
     borderRadius: borderRadius.md,
-    backgroundColor: "rgba(253,212,4,0.1)",
+    backgroundColor: `${colors.primary}1A`,
     justifyContent: "center",
     alignItems: "center",
   },
-  cardContent: { flex: 1, gap: 3 },
+  cardContent: { flex: 1, gap: 4 },
   serviceType: {
-    fontFamily: "PlusJakartaSans_600SemiBold",
+    fontFamily: fonts.headline,
     fontSize: 15,
-    color: colors.text,
-  },
-  client: {
-    fontFamily: "PlusJakartaSans_400Regular",
-    fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.onSurface,
   },
   date: {
-    fontFamily: "PlusJakartaSans_400Regular",
+    fontFamily: fonts.body,
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
   },
   value: {
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: fonts.mono,
     fontSize: 15,
     color: colors.primary,
   },
+  skeletonCard: { borderRadius: borderRadius.lg },
   emptyState: {
     alignItems: "center",
-    paddingVertical: spacing.xxxl + spacing.xl,
+    paddingVertical: 60,
     gap: spacing.md,
   },
   emptyTitle: {
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: fonts.headline,
     fontSize: 18,
-    color: colors.text,
+    color: colors.onSurface,
   },
   emptyText: {
-    fontFamily: "PlusJakartaSans_400Regular",
+    fontFamily: fonts.body,
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
     textAlign: "center",
     maxWidth: 240,
     lineHeight: 22,

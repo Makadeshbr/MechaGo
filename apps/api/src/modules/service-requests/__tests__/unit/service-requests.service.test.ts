@@ -29,6 +29,11 @@ vi.mock("../../../professionals/professionals.repository", () => ({
   },
 }));
 
+vi.mock("../../../matching/matching.queue", () => ({
+  scheduleMatchingJob: vi.fn().mockResolvedValue(undefined),
+  scheduleMatchingTimeout: vi.fn().mockResolvedValue(undefined),
+}));
+
 function buildRequest(overrides: Record<string, unknown> = {}) {
   return {
     id: "req-1",
@@ -361,6 +366,114 @@ describe("ServiceRequestsService", () => {
       await expect(
         ServiceRequestsService.approvePrice("user-client", "req-1"),
       ).rejects.toThrow("Foto de conclusão é obrigatória para finalizar o serviço");
+    });
+  });
+
+  // ── Cancelamento — 6 cenários do PRD V3 ──────────────────────────────────
+  describe("cancel — 6 cenários", () => {
+    beforeEach(() => {
+      repositoryUpdate.mockResolvedValue(buildRequest({ status: "cancelled_client" }) as never);
+    });
+
+    it("Cenário 1: cliente cancela ≤2min → 100% de reembolso", async () => {
+      const createdAt = new Date(Date.now() - 60_000); // 1 minuto atrás
+      repositoryFindById.mockResolvedValue(
+        buildRequest({ status: "matching", professionalId: "prof-1", createdAt }) as never,
+      );
+
+      const result = await ServiceRequestsService.cancel("user-client", "req-1", {
+        cancelledBy: "client",
+      });
+
+      expect(result.scenario).toBe(1);
+      expect(result.refundPercent).toBe(100);
+      expect(repositoryUpdate).toHaveBeenCalledWith(
+        "req-1",
+        expect.objectContaining({ status: "cancelled_client", cancelledBy: "client" }),
+      );
+    });
+
+    it("Cenário 2: cliente cancela >2min com profissional aceito → 70% de reembolso", async () => {
+      const createdAt = new Date(Date.now() - 5 * 60_000); // 5 minutos atrás
+      repositoryFindById.mockResolvedValue(
+        buildRequest({ status: "accepted", professionalId: "prof-1", createdAt }) as never,
+      );
+
+      const result = await ServiceRequestsService.cancel("user-client", "req-1", {
+        cancelledBy: "client",
+      });
+
+      expect(result.scenario).toBe(2);
+      expect(result.refundPercent).toBe(70);
+    });
+
+    it("Cenário 3: cliente cancela com profissional a caminho → 0% de reembolso", async () => {
+      repositoryFindById.mockResolvedValue(
+        buildRequest({ status: "professional_enroute", professionalId: "prof-1" }) as never,
+      );
+
+      const result = await ServiceRequestsService.cancel("user-client", "req-1", {
+        cancelledBy: "client",
+      });
+
+      expect(result.scenario).toBe(3);
+      expect(result.refundPercent).toBe(0);
+    });
+
+    it("Cenário 4: profissional cancela → status cancelled_professional + auto-rematch", async () => {
+      repositoryFindById.mockResolvedValue(
+        buildRequest({ status: "accepted", professionalId: "prof-1" }) as never,
+      );
+      professionalsFindByUserId.mockResolvedValue(buildProfessional() as never);
+      repositoryUpdate.mockResolvedValue(
+        buildRequest({ status: "cancelled_professional" }) as never,
+      );
+
+      const result = await ServiceRequestsService.cancel("user-prof", "req-1", {
+        cancelledBy: "professional",
+        reason: "Emergência pessoal",
+      });
+
+      expect(result.scenario).toBe(4);
+      expect(result.autoRematch).toBe(true);
+      expect(result.status).toBe("cancelled_professional");
+    });
+
+    it("Cenário 5: SLA de chegada expirado → cancela e loga penalidade", async () => {
+      const matchedAt = new Date(Date.now() - 35 * 60_000); // 35 min atrás (> SLA 30min)
+      repositoryFindById.mockResolvedValue(
+        buildRequest({ status: "accepted", professionalId: "prof-1", matchedAt }) as never,
+      );
+      repositoryUpdate.mockResolvedValue(
+        buildRequest({ status: "cancelled_professional" }) as never,
+      );
+
+      await ServiceRequestsService.checkArrivalSla("req-1");
+
+      expect(repositoryUpdate).toHaveBeenCalledWith(
+        "req-1",
+        expect.objectContaining({
+          status: "cancelled_professional",
+          cancelledBy: "system",
+        }),
+      );
+    });
+
+    it("Cenário 6: ninguém aceita → cliente cancela sem cobrança (sem professionalId)", async () => {
+      repositoryFindById.mockResolvedValue(
+        buildRequest({
+          status: "waiting_queue",
+          professionalId: null,
+          createdAt: new Date(Date.now() - 10 * 60_000),
+        }) as never,
+      );
+
+      const result = await ServiceRequestsService.cancel("user-client", "req-1", {
+        cancelledBy: "client",
+      });
+
+      expect(result.scenario).toBe(6);
+      expect(result.refundPercent).toBe(100);
     });
   });
 });

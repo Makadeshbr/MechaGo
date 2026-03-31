@@ -70,3 +70,14 @@ export type ResolveInput = z.infer<typeof resolveBodySchema>;
 export type EscalateInput = z.infer<typeof escalateBodySchema>;
 export type ContestPriceInput = z.infer<typeof contestPriceBodySchema>;
 export type ArrivedInput = z.infer<typeof arrivedBodySchema>;
+
+// ── Task 05.3: Cancelamento com 6 cenários ────────────────────────────────
+export const cancelBodySchema = z.object({
+  reason: z
+    .string()
+    .max(500, "Motivo deve ter no máximo 500 caracteres")
+    .optional(),
+  cancelledBy: z.enum(["client", "professional"]).default("client"),
+});
+
+export type CancelInput = z.infer<typeof cancelBodySchema>;

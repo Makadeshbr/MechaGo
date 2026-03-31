@@ -10,6 +10,8 @@ import vehiclesRoutes from "@/modules/vehicles/vehicles.routes";
 import serviceRequestsRoutes from "@/modules/service-requests/service-requests.routes";
 import professionalRoutes from "@/modules/professionals/professionals.routes";
 import { uploadsApp } from "@/modules/uploads/uploads.routes";
+import { paymentsApp } from "@/modules/payments/payments.routes";
+import { reviewsApp } from "@/modules/reviews/reviews.routes";
 import { readFile, access } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -76,6 +78,8 @@ export function createApp() {
   app.route("/api/v1/service-requests", serviceRequestsRoutes);
   app.route("/api/v1/professionals", professionalRoutes);
   app.route("/api/v1/uploads", uploadsApp);
+  app.route("/api/v1/payments", paymentsApp);
+  app.route("/api/v1/reviews", reviewsApp);
 
   // Servir arquivos de upload local — apenas quando R2 NÃO está configurado (dev/MVP).
   // Em produção, R2 Public URL serve os arquivos diretamente via CDN.

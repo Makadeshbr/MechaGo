@@ -131,6 +131,24 @@ export class ServiceRequestsRepository {
       .where(eq(serviceRequests.status, status));
   }
 
+  /**
+   * Histórico de atendimentos concluídos de um profissional.
+   * Retorna ordenado do mais recente para o mais antigo.
+   */
+  static async findCompletedByProfessionalId(professionalId: string): Promise<SelectServiceRequest[]> {
+    const { desc } = await import("drizzle-orm");
+    return db
+      .select()
+      .from(serviceRequests)
+      .where(
+        and(
+          eq(serviceRequests.professionalId, professionalId),
+          eq(serviceRequests.status, "completed"),
+        ),
+      )
+      .orderBy(desc(serviceRequests.completedAt));
+  }
+
   static async calculateDistanceToRequest(params: {
     requestId: string;
     latitude: number;

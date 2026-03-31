@@ -10,6 +10,7 @@ import {
   escalateBodySchema,
   contestPriceBodySchema,
   arrivedBodySchema,
+  cancelBodySchema,
 } from "./service-requests.schemas";
 import { ServiceRequestsService } from "./service-requests.service";
 import { MatchingService } from "../matching/matching.service";
@@ -177,24 +178,28 @@ const cancelRequestRoute = createRoute({
   method: "patch",
   path: "/{id}/cancel",
   tags: ["Service Requests"],
-  summary: "Cliente cancela o pedido de socorro",
+  summary: "Cancela pedido de socorro — 6 cenários do PRD V3",
   middleware: [authMiddleware],
   request: {
     params: serviceRequestParamsSchema,
+    body: {
+      content: {
+        "application/json": { schema: cancelBodySchema },
+      },
+    },
   },
   responses: {
-    200: {
-      description: "Chamado cancelado com sucesso",
-    },
+    200: { description: "Chamado cancelado — retorna cenário e percentual de reembolso" },
   },
 });
 
 app.openapi(cancelRequestRoute, async (c) => {
   const { id } = c.req.valid("param");
   const userId = c.get("userId");
-  
-  await ServiceRequestsService.cancel(userId, id);
-  return c.json({ success: true }, 200);
+  const input = c.req.valid("json");
+
+  const result = await ServiceRequestsService.cancel(userId, id, input);
+  return c.json(result, 200);
 });
 
 // ==================== POST /service-requests/:id/diagnosis ====================
@@ -352,6 +357,63 @@ app.openapi(contestPriceRoute, async (c) => {
 
   await ServiceRequestsService.contestPrice(userId, id, input);
   return c.json({ success: true }, 200);
+});
+
+// ==================== GET /service-requests/professional/history ====================
+const professionalHistoryRoute = createRoute({
+  method: "get",
+  path: "/professional/history",
+  tags: ["Service Requests"],
+  summary: "Histórico de atendimentos concluídos do profissional autenticado",
+  middleware: [authMiddleware],
+  responses: {
+    200: { description: "Lista de atendimentos concluídos" },
+  },
+});
+
+app.openapi(professionalHistoryRoute, async (c) => {
+  const userId = c.get("userId");
+
+  const { ProfessionalsRepository } = await import("../professionals/professionals.repository");
+  const professional = await ProfessionalsRepository.findByUserId(userId);
+  if (!professional) {
+    return c.json({ history: [], earnings: { today: 0, week: 0, month: 0, total: 0 } }, 200);
+  }
+
+  const completed = await ServiceRequestsRepository.findCompletedByProfessionalId(professional.id);
+
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfWeek = new Date(startOfDay);
+  startOfWeek.setDate(startOfDay.getDate() - startOfDay.getDay());
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  let today = 0, week = 0, month = 0, total = 0;
+
+  const history = completed.map((req) => {
+    const price = Number(req.finalPrice ?? 0);
+    const completedAt = req.completedAt ?? req.updatedAt;
+
+    total += price;
+    if (completedAt >= startOfDay) today += price;
+    if (completedAt >= startOfWeek) week += price;
+    if (completedAt >= startOfMonth) month += price;
+
+    return {
+      id: req.id,
+      problemType: req.problemType,
+      status: req.status,
+      finalPrice: price,
+      diagnosticFee: Number(req.diagnosticFee),
+      completedAt: completedAt?.toISOString() ?? null,
+      createdAt: req.createdAt.toISOString(),
+    };
+  });
+
+  return c.json({
+    history,
+    earnings: { today, week, month, total },
+  }, 200);
 });
 
 export default app;

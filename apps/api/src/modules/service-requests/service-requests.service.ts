@@ -4,7 +4,7 @@ import { VehiclesRepository } from "../vehicles/vehicles.repository";
 import { CreateServiceRequestInput, EstimatePriceInput, PricingResult, DEFAULT_ESTIMATE_DISTANCE_KM, ARRIVAL_DISTANCE_THRESHOLD_METERS } from "@mechago/shared";
 import { AppError } from "@/utils/errors";
 import { scheduleMatchingJob } from "../matching/matching.queue";
-import type { DiagnosisInput, ResolveInput, EscalateInput, ContestPriceInput } from "./service-requests.schemas";
+import type { DiagnosisInput, ResolveInput, EscalateInput, ContestPriceInput, CancelInput } from "./service-requests.schemas";
 import { env } from "@/env";
 
 // MVP: permite override via env var para testes com dispositivos em locais diferentes
@@ -117,31 +117,152 @@ function serializeServiceRequestSummary(params: {
   };
 }
 
+// SLA máximo para o profissional chegar (em ms) — 30 minutos
+const PROFESSIONAL_ARRIVAL_SLA_MS = 30 * 60 * 1000;
+
+// Janela de cancelamento gratuito (Cenário 1) — 2 minutos
+const FREE_CANCEL_WINDOW_MS = 2 * 60 * 1000;
+
+export interface CancellationResult {
+  status: "cancelled_client" | "cancelled_professional";
+  refundPercent: number;
+  scenario: 1 | 2 | 3 | 4 | 5 | 6;
+  autoRematch: boolean;
+  cancelledBy: "client" | "professional";
+}
+
 export class ServiceRequestsService {
   /**
-   * Cancela um pedido de socorro (Cliente)
+   * Cancela um pedido de socorro aplicando os 6 cenários do PRD V3.
+   *
+   * Cenário 1: Cliente cancela ≤2min da criação → 100% reembolso
+   * Cenário 2: Cliente cancela >2min (profissional aceitou) → 70% reembolso
+   * Cenário 3: Cliente cancela com profissional a caminho → 0% reembolso
+   * Cenário 4: Profissional cancela → auto-rematch + penalidade
+   * Cenário 5: Profissional não chegou no SLA (30min) → 100% reembolso + penalidade
+   * Cenário 6: Ninguém aceita em 5min → fila de espera, sem cobrança
    */
-  static async cancel(userId: string, requestId: string) {
+  static async cancel(userId: string, requestId: string, input?: CancelInput): Promise<CancellationResult> {
     const request = await ServiceRequestsRepository.findById(requestId);
     if (!request) throw new AppError("NOT_FOUND", "Pedido não encontrado", 404);
 
+    const cancelledBy = input?.cancelledBy ?? "client";
+    const reason = input?.reason;
+    const now = new Date();
+
+    // ── Cenário 4: Profissional cancela ──────────────────────────────────
+    if (cancelledBy === "professional") {
+      const { ProfessionalsRepository } = await import("../professionals/professionals.repository");
+      const professional = await ProfessionalsRepository.findByUserId(userId);
+
+      if (!professional || request.professionalId !== professional.id) {
+        throw new AppError("FORBIDDEN", "Você não é o profissional deste chamado", 403);
+      }
+
+      const cancellableStatuses = ["accepted", "professional_enroute"];
+      if (!cancellableStatuses.includes(request.status)) {
+        throw new AppError("INVALID_STATUS", "Chamado não pode ser cancelado neste status", 409);
+      }
+
+      await ServiceRequestsRepository.update(requestId, {
+        status: "cancelled_professional",
+        cancellationReason: reason,
+        cancelledBy: "professional",
+        cancelledAt: now,
+        professionalId: null, // libera o profissional do chamado
+      });
+
+      const { NotificationsService } = await import("../notifications/notifications.service");
+      await NotificationsService.notifyClientStatusUpdate(requestId, "cancelled_professional" as never);
+
+      // Auto-rematch: coloca de volta na fila de matching
+      await scheduleMatchingJob(requestId);
+
+      return { status: "cancelled_professional", refundPercent: 100, scenario: 4, autoRematch: true, cancelledBy: "professional" };
+    }
+
+    // ── Cancelamento pelo cliente ─────────────────────────────────────────
     if (request.clientId !== userId) {
       throw new AppError("FORBIDDEN", "Você não tem permissão para cancelar este pedido", 403);
     }
 
-    const updated = await ServiceRequestsRepository.update(requestId, {
-      status: "cancelled_client",
-      cancelledAt: new Date(),
-      cancelledBy: "client",
-    });
-
-    // Notificar profissional se existir
-    if (request.professionalId) {
-       const { NotificationsService } = await import("../notifications/notifications.service");
-       await NotificationsService.notifyProfessionalCancelled(requestId, request.professionalId);
+    const cancellableByClient = [
+      "pending", "matching", "waiting_queue", "accepted", "professional_enroute",
+    ];
+    if (!cancellableByClient.includes(request.status)) {
+      throw new AppError(
+        "INVALID_STATUS",
+        "Não é possível cancelar um chamado neste status",
+        409,
+      );
     }
 
-    return updated;
+    const elapsedMs = now.getTime() - request.createdAt.getTime();
+
+    let scenario: CancellationResult["scenario"];
+    let refundPercent: number;
+
+    if (request.status === "professional_enroute") {
+      // Cenário 3: profissional já está a caminho → sem reembolso
+      scenario = 3;
+      refundPercent = 0;
+    } else if (elapsedMs <= FREE_CANCEL_WINDOW_MS || !request.professionalId) {
+      // Cenário 1: dentro de 2min ou sem profissional (cenário 6 — fila)
+      scenario = request.professionalId ? 1 : 6;
+      refundPercent = 100;
+    } else {
+      // Cenário 2: após 2min com profissional aceito
+      scenario = 2;
+      refundPercent = 70;
+    }
+
+    await ServiceRequestsRepository.update(requestId, {
+      status: "cancelled_client",
+      cancellationReason: reason,
+      cancelledBy: "client",
+      cancelledAt: now,
+    });
+
+    if (request.professionalId) {
+      const { NotificationsService } = await import("../notifications/notifications.service");
+      await NotificationsService.notifyProfessionalCancelled(requestId, request.professionalId);
+    }
+
+    return { status: "cancelled_client", refundPercent, scenario, autoRematch: false, cancelledBy: "client" };
+  }
+
+  /**
+   * Verifica se o profissional ultrapassou o SLA de chegada (30min).
+   * Chamado por job agendado — aplica Cenário 5 automaticamente.
+   */
+  static async checkArrivalSla(requestId: string): Promise<void> {
+    const request = await ServiceRequestsRepository.findById(requestId);
+    if (!request) return;
+
+    const isWaitingArrival = ["accepted", "professional_enroute"].includes(request.status);
+    if (!isWaitingArrival || !request.matchedAt) return;
+
+    const elapsedMs = Date.now() - request.matchedAt.getTime();
+    if (elapsedMs < PROFESSIONAL_ARRIVAL_SLA_MS) return;
+
+    // Cenário 5: SLA expirado — 100% reembolso + penalidade
+    await ServiceRequestsRepository.update(requestId, {
+      status: "cancelled_professional",
+      cancellationReason: "SLA de chegada expirado — profissional não chegou em 30 minutos",
+      cancelledBy: "system",
+      cancelledAt: new Date(),
+    });
+
+    const { NotificationsService } = await import("../notifications/notifications.service");
+    await NotificationsService.notifyClientStatusUpdate(requestId, "cancelled_professional" as never);
+
+    const { logger } = await import("@/middleware/logger.middleware");
+    logger.warn({
+      msg: "sla_arrival_expired",
+      requestId,
+      professionalId: request.professionalId,
+      elapsedMs,
+    });
   }
 
   /**

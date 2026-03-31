@@ -51,6 +51,10 @@ const envSchema = z
     R2_BUCKET_NAME: z.string().optional(),
     R2_ACCOUNT_ID: z.string().optional(),
     R2_PUBLIC_URL: z.string().url("R2_PUBLIC_URL inválida").optional(),
+
+    // Mercado Pago — Pagamentos
+    MERCADOPAGO_ACCESS_TOKEN: z.string().optional(),
+    MERCADOPAGO_WEBHOOK_SECRET: z.string().optional(),
   })
   .transform((data) => ({
     NODE_ENV: data.NODE_ENV,
@@ -72,6 +76,8 @@ const envSchema = z
     R2_BUCKET: data.R2_BUCKET ?? data.R2_BUCKET_NAME,
     R2_ACCOUNT_ID: data.R2_ACCOUNT_ID,
     R2_PUBLIC_URL: data.R2_PUBLIC_URL,
+    MERCADOPAGO_ACCESS_TOKEN: data.MERCADOPAGO_ACCESS_TOKEN,
+    MERCADOPAGO_WEBHOOK_SECRET: data.MERCADOPAGO_WEBHOOK_SECRET,
   }));
 
 export type Env = z.infer<typeof envSchema>;
