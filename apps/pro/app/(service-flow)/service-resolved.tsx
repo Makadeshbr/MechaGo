@@ -165,8 +165,17 @@ export default function ServiceResolvedScreen() {
         priceJustification: values.priceJustification?.trim() || undefined,
       });
 
+      const clientUserId = request?.clientId ?? "";
       Alert.alert("Sucesso", "Serviço enviado para aprovação do cliente.", [
-        { text: "OK", onPress: () => router.replace("/(tabs)") },
+        {
+          text: "OK",
+          onPress: () =>
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (router as any).replace({
+              pathname: "/(service-flow)/service-completed",
+              params: { requestId: requestId as string, clientUserId },
+            }),
+        },
       ]);
     } catch (error) {
       Alert.alert("Erro", await extractErrorMessage(error));

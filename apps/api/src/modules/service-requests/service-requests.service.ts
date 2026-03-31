@@ -77,11 +77,13 @@ function serializeServiceRequestSummary(params: {
   professionalId?: string | null;
   professionalLatitude?: number | null;
   professionalLongitude?: number | null;
+  clientId?: string | null;
   professional?: {
     name: string;
     avatarUrl: string | null;
     rating: string | null;
     specialties: string[];
+    userId?: string | null;
   } | null;
 }) {
   return {
@@ -110,9 +112,11 @@ function serializeServiceRequestSummary(params: {
     professionalId: params.professionalId || null,
     professionalLatitude: params.professionalLatitude ?? null,
     professionalLongitude: params.professionalLongitude ?? null,
+    clientId: params.clientId ?? null,
     professional: params.professional ? {
       ...params.professional,
       rating: params.professional.rating ? Number(params.professional.rating) : 0,
+      userId: params.professional.userId ?? null,
     } : null,
   };
 }
@@ -366,6 +370,7 @@ export class ServiceRequestsService {
       clientLongitude: request.clientLongitude,
       supportPhone: roadway?.emergencyPhone || null,
       professionalId: null,
+      clientId: userId,
     });
   }
 
@@ -434,12 +439,14 @@ export class ServiceRequestsService {
       priceJustification: request.priceJustification,
       resolvedOnSite: request.resolvedOnSite,
       professionalId: request.professionalId,
+      clientId: request.clientId,
       professional: request.professional
         ? {
             name: request.professional.name,
             avatarUrl: request.professional.avatarUrl,
             rating: request.professional.rating,
             specialties: request.professional.specialties,
+            userId: request.professional.userId,
           }
         : null,
     });

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text, StyleSheet, Image, Pressable, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -23,6 +23,18 @@ export default function ProfessionalFoundScreen() {
 
   // Polling a cada 5 segundos para acompanhar status
   const { data: request, isLoading } = useServiceRequest(requestId as string, 5000);
+
+  // Navega automaticamente quando o status muda
+  useEffect(() => {
+    if (!request) return;
+
+    if (request.status === "professional_enroute" || request.status === "professional_arrived") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (router as any).replace({ pathname: "/(service-flow)/tracking", params: { requestId: request.id } });
+    } else if (request.status === "cancelled_client" || request.status === "cancelled_professional") {
+      router.replace("/(tabs)");
+    }
+  }, [request?.status]);
 
   if (isLoading || !request) {
     return (

@@ -66,7 +66,9 @@ export const serviceRequestSummarySchema = z.object({
     avatarUrl: z.string().nullable(),
     rating: z.number(),
     specialties: z.array(z.string()),
+    userId: z.string().uuid().nullable().optional(),
   }).nullable().optional(),
+  clientId: z.string().uuid().nullable().optional(),
   queueLabel: z.string().nullable().optional(),
   supportPhone: z.string().nullable().optional(),
 });

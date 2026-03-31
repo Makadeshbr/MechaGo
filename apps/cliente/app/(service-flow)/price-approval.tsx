@@ -31,8 +31,20 @@ export default function PriceApprovalScreen() {
     try {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await approveMutation.mutateAsync(requestId as string);
-      Alert.alert("Sucesso", "Pagamento processado e serviço finalizado!", [
-        { text: "OK", onPress: () => router.replace("/(tabs)") }
+      // Captura os dados antes do Alert para evitar race condition
+      const professionalUserId = request?.professional?.userId ?? "";
+      const professionalName = request?.professional?.name ?? "Profissional";
+      const finalPrice = String(request?.finalPrice ?? request?.estimatedPrice ?? 0);
+      Alert.alert("Sucesso", "Pagamento processado! Avalie o profissional.", [
+        {
+          text: "OK",
+          onPress: () =>
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (router as any).replace({
+              pathname: "/(service-flow)/rating",
+              params: { requestId: requestId as string, professionalUserId, professionalName, finalPrice },
+            }),
+        },
       ]);
     } catch (err) {
       Alert.alert("Erro", "Não foi possível processar a aprovação.");
