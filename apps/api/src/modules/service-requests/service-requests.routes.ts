@@ -13,6 +13,7 @@ import {
   cancelBodySchema,
 } from "./service-requests.schemas";
 import { ServiceRequestsService } from "./service-requests.service";
+import { ServiceRequestsRepository } from "./service-requests.repository";
 import { MatchingService } from "../matching/matching.service";
 import { authMiddleware } from "../../middleware/auth.middleware";
 
