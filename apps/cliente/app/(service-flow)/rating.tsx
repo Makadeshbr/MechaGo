@@ -10,7 +10,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
+import { nav } from "@/lib/navigation";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { colors, fonts, spacing, borderRadius } from "@mechago/shared";
@@ -47,7 +48,6 @@ export default function RatingScreen() {
       professionalName: string;
       finalPrice: string;
     }>();
-  const router = useRouter();
   const { data: request } = useServiceRequest(requestId ?? "");
   const createReview = useCreateReview();
 
@@ -93,12 +93,8 @@ export default function RatingScreen() {
       comment: comment.trim() || undefined,
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (router as any).replace({
-      pathname: "/(service-flow)/completed",
-      params: { requestId, finalPrice },
-    });
-  }, [rating, requestId, professionalUserId, selectedTags, comment, createReview, router, finalPrice]);
+    nav.toCompleted({ requestId, finalPrice });
+  }, [rating, requestId, professionalUserId, selectedTags, comment, createReview, finalPrice]);
 
   const professional = request?.professional;
   const displayName = professionalName ?? professional?.name ?? "Profissional";

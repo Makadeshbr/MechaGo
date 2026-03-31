@@ -18,6 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
+import { nav } from "@/lib/navigation";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { colors, fonts, radii, spacing } from "@mechago/shared";
@@ -167,15 +168,7 @@ export default function ServiceResolvedScreen() {
 
       const clientUserId = request?.clientId ?? "";
       Alert.alert("Sucesso", "Serviço enviado para aprovação do cliente.", [
-        {
-          text: "OK",
-          onPress: () =>
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (router as any).replace({
-              pathname: "/(service-flow)/service-completed",
-              params: { requestId: requestId as string, clientUserId },
-            }),
-        },
+        { text: "OK", onPress: () => nav.toServiceCompleted({ requestId: requestId as string, clientUserId }) },
       ]);
     } catch (error) {
       Alert.alert("Erro", await extractErrorMessage(error));

@@ -1,16 +1,16 @@
 import React, { useState, useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, TextInput, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { colors, spacing, radii, fonts } from "@mechago/shared";
 import { useServiceRequest, useApprovePriceServiceRequest, useContestPriceServiceRequest } from "@/hooks/queries/useServiceRequest";
 import { Skeleton } from "@/components/ui";
+import { nav } from "@/lib/navigation";
 
 export default function PriceApprovalScreen() {
   const { requestId } = useLocalSearchParams<{ requestId: string }>();
-  const router = useRouter();
   const { data: request, isLoading } = useServiceRequest(requestId as string, 10000);
   const approveMutation = useApprovePriceServiceRequest();
   const contestMutation = useContestPriceServiceRequest();
@@ -39,11 +39,7 @@ export default function PriceApprovalScreen() {
         {
           text: "OK",
           onPress: () =>
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (router as any).replace({
-              pathname: "/(service-flow)/rating",
-              params: { requestId: requestId as string, professionalUserId, professionalName, finalPrice },
-            }),
+            nav.toRating({ requestId: requestId as string, professionalUserId, professionalName, finalPrice }),
         },
       ]);
     } catch (err) {
@@ -61,7 +57,7 @@ export default function PriceApprovalScreen() {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       await contestMutation.mutateAsync({ requestId: requestId as string, reason: contestReason });
       Alert.alert("Contestação Enviada", "Nossa equipe analisará seu caso em até 24h.");
-      router.replace("/(tabs)");
+      nav.toHome();
     } catch (err) {
       Alert.alert("Erro", "Não foi possível enviar a contestação.");
     }

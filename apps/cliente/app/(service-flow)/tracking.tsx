@@ -8,6 +8,7 @@ import { colors, spacing, radii, fonts } from "@mechago/shared";
 import { useSocket } from "@/providers/SocketProvider";
 import { useServiceRequest } from "@/hooks/queries/useServiceRequest";
 import { Skeleton } from "@/components/ui";
+import { nav } from "@/lib/navigation";
 
 const { width } = Dimensions.get("window");
 
@@ -19,6 +20,17 @@ export default function TrackingScreen() {
 
   const [proLocation, setProLocation] = useState<{ lat: number; lng: number } | null>(null);
   const mapRef = useRef<MapView>(null);
+
+  // 2. Polling fallback: navega por status quando o Socket.IO não entrega o evento
+  useEffect(() => {
+    if (!request) return;
+    const { status, id } = request;
+    if (status === "price_pending") {
+      nav.toPriceApproval(id);
+    } else if (status === "cancelled_client" || status === "cancelled_professional") {
+      nav.toHome();
+    }
+  }, [request?.status, request?.id]);
 
   // 1. Listen for professional location updates
   useEffect(() => {
@@ -32,6 +44,9 @@ export default function TrackingScreen() {
       socket.on("status_update", (data: { status: string }) => {
         if (data.status === "professional_arrived") {
           router.replace(`/(service-flow)/service-active?requestId=${requestId}` as `/(service-flow)/service-active?requestId=${string}`);
+        }
+        if (data.status === "price_pending") {
+          nav.toPriceApproval(requestId as string);
         }
       });
     }

@@ -1,11 +1,12 @@
 import React, { useEffect } from "react";
 import { View, Text, StyleSheet, Image, Pressable, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { AmbientGlow } from "@/components/ui";
 import { colors, spacing, radii, fonts } from "@mechago/shared";
-import { useServiceRequest } from "@/hooks/queries/useServiceRequest";
+import { useServiceRequest, useCancelServiceRequest } from "@/hooks/queries/useServiceRequest";
+import { nav } from "@/lib/navigation";
 
 function formatDistance(distanceKm?: number | null): string {
   return distanceKm !== null && distanceKm !== undefined
@@ -19,22 +20,21 @@ function formatEta(minutes?: number | null): string {
 
 export default function ProfessionalFoundScreen() {
   const { requestId } = useLocalSearchParams<{ requestId: string }>();
-  const router = useRouter();
 
   // Polling a cada 5 segundos para acompanhar status
   const { data: request, isLoading } = useServiceRequest(requestId as string, 5000);
+  const cancelMutation = useCancelServiceRequest();
 
   // Navega automaticamente quando o status muda
   useEffect(() => {
     if (!request) return;
-
-    if (request.status === "professional_enroute" || request.status === "professional_arrived") {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (router as any).replace({ pathname: "/(service-flow)/tracking", params: { requestId: request.id } });
-    } else if (request.status === "cancelled_client" || request.status === "cancelled_professional") {
-      router.replace("/(tabs)");
+    const { status, id } = request;
+    if (status === "professional_enroute" || status === "professional_arrived") {
+      nav.toTracking(id);
+    } else if (status === "cancelled_client" || status === "cancelled_professional") {
+      nav.toHome();
     }
-  }, [request?.status]);
+  }, [request?.status, request?.id]);
 
   if (isLoading || !request) {
     return (
@@ -105,16 +105,37 @@ export default function ProfessionalFoundScreen() {
         <View style={styles.actions}>
           <Pressable
             style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed]}
-            onPress={() => router.push(`/(service-flow)/tracking?requestId=${request.id}`)}
+            onPress={() => nav.toTracking(request.id)}
             accessibilityRole="button"
           >
             <Text style={styles.primaryButtonText}>ACOMPANHAR NO MAPA</Text>
           </Pressable>
 
-          <Pressable 
-            style={styles.secondaryButton} 
+          <Pressable
+            style={[styles.secondaryButton, cancelMutation.isPending && { opacity: 0.5 }]}
             accessibilityRole="button"
-            onPress={() => Alert.alert("Recusar Profissional", "Esta ação pode gerar taxas de cancelamento.")}
+            disabled={cancelMutation.isPending}
+            onPress={() =>
+              Alert.alert(
+                "Recusar Profissional",
+                "Isso pode gerar cobrança de taxa de cancelamento dependendo do tempo decorrido. Deseja continuar?",
+                [
+                  { text: "Voltar", style: "cancel" },
+                  {
+                    text: "Confirmar",
+                    style: "destructive",
+                    onPress: async () => {
+                      try {
+                        await cancelMutation.mutateAsync(request.id);
+                        nav.toHome();
+                      } catch {
+                        Alert.alert("Erro", "Não foi possível cancelar. Tente novamente.");
+                      }
+                    },
+                  },
+                ],
+              )
+            }
           >
             <Text style={styles.secondaryButtonText}>Recusar Profissional</Text>
           </Pressable>
