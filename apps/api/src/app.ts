@@ -77,35 +77,41 @@ export function createApp() {
   app.route("/api/v1/professionals", professionalRoutes);
   app.route("/api/v1/uploads", uploadsApp);
 
-  // Servir arquivos de upload local (MVP/dev — em produção usa R2 CDN)
-  app.get("/uploads/:filename", async (c) => {
-    const filename = c.req.param("filename");
+  // Servir arquivos de upload local — apenas quando R2 NÃO está configurado (dev/MVP).
+  // Em produção, R2 Public URL serve os arquivos diretamente via CDN.
+  if (!env.R2_PUBLIC_URL) {
+    app.get("/uploads/:filename", async (c) => {
+      const filename = c.req.param("filename");
 
-    if (!SAFE_FILENAME.test(filename)) {
-      return c.json({ error: "Invalid filename" }, 400);
-    }
+      if (!SAFE_FILENAME.test(filename)) {
+        return c.json({ error: "Invalid filename" }, 400);
+      }
 
-    const ext = filename.substring(filename.lastIndexOf(".")).toLowerCase();
-    const contentType = MIME_TYPES[ext];
-    if (!contentType) {
-      return c.json({ error: "Unsupported file type" }, 400);
-    }
+      const ext = filename.substring(filename.lastIndexOf(".")).toLowerCase();
+      const contentType = MIME_TYPES[ext];
+      if (!contentType) {
+        return c.json({ error: "Unsupported file type" }, 400);
+      }
 
-    const filePath = join(process.cwd(), "uploads", filename);
+      const filePath = join(process.cwd(), "uploads", filename);
 
-    try {
-      await access(filePath);
-      const buffer = await readFile(filePath);
-      return new Response(buffer, {
-        headers: {
-          "Content-Type": contentType,
-          "Cache-Control": "public, max-age=86400",
-        },
-      });
-    } catch {
-      return c.json({ error: "File not found" }, 404);
-    }
-  });
+      try {
+        await access(filePath);
+        const buffer = await readFile(filePath);
+        return new Response(buffer, {
+          headers: {
+            "Content-Type": contentType,
+            "Cache-Control": "public, max-age=86400",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Disposition": "inline",
+            "X-Frame-Options": "DENY",
+          },
+        });
+      } catch {
+        return c.json({ error: "File not found" }, 404);
+      }
+    });
+  }
 
   return app;
 }

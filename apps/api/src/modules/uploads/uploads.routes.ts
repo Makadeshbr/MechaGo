@@ -1,6 +1,7 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { z } from "@hono/zod-openapi";
 import { authMiddleware } from "../../middleware/auth.middleware";
+import { logger } from "../../middleware/logger.middleware";
 import { uploadsService } from "./uploads.service";
 import { uploadContextSchema } from "./uploads.schemas";
 
@@ -72,8 +73,21 @@ uploadsApp.openapi(uploadRoute, async (c) => {
     return c.json({ error: "Arquivo muito grande. Limite de 10MB." }, 413);
   }
 
+  // Rejeitar content-type ausente ou genérico — nunca assumir "image/jpeg"
+  const contentType = file.type;
+  if (!contentType || contentType === "application/octet-stream") {
+    logger.warn({
+      msg: "upload_missing_content_type",
+      fileName: file.name,
+      declaredType: file.type,
+    });
+    return c.json(
+      { error: "Tipo do arquivo não identificado. Envie com Content-Type válido (image/jpeg, image/png, etc.)." },
+      422,
+    );
+  }
+
   const buffer = Buffer.from(await file.arrayBuffer());
-  const contentType = file.type || "image/jpeg";
 
   const result = await uploadsService.uploadFile({
     buffer,
