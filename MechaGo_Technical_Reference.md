@@ -74,7 +74,7 @@ mechago/
 | Validação        | Zod                        | 3.x        | Schema validation, zero trust             |
 | Documentação API | @hono/zod-openapi + Scalar | —          | Docs auto-geradas dos schemas Zod         |
 | Pagamento        | Mercado Pago SDK           | 2.x        | Pix nativo, split marketplace             |
-| Storage          | Cloudflare R2              | —          | S3-compatible, presigned URLs             |
+| Storage          | Cloudflare R2              | —          | S3-compatible, server-side upload (PutObjectCommand) |
 | Push             | Firebase Admin SDK (FCM)   | 12.x       | Push por tópicos geográficos              |
 | Logging          | Pino                       | 9.x        | Structured logging, trace IDs             |
 | Rate Limiting    | hono-rate-limiter          | —          | Redis backend, por rota                   |
@@ -172,8 +172,9 @@ apps/api/
 │   │   │   └── reviews.schemas.ts
 │   │   │
 │   │   ├── uploads/
-│   │   │   ├── uploads.routes.ts   # Presigned URL generation
-│   │   │   └── uploads.service.ts  # Cloudflare R2
+│   │   │   ├── uploads.routes.ts   # POST multipart (server-side upload)
+│   │   │   ├── uploads.service.ts  # R2 PutObject + magic byte validation
+│   │   │   └── uploads.schemas.ts  # Zod schemas (context, content-type)
 │   │   │
 │   │   └── notifications/
 │   │       ├── notifications.service.ts  # FCM push
@@ -823,7 +824,7 @@ POST   /api/v1/auth/reset-password     # Reset com token
 ```
 GET    /api/v1/users/me                # Perfil do usuário logado
 PATCH  /api/v1/users/me                # Atualizar perfil
-POST   /api/v1/users/me/avatar         # Upload avatar (presigned URL)
+POST   /api/v1/users/me/avatar         # Upload avatar (multipart via /uploads)
 GET    /api/v1/vehicles                # Listar veículos do cliente
 POST   /api/v1/vehicles                # Cadastrar veículo
 PATCH  /api/v1/vehicles/:id            # Atualizar veículo
@@ -878,8 +879,18 @@ GET    /api/v1/reviews/professional/:id # Avaliações de um profissional
 ### 6.7 Uploads
 
 ```
-POST   /api/v1/uploads/presigned-url   # Gerar presigned URL para R2
+POST   /api/v1/uploads?context=diagnosis  # Upload server-side (multipart/form-data → R2)
+       # Contextos: diagnosis | completion | avatar
+       # Request: multipart com campo "file" (max 10MB)
+       # Response: { publicUrl, fileKey }
+       # Validações: content-type permitido, magic bytes, tamanho
 ```
+
+> **Decisão arquitetural (2026-03):** Upload é server-side (cliente → Railway API → R2 PutObject).
+> Presigned URL foi descartado porque o AWS SDK assina headers (`content-type`,
+> `x-amz-content-sha256`) que clientes React Native/Expo não reproduzem de forma
+> confiável, causando 403 no Cloudflare R2. O overhead de memória do server-side
+> é aceitável para imagens (máx 10MB) no volume do MVP.
 
 ### 6.8 Socket.IO Events
 
@@ -994,9 +1005,9 @@ socket.emit("queue_update", { position, estimatedWait }) // Atualização da fil
   □ Tags enriquecidas
   □ Cálculo de média ponderada
   □ Suspensão automática se nota < 3.5
-□ Módulo uploads:
-  □ Presigned URL generation (Cloudflare R2)
-  □ Validação de tipo (só imagem) e tamanho (max 10MB)
+✅ Módulo uploads:
+  ✅ Upload server-side multipart → R2 PutObject (presigned URL descartado)
+  ✅ Validação de tipo (só imagem), magic bytes e tamanho (max 10MB)
 □ Mobile: telas de pagamento, avaliação, concluído
 ```
 

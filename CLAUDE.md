@@ -178,6 +178,22 @@ if (vehicle.userId !== userId) {
 ❌ Armazenar senhas em texto plano ou com MD5/SHA1
 ❌ Logar dados sensíveis (senha, token, CPF completo)
 ❌ Usar JWT sem expiração
+❌ Confiar em extensão/nome de arquivo para determinar tipo — SEMPRE validar magic bytes
+❌ Usar presigned URL para upload mobile (403 no R2 por headers assinados incompatíveis)
+```
+
+### Upload de arquivos (padrão definido)
+
+```
+✅ Upload é SEMPRE server-side: cliente envia multipart → API faz PutObject no R2
+✅ Validar content-type na lista de permitidos ANTES de processar o buffer
+✅ Validar magic bytes (assinatura binária) do arquivo contra o content-type declarado
+✅ Extensão do arquivo derivada do content-type validado, NUNCA do nome do arquivo
+✅ S3Client como singleton (reutiliza conexões TCP/TLS)
+✅ Logging estruturado de auditoria em todo upload (fileKey, size, duration, storage)
+✅ Headers de segurança no file serving: X-Content-Type-Options nosniff, X-Frame-Options DENY
+❌ PROIBIDO: defaultar content-type vazio para "image/jpeg" — rejeitar com 422
+❌ PROIBIDO: servir arquivos locais em produção — R2 CDN serve diretamente
 ```
 
 ### Tratamento de erros
