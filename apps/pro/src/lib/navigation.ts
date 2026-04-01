@@ -21,4 +21,16 @@ export const nav = {
 
   /** Dashboard principal do profissional */
   toHome: () => router.replace("/(tabs)"),
+
+  /** Acompanhamento de mapa (indo até o cliente) */
+  toMapTracking: (requestId: string) =>
+    r.replace({ pathname: "/(service-flow)/map-tracking", params: { requestId } }),
+
+  /** Tela de diagnóstico no local */
+  toDiagnosis: (requestId: string) =>
+    r.replace({ pathname: "/(service-flow)/diagnosis", params: { requestId } }),
+
+  /** Tela de envio de preço final/resolvido */
+  toServiceResolved: (requestId: string) =>
+    r.replace({ pathname: "/(service-flow)/service-resolved", params: { requestId } }),
 };

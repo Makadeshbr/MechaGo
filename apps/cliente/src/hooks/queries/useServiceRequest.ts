@@ -49,6 +49,17 @@ export function useServiceRequest(id: string, refetchInterval?: number) {
   });
 }
 
+export function useActiveServiceRequest() {
+  return useQuery({
+    queryKey: [...serviceRequestKeys.all, "active"],
+    queryFn: async () => {
+      const response = await api.get("service-requests/active");
+      return response.json<ServiceRequestSummary | null>();
+    },
+    staleTime: 0, // Força revalidação ao montar para garantir redirecionamento correto
+  });
+}
+
 export function useCancelServiceRequest() {
   const queryClient = useQueryClient();
   return useMutation({

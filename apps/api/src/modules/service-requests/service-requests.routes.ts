@@ -116,6 +116,33 @@ app.openapi(getRequestRoute, async (c) => {
   return c.json(result, 200);
 });
 
+// ==================== GET /service-requests/active ====================
+const getActiveRequestRoute = createRoute({
+  method: "get",
+  path: "/active",
+  tags: ["Service Requests"],
+  summary: "Buscar chamado ativo do usuário autenticado (cliente ou pro)",
+  middleware: [authMiddleware],
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: serviceRequestResponseSchema.nullable(),
+        },
+      },
+      description: "Chamado ativo retornado ou null",
+    },
+  },
+});
+
+app.openapi(getActiveRequestRoute, async (c) => {
+  const userId = c.get("userId");
+  const userType = c.get("userType") as "client" | "professional";
+  
+  const result = await ServiceRequestsService.getActiveRequest(userId, userType);
+  return c.json(result, 200);
+});
+
 // ==================== POST /service-requests/:id/accept ====================
 const acceptRequestRoute = createRoute({
   method: "post",
@@ -405,6 +432,7 @@ app.openapi(professionalHistoryRoute, async (c) => {
       problemType: req.problemType,
       status: req.status,
       finalPrice: price,
+      clientName: req.clientName,
       diagnosticFee: Number(req.diagnosticFee),
       completedAt: completedAt?.toISOString() ?? null,
       createdAt: req.createdAt.toISOString(),

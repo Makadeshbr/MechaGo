@@ -49,6 +49,8 @@ export const serviceRequestSummarySchema = z.object({
   roadwayName: z.string().nullable(),
   address: z.string().nullable().optional(),
   createdAt: z.string(),
+  arrivedAt: z.string().nullable().optional(),
+  completedAt: z.string().nullable().optional(),
   clientLatitude: z.number().nullable().optional(),
   clientLongitude: z.number().nullable().optional(),
   queuePosition: z.number().int().positive().nullable().optional(),

@@ -76,10 +76,10 @@ export default function EscalationScreen() {
           <Text style={styles.diagnosisText}>{diagnosis}</Text>
         </View>
 
-        {/* Botão principal: chamar agora */}
+        {/* Botão principal: solicitar guincho */}
         <Button
           onPress={handleCall}
-          title="CHAMAR AGORA"
+          title="SOLICITAR GUINCHO"
           variant="primary"
           style={styles.callButton}
         />

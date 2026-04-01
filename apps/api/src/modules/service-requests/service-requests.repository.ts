@@ -133,13 +133,17 @@ export class ServiceRequestsRepository {
 
   /**
    * Histórico de atendimentos concluídos de um profissional.
-   * Retorna ordenado do mais recente para o mais antigo.
+   * Retorna ordenado do mais recente para o mais antigo, com o nome do cliente.
    */
-  static async findCompletedByProfessionalId(professionalId: string): Promise<SelectServiceRequest[]> {
+  static async findCompletedByProfessionalId(professionalId: string): Promise<(SelectServiceRequest & { clientName: string })[]> {
     const { desc } = await import("drizzle-orm");
-    return db
-      .select()
+    const results = await db
+      .select({
+        request: serviceRequests,
+        clientName: users.name,
+      })
       .from(serviceRequests)
+      .innerJoin(users, eq(serviceRequests.clientId, users.id))
       .where(
         and(
           eq(serviceRequests.professionalId, professionalId),
@@ -147,6 +151,65 @@ export class ServiceRequestsRepository {
         ),
       )
       .orderBy(desc(serviceRequests.completedAt));
+
+    return results.map((r) => ({
+      ...r.request,
+      clientName: r.clientName,
+    }));
+  }
+
+  /**
+   * Busca o chamado ativo (em andamento) de um usuário (cliente ou profissional).
+   * Considera status não finalizados e 'completed' sem avaliação do solicitante.
+   */
+  static async findActiveByUserId(
+    userId: string,
+    role: "client" | "professional",
+  ): Promise<SelectServiceRequest | null> {
+    const activeStatuses = [
+      "matching",
+      "accepted",
+      "professional_enroute",
+      "professional_arrived",
+      "diagnosing",
+      "resolved",
+      "price_contested",
+      "tow_requested",
+      "escalated",
+      "completed", // Incluímos completed para checar se já foi avaliado
+    ];
+
+    let whereClause;
+    if (role === "client") {
+      whereClause = and(
+        eq(serviceRequests.clientId, userId),
+        sql`${serviceRequests.status} IN ${activeStatuses}`,
+      );
+    } else {
+      // Para profissional, buscamos primeiro o registro de profissional dele
+      const [prof] = await db
+        .select({ id: professionals.id })
+        .from(professionals)
+        .where(eq(professionals.userId, userId))
+        .limit(1);
+
+      if (!prof) return null;
+
+      whereClause = and(
+        eq(serviceRequests.professionalId, prof.id),
+        sql`${serviceRequests.status} IN ${activeStatuses}`,
+      );
+    }
+
+    // Busca o chamado mais recente que se encaixa no status
+    const [request] = await db
+      .select()
+      .from(serviceRequests)
+      .where(whereClause)
+      .orderBy(sql`${serviceRequests.createdAt} DESC`)
+      .limit(1);
+
+    return request ?? null;
   }
 
   static async calculateDistanceToRequest(params: {

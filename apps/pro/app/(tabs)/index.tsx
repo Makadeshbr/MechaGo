@@ -18,8 +18,10 @@ import {
   useGoOnline,
   useGoOffline,
 } from "@/hooks/queries/useProfessional";
+import { useActiveServiceRequest } from "@/hooks/queries/useServiceRequest";
 import { AmbientGlow, LogoPin, MechaGoModal } from "@/components/ui";
 import { colors, spacing, borderRadius } from "@mechago/shared";
+import { nav } from "@/lib/navigation";
 
 // Dashboard principal do profissional — fiel ao design dashboard_mechago_pro
 interface DashboardModalState {
@@ -33,6 +35,7 @@ interface DashboardModalState {
 export default function DashboardScreen() {
   const { data: user, isLoading: userLoading } = useUser();
   const { data: stats, isLoading: statsLoading } = useProfessionalStats();
+  const { data: activeRequest, isLoading: activeLoading } = useActiveServiceRequest();
   const goOnline = useGoOnline();
   const goOffline = useGoOffline();
   const [modal, setModal] = React.useState<DashboardModalState>({
@@ -44,6 +47,37 @@ export default function DashboardScreen() {
 
   const isOnline = stats?.isOnline ?? false;
   const isToggling = goOnline.isPending || goOffline.isPending;
+
+  // 1. Redirecionamento Automático (Auto-Recover)
+  // Se houver um chamado ativo atribuído a este pro, pula para a tela correta.
+  useEffect(() => {
+    if (activeLoading || !activeRequest) return;
+
+    const { status, id } = activeRequest;
+    
+    switch (status) {
+      case "accepted":
+      case "professional_enroute":
+        nav.toMapTracking(id);
+        break;
+      case "professional_arrived":
+        nav.toDiagnosis(id);
+        break;
+      case "diagnosing":
+        nav.toServiceResolved(id);
+        break;
+      case "resolved":
+      case "price_contested":
+        // Aguardando cliente aprovar
+        nav.toServiceCompleted({ 
+          requestId: id, 
+          clientUserId: activeRequest.clientId ?? "" 
+        });
+        break;
+      default:
+        break;
+    }
+  }, [activeRequest, activeLoading]);
 
   const closeModal = useCallback(() => {
     setModal((current) => ({ ...current, visible: false }));

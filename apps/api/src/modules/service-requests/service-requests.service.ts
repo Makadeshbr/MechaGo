@@ -63,6 +63,8 @@ function serializeServiceRequestSummary(params: {
   roadwayName: string | null;
   address?: string | null;
   createdAt: Date;
+  arrivedAt?: Date | null;
+  completedAt?: Date | null;
   clientLatitude?: string | null;
   clientLongitude?: string | null;
   queuePosition?: number | null;
@@ -98,6 +100,8 @@ function serializeServiceRequestSummary(params: {
     roadwayName: params.roadwayName,
     address: params.address ?? null,
     createdAt: params.createdAt.toISOString(),
+    arrivedAt: params.arrivedAt?.toISOString() ?? null,
+    completedAt: params.completedAt?.toISOString() ?? null,
     clientLatitude: params.clientLatitude ? Number(params.clientLatitude) : null,
     clientLongitude: params.clientLongitude ? Number(params.clientLongitude) : null,
     queuePosition: params.queuePosition ?? null,
@@ -366,6 +370,8 @@ export class ServiceRequestsService {
       roadwayName: roadway?.name || null,
       address: request.address,
       createdAt: request.createdAt,
+      arrivedAt: null,
+      completedAt: null,
       clientLatitude: request.clientLatitude,
       clientLongitude: request.clientLongitude,
       supportPhone: roadway?.emergencyPhone || null,
@@ -425,6 +431,8 @@ export class ServiceRequestsService {
       roadwayName: null,
       address: request.address,
       createdAt: request.createdAt,
+      arrivedAt: request.arrivedAt,
+      completedAt: request.completedAt,
       clientLatitude: request.clientLatitude,
       clientLongitude: request.clientLongitude,
       professionalLatitude,
@@ -712,6 +720,28 @@ export class ServiceRequestsService {
     }
 
     return updated;
+  }
+
+  /**
+   * Busca o chamado ativo do usuário atual (cliente ou profissional).
+   * Se o chamado estiver 'completed', verifica se o solicitante já avaliou.
+   */
+  static async getActiveRequest(userId: string, role: "client" | "professional") {
+    const request = await ServiceRequestsRepository.findActiveByUserId(userId, role);
+
+    if (!request) return null;
+
+    // Se estiver completo, verifica se já houve avaliação deste usuário
+    if (request.status === "completed") {
+      const { ReviewsRepository } = await import("../reviews/reviews.repository");
+      const review = await ReviewsRepository.findByServiceRequestAndReviewer(request.id, userId);
+
+      // Se já avaliou, o chamado não é mais considerado "ativo" para redirecionamento
+      if (review) return null;
+    }
+
+    // Retorna os detalhes formatados
+    return this.getById(request.id);
   }
 
   /**

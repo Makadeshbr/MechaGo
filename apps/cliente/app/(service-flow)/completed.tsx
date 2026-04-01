@@ -35,7 +35,13 @@ export default function CompletedScreen() {
     currency: "BRL",
   });
 
-  const completedAt = request?.createdAt ? new Date(request.createdAt) : new Date();
+  const completedAt = request?.completedAt ? new Date(request.completedAt) : new Date();
+  const arrivedAt = request?.arrivedAt ? new Date(request.arrivedAt) : null;
+  
+  const durationMinutes = arrivedAt 
+    ? Math.round((completedAt.getTime() - arrivedAt.getTime()) / 60000)
+    : null;
+
   const formattedDate = completedAt.toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "short",
@@ -81,6 +87,16 @@ export default function CompletedScreen() {
             <MaterialIcons name="calendar-today" size={20} color={colors.onSurfaceVariant} />
             <Text style={styles.rowText}>{formattedDate}</Text>
           </View>
+
+          {durationMinutes !== null && (
+            <View style={styles.row}>
+              <MaterialIcons name="timer" size={20} color={colors.onSurfaceVariant} />
+              <Text style={styles.rowText}>
+                Duração total:{" "}
+                <Text style={styles.rowHighlight}>{durationMinutes} min</Text>
+              </Text>
+            </View>
+          )}
 
           <View style={styles.divider} />
 

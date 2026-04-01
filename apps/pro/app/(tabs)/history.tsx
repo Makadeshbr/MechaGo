@@ -38,21 +38,39 @@ function formatDate(iso: string | null) {
 interface HistoryItem {
   id: string;
   problemType: string;
+  status: string;
   finalPrice: number;
+  clientName: string;
   completedAt: string | null;
   createdAt: string;
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  completed: "Concluído",
+  cancelled_client: "Cancelado",
+  cancelled_professional: "Cancelado (Pro)",
+};
+
 function HistoryCard({ item }: { item: HistoryItem }) {
+  const statusColor = item.status === "completed" ? colors.success : colors.error;
+
   return (
     <View style={styles.card}>
       <View style={styles.iconBox}>
         <MaterialIcons name="build" size={20} color={colors.primary} />
       </View>
       <View style={styles.cardContent}>
-        <Text style={styles.serviceType}>
-          {PROBLEM_LABELS[item.problemType] ?? "Serviço automotivo"}
-        </Text>
+        <View style={styles.cardHeader}>
+          <Text style={styles.serviceType}>
+            {PROBLEM_LABELS[item.problemType] ?? "Serviço automotivo"}
+          </Text>
+          <View style={[styles.statusBadge, { backgroundColor: `${statusColor}1A` }]}>
+            <Text style={[styles.statusText, { color: statusColor }]}>
+              {STATUS_LABELS[item.status] ?? item.status}
+            </Text>
+          </View>
+        </View>
+        <Text style={styles.clientName}>Cliente: {item.clientName}</Text>
         <Text style={styles.date}>{formatDate(item.completedAt)}</Text>
       </View>
       <Text style={styles.value}>{formatCurrency(item.finalPrice)}</Text>
@@ -222,6 +240,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cardContent: { flex: 1, gap: 4 },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  statusText: {
+    fontFamily: fonts.headline,
+    fontSize: 10,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  clientName: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.onSurface,
+  },
   serviceType: {
     fontFamily: fonts.headline,
     fontSize: 15,

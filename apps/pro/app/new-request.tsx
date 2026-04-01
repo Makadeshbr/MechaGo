@@ -187,7 +187,7 @@ export default function NewRequestScreen() {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await api.post(`service-requests/${request.requestId}/accept`);
       clearRequest();
-      router.replace(`/(service-flow)/navigation?requestId=${request.requestId}`);
+      router.replace(`/(service-flow)/map-tracking?requestId=${request.requestId}`);
     } catch (err) {
       setIsAccepting(false);
       openInfoModal({

@@ -65,6 +65,7 @@ export default function RootLayout() {
             <Stack.Screen name="(onboarding)" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="new-request" />
+            <Stack.Screen name="(service-flow)" options={{ animation: "slide_from_bottom" }} />
           </Stack>
         </SocketProvider>
       </QueryClientProvider>

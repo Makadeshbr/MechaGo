@@ -12,15 +12,56 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "@/hooks/queries/useUser";
 import { useVehicles } from "@/hooks/queries/useVehicles";
+import { useActiveServiceRequest } from "@/hooks/queries/useServiceRequest";
 import { LogoPin, VehicleCard, AmbientGlow } from "@/components/ui";
 import { colors, spacing, borderRadius } from "@mechago/shared";
+import { nav } from "@/lib/navigation";
 
 export default function HomeSOS() {
   const { data: user, isLoading: userLoading } = useUser();
   const { data: vehicles, isLoading: vehiclesLoading } = useVehicles();
+  const { data: activeRequest, isLoading: activeLoading } = useActiveServiceRequest();
 
-  const isLoading = userLoading || vehiclesLoading;
+  const isLoading = userLoading || vehiclesLoading || activeLoading;
   const firstVehicle = vehicles?.[0];
+
+  // 1. Redirecionamento Automático (Auto-Recover)
+  // Se o app abrir e houver um chamado ativo, pula direto para a tela correta.
+  React.useEffect(() => {
+    if (activeLoading || !activeRequest) return;
+
+    const { status, id } = activeRequest;
+    
+    switch (status) {
+      case "matching":
+      case "waiting_queue":
+        router.replace(`/(service-flow)/searching?requestId=${id}` as `/(service-flow)/searching?requestId=${string}`);
+        break;
+      case "accepted":
+      case "professional_enroute":
+        nav.toTracking(id);
+        break;
+      case "professional_arrived":
+      case "diagnosing":
+        router.replace(`/(service-flow)/service-active?requestId=${id}` as `/(service-flow)/service-active?requestId=${string}`);
+        break;
+      case "resolved":
+      case "price_contested":
+        nav.toPriceApproval(id);
+        break;
+      case "completed":
+        // getActiveRequest na API já filtra se já foi avaliado
+        nav.toRating({
+          requestId: id,
+          professionalUserId: activeRequest.professional?.userId ?? "",
+          professionalName: activeRequest.professional?.name ?? "Profissional",
+          finalPrice: String(activeRequest.finalPrice ?? 0),
+        });
+        break;
+      default:
+        break;
+    }
+  }, [activeRequest, activeLoading]);
 
   // Se não tem veículo, redirecionar para cadastro
   React.useEffect(() => {

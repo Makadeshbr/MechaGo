@@ -91,10 +91,22 @@ export default function ServiceCompletedScreen() {
       >
         <Text style={styles.title}>Serviço{"\n"}Concluído</Text>
 
-        {/* Card valor final */}
+        {/* Card valor final com detalhamento */}
         <View style={styles.priceCard}>
-          <Text style={styles.priceLabel}>VALOR FINAL</Text>
-          <Text style={styles.priceValue}>{formattedFinal}</Text>
+          <Text style={styles.priceLabel}>RESUMO FINANCEIRO</Text>
+          <View style={styles.priceDetailRow}>
+            <Text style={styles.priceDetailLabel}>Valor do serviço (Bruto)</Text>
+            <Text style={styles.priceDetailValue}>{formattedFinal}</Text>
+          </View>
+          <View style={styles.priceDetailRow}>
+            <Text style={styles.priceDetailLabel}>Comissão MechaGo (0%)</Text>
+            <Text style={styles.priceDetailValue}>- R$ 0,00</Text>
+          </View>
+          <View style={styles.priceDivider} />
+          <View style={styles.priceTotalRow}>
+            <Text style={styles.priceTotalLabel}>VALOR LÍQUIDO</Text>
+            <Text style={styles.priceTotalValue}>{formattedFinal}</Text>
+          </View>
         </View>
 
         {/* Resumo */}
@@ -237,19 +249,51 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     borderWidth: 1,
     borderColor: `${colors.primary}33`,
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   priceLabel: {
     fontFamily: fonts.headline,
     fontSize: 11,
     color: colors.onSurfaceVariant,
     letterSpacing: 1.5,
+    marginBottom: spacing.xs,
   },
-  priceValue: {
+  priceDetailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  priceDetailLabel: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
+  },
+  priceDetailValue: {
     fontFamily: fonts.mono,
-    fontSize: 40,
+    fontSize: 14,
+    color: colors.onSurface,
+  },
+  priceDivider: {
+    height: 1,
+    backgroundColor: `${colors.outlineVariant}33`,
+    marginVertical: spacing.xs,
+  },
+  priceTotalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: spacing.xs,
+  },
+  priceTotalLabel: {
+    fontFamily: fonts.headline,
+    fontSize: 13,
     color: colors.primary,
-    letterSpacing: -1,
+  },
+  priceTotalValue: {
+    fontFamily: fonts.mono,
+    fontSize: 24,
+    color: colors.primary,
+    letterSpacing: -0.5,
   },
   summaryCard: {
     backgroundColor: colors.surfaceVariant,

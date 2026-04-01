@@ -43,6 +43,25 @@ export function useRegisterProfessional() {
   });
 }
 
+// ==================== UPDATE ====================
+// Atualiza dados do perfil profissional (PATCH /professionals/me)
+// Suporta edição de especialidades, raio de atuação e tipo de agenda
+export function useUpdateProfessional() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: Partial<RegisterProfessionalFormInput>) => {
+      const response = await api.patch("professionals/me", { json: input });
+      return response.json<{ professional: { id: string } }>();
+    },
+    onSuccess: () => {
+      // Invalida a query de usuário e estatísticas para refletir as mudanças
+      void queryClient.invalidateQueries({ queryKey: ["user"] });
+      void queryClient.invalidateQueries({ queryKey: STATS_QUERY_KEY });
+    },
+  });
+}
+
 // ==================== GO ONLINE ====================
 // Envia localização GPS e seta isOnline=true (POST /professionals/me/online)
 // latitude e longitude são obtidos via expo-location antes de chamar este hook
