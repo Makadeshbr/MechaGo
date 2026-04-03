@@ -148,6 +148,8 @@ export class ProfessionalsService {
       totalEarnings: professional.totalEarnings,
       acceptanceRate: professional.acceptanceRate,
       cancellationsThisMonth: professional.cancellationsThisMonth,
+      totalServices: 0, // TODO: Implementar contagem real no repository futuramente
+      averageRating: 5.0, // TODO: Implementar média real no repository futuramente
       isOnline: professional.isOnline,
     };
   }

@@ -101,6 +101,8 @@ export const statsSchema = z.object({
   totalEarnings: z.string(),
   acceptanceRate: z.string(),
   cancellationsThisMonth: z.number(),
+  totalServices: z.number(),
+  averageRating: z.number(),
   isOnline: z.boolean(),
 });
 

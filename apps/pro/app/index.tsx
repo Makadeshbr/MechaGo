@@ -24,17 +24,25 @@ export default function WelcomeScreen() {
   // Isso evita que reinstalações ou expirações de token forçem o re-onboarding.
   useEffect(() => {
     if (!isAuthenticated || isLoading) return;
-    if (tokenStorage.isOnboardingComplete()) return;
+    
+    if (tokenStorage.isOnboardingComplete()) {
+      console.log("[Welcome] Onboarding ja concluido via storage.");
+      return;
+    }
 
+    console.log("[Welcome] Verificando perfil profissional na API...");
     setProfileCheck("checking");
+    
     api
       .get("professionals/me/stats")
       .json()
-      .then(() => {
+      .then((data) => {
+        console.log("[Welcome] Perfil encontrado com sucesso:", data);
         tokenStorage.setOnboardingComplete();
         setProfileCheck("exists");
       })
-      .catch(() => {
+      .catch((err) => {
+        console.log("[Welcome] Perfil nao encontrado ou erro na API:", err.message);
         setProfileCheck("not-found");
       });
   }, [isAuthenticated, isLoading]);
@@ -43,27 +51,35 @@ export default function WelcomeScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ color: colors.textSecondary, marginTop: 12, fontFamily: "PlusJakartaSans_400Regular" }}>
+          Carregando seu perfil...
+        </Text>
       </View>
     );
   }
-
-  if (isAuthenticated) {
-    // Redireciona para tabs se onboarding concluído (flag ou check de API)
-    if (tokenStorage.isOnboardingComplete() || profileCheck === "exists") {
-      return <Redirect href="/(tabs)" />;
-    }
-    // Só vai para onboarding se confirmado que não tem perfil (check feito ou idle em flag setada)
-    if (profileCheck === "not-found") {
-      return <Redirect href="/(onboarding)/professional-type" />;
-    }
-    // idle + !isOnboardingComplete + !isLoading = aguardando check iniciar
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
+if (isAuthenticated) {
+  // Redireciona para tabs se onboarding concluído (flag ou check de API)
+  if (tokenStorage.isOnboardingComplete() || profileCheck === "exists") {
+    console.log("[Welcome] Usuário logado e com perfil. Redirecionando para Dashboard.");
+    return <Redirect href="/(tabs)" />;
   }
 
+  // Só vai para onboarding se confirmado que não tem perfil
+  if (profileCheck === "not-found") {
+    console.log("[Welcome] Usuário logado sem perfil profissional. Redirecionando para Onboarding.");
+    return <Redirect href="/(onboarding)/professional-type" />;
+  }
+
+  // Enquanto checa ou se está em idle, mantém o loading
+  return (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color={colors.primary} />
+      <Text style={{ color: colors.textSecondary, marginTop: 12, fontFamily: "PlusJakartaSans_400Regular" }}>
+        Sincronizando seu perfil...
+      </Text>
+    </View>
+  );
+}
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <AmbientGlow />
