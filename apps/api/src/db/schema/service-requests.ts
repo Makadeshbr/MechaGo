@@ -71,6 +71,9 @@ export const serviceRequests = pgTable("service_requests", {
     scale: 7,
   }).notNull(),
   address: text("address"),
+  cityName: text("city_name"),
+  roadwayName: text("roadway_name"),
+  roadwayPhone: text("roadway_phone"),
   // Triagem
   triageAnswers: jsonb("triage_answers"),
   // Preços

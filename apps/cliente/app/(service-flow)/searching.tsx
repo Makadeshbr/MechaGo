@@ -120,7 +120,9 @@ export default function SearchingScreen() {
         </View>
 
         <Text style={styles.title}>BUSCANDO PROFISSIONAIS...</Text>
-        <Text style={styles.subtitle}>Nossa rede está com alta demanda na sua região</Text>
+        <Text style={styles.subtitle}>
+          Nossa rede está com alta demanda {request.context === "highway" ? `na ${request.roadwayName || "Rodovia"}` : `em ${request.cityName || "sua região"}`}
+        </Text>
 
         {/* Métricas de Fila - Layout Noir */}
         <View style={styles.metricsGrid}>
@@ -144,9 +146,11 @@ export default function SearchingScreen() {
             <MaterialIcons name="support-agent" size={22} color={colors.primary} />
           </View>
           <View style={styles.supportTextWrap}>
-            <Text style={styles.supportTitle}>Central de Atendimento</Text>
+            <Text style={styles.supportTitle}>
+              {request.context === "highway" && request.roadwayName ? request.roadwayName : "Central de Atendimento"}
+            </Text>
             <Text style={styles.supportSubtitle}>
-              {request.supportPhone ? request.supportPhone : "Falar com suporte"}
+              {request.context === "highway" && request.roadwayPhone ? request.roadwayPhone : (request.supportPhone || "Falar com suporte")}
             </Text>
           </View>
           <MaterialIcons name="chevron-right" size={20} color={colors.onSurfaceVariant} />

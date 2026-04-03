@@ -6,6 +6,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { colors, spacing, radii, fonts } from "@mechago/shared";
 import { useServiceRequest, useApprovePriceServiceRequest, useContestPriceServiceRequest } from "@/hooks/queries/useServiceRequest";
+import { useCreateServicePayment } from "@/hooks/queries/usePayments";
 import { Skeleton } from "@/components/ui";
 import { nav } from "@/lib/navigation";
 
@@ -14,6 +15,7 @@ export default function PriceApprovalScreen() {
   const { data: request, isLoading } = useServiceRequest(requestId as string, 10000);
   const approveMutation = useApprovePriceServiceRequest();
   const contestMutation = useContestPriceServiceRequest();
+  const createPayment = useCreateServicePayment();
 
   const [contestReason, setContestReason] = useState("");
   const [isContesting, setIsContesting] = useState(false);
@@ -30,18 +32,22 @@ export default function PriceApprovalScreen() {
   const handleApprove = async () => {
     try {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // 1. Aprova o preço (notifica profissional)
       await approveMutation.mutateAsync(requestId as string);
-      // Captura os dados antes do Alert para evitar race condition
-      const professionalUserId = request?.professional?.userId ?? "";
-      const professionalName = request?.professional?.name ?? "Profissional";
-      const finalPrice = String(request?.finalPrice ?? request?.estimatedPrice ?? 0);
-      Alert.alert("Sucesso", "Pagamento processado! Avalie o profissional.", [
-        {
-          text: "OK",
-          onPress: () =>
-            nav.toRating({ requestId: requestId as string, professionalUserId, professionalName, finalPrice }),
-        },
-      ]);
+      
+      // 2. Cria o pagamento final
+      const payment = await createPayment.mutateAsync({
+        serviceRequestId: requestId as string,
+        finalPrice: request?.finalPrice ?? 0,
+        diagnosticFee: Number(request?.diagnosticFee ?? 0),
+      });
+
+      // 3. Vai para tela de pagamento
+      nav.toPayment({
+        paymentId: payment.id,
+        requestId: requestId as string,
+        nextScreen: "rating"
+      });
     } catch (err) {
       Alert.alert("Erro", "Não foi possível processar a aprovação.");
     }
@@ -134,13 +140,13 @@ export default function PriceApprovalScreen() {
           {!isContesting ? (
             <View style={styles.actions}>
               <TouchableOpacity
-                style={[styles.approveButton, approveMutation.isPending && { opacity: 0.6 }]}
+                style={[styles.approveButton, (approveMutation.isPending || createPayment.isPending) && { opacity: 0.6 }]}
                 onPress={handleApprove}
-                disabled={approveMutation.isPending}
+                disabled={approveMutation.isPending || createPayment.isPending}
                 accessibilityRole="button"
                 accessibilityLabel="Aprovar valor e pagar"
               >
-                {approveMutation.isPending ? (
+                {approveMutation.isPending || createPayment.isPending ? (
                   <ActivityIndicator color={colors.bg} />
                 ) : (
                   <>

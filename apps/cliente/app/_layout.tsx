@@ -19,6 +19,7 @@ import { queryClient } from "@/lib/query-client";
 import { useAuthStore } from "@/stores/auth.store";
 import { authEvents } from "@/lib/auth-events";
 import { SocketProvider } from "@/providers/SocketProvider";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { colors } from "@mechago/shared";
 
 // Manter splash visível até fontes carregarem
@@ -51,6 +52,10 @@ export default function RootLayout() {
       router.replace("/(auth)/login");
     });
   }, []);
+
+  // Registra push notifications após conexão do app
+  // O hook opera em modo fire-and-forget — nunca bloqueante
+  usePushNotifications();
 
   if (!fontsLoaded) {
     return null;

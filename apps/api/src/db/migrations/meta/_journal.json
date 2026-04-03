@@ -29,6 +29,20 @@
       "when": 1774456384902,
       "tag": "0003_slimy_dazzler",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775172684466,
+      "tag": "0004_add_fcm_token_to_users",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1775224501980,
+      "tag": "0005_fine_riptide",
+      "breakpoints": true
     }
   ]
 }

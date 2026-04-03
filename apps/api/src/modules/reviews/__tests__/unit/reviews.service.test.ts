@@ -193,4 +193,50 @@ describe("ReviewsService", () => {
       expect(result.reviews).toHaveLength(0);
     });
   });
+
+  // ─── Validação Zod (rating fora do range) ──────────────────────────────────
+  describe("schema validation (rating bounds)", () => {
+    it("deve rejeitar rating 0 (abaixo do mínimo)", () => {
+      const { createReviewSchema } = require("../../reviews.schemas");
+      const result = createReviewSchema.safeParse({
+        serviceRequestId: "00000000-0000-0000-0000-000000000001",
+        toUserId: "00000000-0000-0000-0000-000000000002",
+        rating: 0,
+        tags: [],
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe("Nota mínima: 1 estrela");
+      }
+    });
+
+    it("deve rejeitar rating 6 (acima do máximo)", () => {
+      const { createReviewSchema } = require("../../reviews.schemas");
+      const result = createReviewSchema.safeParse({
+        serviceRequestId: "00000000-0000-0000-0000-000000000001",
+        toUserId: "00000000-0000-0000-0000-000000000002",
+        rating: 6,
+        tags: [],
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe("Nota máxima: 5 estrelas");
+      }
+    });
+
+    it("deve aceitar rating válido (1-5)", () => {
+      const { createReviewSchema } = require("../../reviews.schemas");
+      for (const rating of [1, 2, 3, 4, 5]) {
+        const result = createReviewSchema.safeParse({
+          serviceRequestId: "00000000-0000-0000-0000-000000000001",
+          toUserId: "00000000-0000-0000-0000-000000000002",
+          rating,
+          tags: [],
+        });
+        expect(result.success).toBe(true);
+      }
+    });
+  });
 });

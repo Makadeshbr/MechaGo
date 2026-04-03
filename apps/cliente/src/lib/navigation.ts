@@ -19,10 +19,20 @@ export type ServiceFlowCompletedParams = {
   finalPrice?: string;
 };
 
+export type ServiceFlowPaymentParams = {
+  paymentId: string;
+  requestId: string;
+  nextScreen: "searching" | "rating" | "completed";
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const r = router as any;
 
 export const nav = {
+  /** Tela de pagamento Pix */
+  toPayment: (params: ServiceFlowPaymentParams) =>
+    r.replace({ pathname: "/(service-flow)/payment", params }),
+
   /** Cliente avalia o profissional */
   toRating: (params: ServiceFlowRatingParams) =>
     r.replace({ pathname: "/(service-flow)/rating", params }),

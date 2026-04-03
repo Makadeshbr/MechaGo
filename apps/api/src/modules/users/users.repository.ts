@@ -20,4 +20,12 @@ export class UsersRepository {
       .returning();
     return updated;
   }
+
+  // Atualiza apenas o fcmToken — endpoint leve chamado com frequência pelo app
+  static async updateFcmToken(id: string, fcmToken: string) {
+    await db
+      .update(users)
+      .set({ fcmToken, updatedAt: new Date() })
+      .where(eq(users.id, id));
+  }
 }

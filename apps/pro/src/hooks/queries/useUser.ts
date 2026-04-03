@@ -13,6 +13,9 @@ interface User {
   isVerified: boolean;
   avatarUrl: string | null;
   createdAt: string;
+  // Campos exclusivos de profissionais — opcionais pois clientes não os possuem
+  radiusKm?: number;
+  specialties?: string[];
 }
 
 // Query key para invalidação após edição de perfil

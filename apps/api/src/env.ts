@@ -55,6 +55,12 @@ const envSchema = z
     // Mercado Pago — Pagamentos
     MERCADOPAGO_ACCESS_TOKEN: z.string().optional(),
     MERCADOPAGO_WEBHOOK_SECRET: z.string().optional(),
+
+    // Firebase Admin SDK — Push Notifications (FCM)
+    // Opcionais: em ambientes sem credenciais, o push é desabilitado graciosamente
+    FIREBASE_PROJECT_ID: z.string().optional(),
+    FIREBASE_CLIENT_EMAIL: z.string().email("FIREBASE_CLIENT_EMAIL deve ser um email válido").optional(),
+    FIREBASE_PRIVATE_KEY: z.string().optional(),
   })
   .transform((data) => ({
     NODE_ENV: data.NODE_ENV,
@@ -78,6 +84,9 @@ const envSchema = z
     R2_PUBLIC_URL: data.R2_PUBLIC_URL,
     MERCADOPAGO_ACCESS_TOKEN: data.MERCADOPAGO_ACCESS_TOKEN,
     MERCADOPAGO_WEBHOOK_SECRET: data.MERCADOPAGO_WEBHOOK_SECRET,
+    FIREBASE_PROJECT_ID: data.FIREBASE_PROJECT_ID,
+    FIREBASE_CLIENT_EMAIL: data.FIREBASE_CLIENT_EMAIL,
+    FIREBASE_PRIVATE_KEY: data.FIREBASE_PRIVATE_KEY,
   }));
 
 export type Env = z.infer<typeof envSchema>;

@@ -5,6 +5,7 @@ import { AppError } from "@/utils/errors";
 import { logger } from "@/middleware/logger.middleware";
 import { PaymentsRepository } from "./payments.repository";
 import type { SelectPayment } from "./payments.repository";
+import { scheduleMatchingJob } from "../matching/matching.queue";
 
 // Comissão da plataforma — 0% no MVP fundador, 10% no V1.0
 const PLATFORM_COMMISSION_RATE = 0;
@@ -287,6 +288,28 @@ export class PaymentsService {
         paidAt: internalStatus === "captured" ? new Date() : payment.paidAt,
         webhookPayload: result as unknown as Record<string, unknown>,
       });
+
+      // Se o pagamento foi capturado, atualizamos o status do ServiceRequest
+      if (internalStatus === "captured") {
+        const { ServiceRequestsRepository } = await import("../service-requests/service-requests.repository");
+        const { NotificationsService } = await import("../notifications/notifications.service");
+
+        if (payment.type === "service") {
+          // Pagamento final: move para completed
+          await ServiceRequestsRepository.update(payment.serviceRequestId, {
+            status: "completed",
+            completedAt: new Date(),
+          });
+          await NotificationsService.notifyClientStatusUpdate(payment.serviceRequestId, "completed");
+        } else if (payment.type === "diagnostic_fee") {
+          // Taxa de diagnóstico: move para matching e inicia busca
+          await ServiceRequestsRepository.update(payment.serviceRequestId, {
+            status: "matching",
+          });
+          await scheduleMatchingJob(payment.serviceRequestId);
+          await NotificationsService.notifyClientStatusUpdate(payment.serviceRequestId, "matching");
+        }
+      }
 
       logger.info({
         msg: "webhook_processed",

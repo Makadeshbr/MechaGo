@@ -3,6 +3,8 @@ import { UsersService } from "./users.service";
 import {
   updateProfileSchema,
   userProfileResponseSchema,
+  updateFcmTokenSchema,
+  updateFcmTokenResponseSchema,
 } from "./users.schemas";
 import { authMiddleware } from "@/middleware/auth.middleware";
 
@@ -58,6 +60,32 @@ app.openapi(updateMeRoute, async (c) => {
   const input = c.req.valid("json");
   const user = await UsersService.updateProfile(userId, input);
   return c.json({ user });
+});
+
+// ==================== PATCH /me/fcm-token ====================
+const updateFcmTokenRoute = createRoute({
+  method: "patch",
+  path: "/me/fcm-token",
+  tags: ["Users"],
+  summary: "Registra ou atualiza o FCM token do dispositivo para push notifications",
+  request: {
+    body: { content: { "application/json": { schema: updateFcmTokenSchema } } },
+  },
+  responses: {
+    200: {
+      content: { "application/json": { schema: updateFcmTokenResponseSchema } },
+      description: "Token FCM atualizado",
+    },
+    401: { description: "Não autenticado" },
+    422: { description: "Token inválido" },
+  },
+});
+
+app.openapi(updateFcmTokenRoute, async (c) => {
+  const userId = c.get("userId");
+  const { fcmToken } = c.req.valid("json");
+  await UsersService.updateFcmToken(userId, fcmToken);
+  return c.json({ success: true });
 });
 
 export default app;

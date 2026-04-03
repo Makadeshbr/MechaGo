@@ -60,4 +60,15 @@ export class UsersService {
     const updated = await UsersRepository.update(userId, updateData);
     return sanitizeUser(updated);
   }
+
+  // ==================== PATCH /me/fcm-token ====================
+  // Registra o device token FCM para push notifications.
+  // Chamado pelo app após obter permissão do sistema operacional.
+  static async updateFcmToken(userId: string, fcmToken: string): Promise<void> {
+    const user = await UsersRepository.findById(userId);
+    if (!user) {
+      throw new AppError("USER_NOT_FOUND", "Usuário não encontrado", 404);
+    }
+    await UsersRepository.updateFcmToken(userId, fcmToken);
+  }
 }

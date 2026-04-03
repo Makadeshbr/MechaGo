@@ -30,6 +30,8 @@ export const users = pgTable("users", {
   totalReviews: integer("total_reviews").default(0),
   isActive: boolean("is_active").default(true).notNull(),
   isVerified: boolean("is_verified").default(false).notNull(),
+  // Token FCM para push notifications — atualizado pelo app após login
+  fcmToken: text("fcm_token"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

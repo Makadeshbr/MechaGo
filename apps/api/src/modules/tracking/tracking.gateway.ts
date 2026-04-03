@@ -2,6 +2,8 @@ import type { Server, Socket } from "socket.io";
 import { z } from "zod";
 import { logger } from "@/middleware/logger.middleware";
 import { trackingService } from "./tracking.service";
+import { ServiceRequestsService } from "../service-requests/service-requests.service";
+import { ServiceRequestsRepository } from "../service-requests/service-requests.repository";
 
 // Validação Zod para payloads Socket.IO — segurança contra dados malformados
 const joinRequestSchema = z.object({
@@ -119,10 +121,18 @@ export function registerTrackingGateway(io: Server): void {
 
         await trackingService.validateTrackingAccess(requestId, userId);
 
+        // 1. Atualiza no banco (persiste distância e ETA)
+        await ServiceRequestsService.updateRequestEta(requestId, lat, lng);
+
+        // 2. Busca valores atualizados para emitir
+        const updated = await ServiceRequestsRepository.findById(requestId);
+
         const room = `request:${requestId}`;
         io.to(room).emit("professional_location", {
           lat,
           lng,
+          distanceKm: updated?.distanceKm ? Number(updated.distanceKm) : null,
+          estimatedArrivalMinutes: updated?.estimatedArrivalMinutes ?? null,
           updatedAt: new Date().toISOString(),
         });
       } catch (err) {

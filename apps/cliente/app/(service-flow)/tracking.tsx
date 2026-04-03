@@ -19,6 +19,7 @@ export default function TrackingScreen() {
   const { data: request, isLoading } = useServiceRequest(requestId as string, 5000);
 
   const [proLocation, setProLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [realtimeEta, setRealtimeEta] = useState<number | null>(null);
   const mapRef = useRef<MapView>(null);
 
   // 2. Polling fallback: navega por status quando o Socket.IO não entrega o evento
@@ -37,8 +38,11 @@ export default function TrackingScreen() {
     if (socket && requestId) {
       socket.emit("join_request", { requestId });
 
-      socket.on("professional_location", (data: { lat: number; lng: number }) => {
+      socket.on("professional_location", (data: { lat: number; lng: number; estimatedArrivalMinutes?: number; distanceKm?: number }) => {
         setProLocation(data);
+        if (data.estimatedArrivalMinutes !== undefined) {
+          setRealtimeEta(data.estimatedArrivalMinutes);
+        }
       });
 
       socket.on("status_update", (data: { status: string }) => {
@@ -137,7 +141,14 @@ export default function TrackingScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <MaterialIcons name="arrow-back" size={24} color={colors.onSurface} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Profissional a caminho</Text>
+          <View style={styles.headerTextWrap}>
+            <Text style={styles.headerTitle}>Profissional a caminho</Text>
+            <Text style={styles.headerSubtitle}>
+              {request.context === "highway"
+                ? request.roadwayName || "Na Rodovia"
+                : `Em ${request.cityName || "sua região"}`}
+            </Text>
+          </View>
         </View>
 
         <MapView
@@ -206,7 +217,9 @@ export default function TrackingScreen() {
             <View style={styles.statusItem}>
               <Text style={styles.labelSmall}>Chegada em</Text>
                 <Text style={styles.etaValue}>
-                 {request.estimatedArrivalMinutes !== null && request.estimatedArrivalMinutes !== undefined
+                 {realtimeEta !== null 
+                   ? `${realtimeEta} min`
+                   : request.estimatedArrivalMinutes !== null && request.estimatedArrivalMinutes !== undefined
                    ? `${request.estimatedArrivalMinutes} min`
                    : "--"}
                </Text>
@@ -244,7 +257,9 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   backButton: { width: 44, height: 44, justifyContent: "center" },
-  headerTitle: { fontFamily: fonts.headline, fontSize: 18, color: colors.onSurface, marginLeft: spacing.sm },
+  headerTextWrap: { flex: 1, marginLeft: spacing.sm },
+  headerTitle: { fontFamily: fonts.headline, fontSize: 16, color: colors.onSurface },
+  headerSubtitle: { fontFamily: fonts.body, fontSize: 12, color: colors.onSurfaceVariant, marginTop: 2 },
   map: { flex: 1 },
   clientMarker: { alignItems: "center", justifyContent: "center" },
   proMarker: {

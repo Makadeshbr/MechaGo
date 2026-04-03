@@ -51,6 +51,24 @@ function estimateArrivalMinutes(distanceKm: number): number {
   return Math.max(2, Math.ceil(distanceKm * 4));
 }
 
+function extractCity(address: string): string | null {
+  // Endereço típico: "Rua X, 123 - Bairro, Cidade - SP, 01234-567, Brasil"
+  // Ou "Av. Paulista, 1000 - Bela Vista, São Paulo - SP, Brasil"
+  const parts = address.split(",");
+  for (const part of parts) {
+    const subParts = part.split("-");
+    if (subParts.length >= 2) {
+      // Procura por algo como " São Paulo - SP"
+      const cityCandidate = subParts[0].trim();
+      const stateCandidate = subParts[1].trim();
+      if (stateCandidate.length === 2 && /^[A-Z]{2}$/.test(stateCandidate)) {
+        return cityCandidate;
+      }
+    }
+  }
+  return null;
+}
+
 function serializeServiceRequestSummary(params: {
   id: string;
   status: string;
@@ -61,6 +79,7 @@ function serializeServiceRequestSummary(params: {
   diagnosticFee: number;
   roadwayPhone: string | null;
   roadwayName: string | null;
+  cityName?: string | null;
   address?: string | null;
   createdAt: Date;
   arrivedAt?: Date | null;
@@ -98,6 +117,7 @@ function serializeServiceRequestSummary(params: {
     diagnosticFee: params.diagnosticFee,
     roadwayPhone: params.roadwayPhone,
     roadwayName: params.roadwayName,
+    cityName: params.cityName ?? null,
     address: params.address ?? null,
     createdAt: params.createdAt.toISOString(),
     arrivedAt: params.arrivedAt?.toISOString() ?? null,
@@ -125,6 +145,33 @@ function serializeServiceRequestSummary(params: {
   };
 }
 
+function serializeServiceRequest(request: any) {
+  return serializeServiceRequestSummary({
+    id: request.id,
+    status: request.status,
+    context: request.context,
+    problemType: request.problemType,
+    estimatedPrice: request.estimatedPrice ? Number(request.estimatedPrice) : 0,
+    finalPrice: request.finalPrice,
+    diagnosticFee: request.diagnosticFee ? Number(request.diagnosticFee) : 0,
+    roadwayPhone: request.roadwayPhone ?? null,
+    roadwayName: request.roadwayName ?? null,
+    cityName: request.cityName ?? null,
+    address: request.address,
+    createdAt: request.createdAt,
+    arrivedAt: request.arrivedAt,
+    completedAt: request.completedAt,
+    clientLatitude: request.clientLatitude,
+    clientLongitude: request.clientLongitude,
+    professionalId: request.professionalId,
+    diagnosisPhotoUrl: request.diagnosisPhotoUrl,
+    completionPhotoUrl: request.completionPhotoUrl,
+    priceJustification: request.priceJustification,
+    resolvedOnSite: request.resolvedOnSite,
+    clientId: request.clientId,
+  });
+}
+
 // SLA máximo para o profissional chegar (em ms) — 30 minutos
 const PROFESSIONAL_ARRIVAL_SLA_MS = 30 * 60 * 1000;
 
@@ -140,6 +187,33 @@ export interface CancellationResult {
 }
 
 export class ServiceRequestsService {
+  /**
+   * Atualiza a distância e o ETA de um chamado durante o rastreamento.
+   * Chamado via Socket.IO gateway quando o profissional envia GPS.
+   */
+  static async updateRequestEta(requestId: string, lat: number, lng: number): Promise<void> {
+    const request = await ServiceRequestsRepository.findById(requestId);
+    if (!request || !request.clientLatitude || !request.clientLongitude) return;
+
+    const distanceResult = await ServiceRequestsRepository.calculateDistanceToRequest({
+      requestId,
+      latitude: lat,
+      longitude: lng,
+    });
+
+    if (!distanceResult) return;
+
+    const distanceKm = distanceResult.distanceMeters / 1000;
+    const etaMinutes = calculateEtaMinutes(distanceKm);
+
+    await ServiceRequestsRepository.update(requestId, {
+      professionalLatitude: lat,
+      professionalLongitude: lng,
+      distanceKm: distanceKm.toString(),
+      estimatedArrivalMinutes: etaMinutes,
+    });
+  }
+
   /**
    * Cancela um pedido de socorro aplicando os 6 cenários do PRD V3.
    *
@@ -341,13 +415,17 @@ export class ServiceRequestsService {
     });
 
     // 5. Salvar no Banco
+    const cityName = input.address ? extractCity(input.address) : null;
     const request = await ServiceRequestsRepository.create({
       clientId: userId,
       vehicleId: vehicle.id,
       problemType: input.problemType,
       complexity: "simple", // Default inicial
       context,
-      status: "matching", // Passa direto para matching
+      cityName,
+      roadwayName: roadway?.name ?? null,
+      roadwayPhone: roadway?.phone ?? null,
+      status: "pending", // Aguardando pagamento da taxa de diagnóstico
       clientLatitude: input.latitude.toString(),
       clientLongitude: input.longitude.toString(),
       address: input.address,
@@ -356,28 +434,10 @@ export class ServiceRequestsService {
       diagnosticFee: estimate.diagnosticFee.toString(),
     });
 
-    // 6. Agendar Job de Matching
-    await scheduleMatchingJob(request.id);
+    // 6. O Job de Matching agora é disparado pelo webhook de pagamento da taxa
+    // await scheduleMatchingJob(request.id);
 
-    return serializeServiceRequestSummary({
-      id: request.id,
-      status: request.status,
-      context,
-      problemType: request.problemType,
-      estimatedPrice: estimate.estimatedPrice,
-      diagnosticFee: estimate.diagnosticFee,
-      roadwayPhone: roadway?.emergencyPhone || null,
-      roadwayName: roadway?.name || null,
-      address: request.address,
-      createdAt: request.createdAt,
-      arrivedAt: null,
-      completedAt: null,
-      clientLatitude: request.clientLatitude,
-      clientLongitude: request.clientLongitude,
-      supportPhone: roadway?.emergencyPhone || null,
-      professionalId: null,
-      clientId: userId,
-    });
+    return serializeServiceRequest(request);
   }
 
   /**
@@ -427,8 +487,9 @@ export class ServiceRequestsService {
       estimatedPrice,
       finalPrice: request.finalPrice,
       diagnosticFee,
-      roadwayPhone: null,
-      roadwayName: null,
+      roadwayPhone: request.roadwayPhone ?? null,
+      roadwayName: request.roadwayName ?? null,
+      cityName: request.cityName ?? null,
       address: request.address,
       createdAt: request.createdAt,
       arrivedAt: request.arrivedAt,
@@ -709,14 +770,17 @@ export class ServiceRequestsService {
     }
 
     const updated = await ServiceRequestsRepository.update(requestId, {
-      status: "completed",
-      completedAt: new Date(),
+      // status: "completed", // REMOVIDO: Status só muda após o Pix ser capturado via webhook
+      // completedAt: new Date(), // REMOVIDO: Idem
+      updatedAt: new Date(),
     });
 
     const { NotificationsService } = await import("../notifications/notifications.service");
-    await NotificationsService.notifyClientStatusUpdate(requestId, "completed");
+    // Notificamos apenas que o preço foi aprovado, mas o serviço segue aguardando pagamento
+    // No MVP, vamos manter o status 'resolved' até o webhook.
+    // await NotificationsService.notifyClientStatusUpdate(requestId, "completed");
     if (request.professionalId) {
-      await NotificationsService.notifyProfessionalStatusUpdate(requestId, request.professionalId, "completed");
+      // await NotificationsService.notifyProfessionalStatusUpdate(requestId, request.professionalId, "completed");
     }
 
     return updated;

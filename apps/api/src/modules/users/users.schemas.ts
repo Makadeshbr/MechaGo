@@ -37,6 +37,20 @@ export const userProfileResponseSchema = z.object({
   user: userProfileSchema,
 });
 
+// ==================== PATCH /me/fcm-token INPUT ====================
+// Token FCM do dispositivo — enviado pelo app após obter permissão de push
+export const updateFcmTokenSchema = z.object({
+  fcmToken: z
+    .string()
+    .min(10, "FCM token inválido")
+    .max(512, "FCM token muito longo"),
+});
+
+export const updateFcmTokenResponseSchema = z.object({
+  success: z.boolean(),
+});
+
 // Types inferidos
 export type UserProfile = z.infer<typeof userProfileSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type UpdateFcmTokenInput = z.infer<typeof updateFcmTokenSchema>;

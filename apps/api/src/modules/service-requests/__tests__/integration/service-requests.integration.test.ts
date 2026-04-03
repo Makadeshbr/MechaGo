@@ -51,6 +51,8 @@ describe("Service Requests Integration", () => {
     professionalLongitude: null,
     clientId: "22222222-2222-4222-8222-222222222222",
     professional: null,
+    arrivedAt: null,
+    completedAt: null,
   };
 
   beforeAll(() => {

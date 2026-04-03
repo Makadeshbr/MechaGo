@@ -40,7 +40,7 @@ interface HistoryItem {
   problemType: string;
   status: string;
   finalPrice: number;
-  clientName: string;
+  clientName?: string;
   completedAt: string | null;
   createdAt: string;
 }
@@ -70,7 +70,7 @@ function HistoryCard({ item }: { item: HistoryItem }) {
             </Text>
           </View>
         </View>
-        <Text style={styles.clientName}>Cliente: {item.clientName}</Text>
+        <Text style={styles.clientName}>Cliente: {item.clientName ?? "Não identificado"}</Text>
         <Text style={styles.date}>{formatDate(item.completedAt)}</Text>
       </View>
       <Text style={styles.value}>{formatCurrency(item.finalPrice)}</Text>

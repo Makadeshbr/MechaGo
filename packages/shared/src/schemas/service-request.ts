@@ -47,6 +47,7 @@ export const serviceRequestSummarySchema = z.object({
   diagnosticFee: z.number(),
   roadwayPhone: z.string().nullable(),
   roadwayName: z.string().nullable(),
+  cityName: z.string().nullable().optional(),
   address: z.string().nullable().optional(),
   createdAt: z.string(),
   arrivedAt: z.string().nullable().optional(),

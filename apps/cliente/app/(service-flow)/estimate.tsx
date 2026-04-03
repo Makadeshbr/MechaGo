@@ -15,6 +15,7 @@ import {
   useCreateServiceRequest, 
   useEstimatePrice 
 } from "@/hooks/queries/useServiceRequest";
+import { useCreateDiagnosticPayment } from "@/hooks/queries/usePayments";
 import { Button, LogoPin, AmbientGlow } from "@/components/ui";
 import { borderRadius, colors, problemTypeSchema, spacing } from "@mechago/shared";
 
@@ -33,6 +34,7 @@ export default function EstimateScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const createRequest = useCreateServiceRequest();
+  const createPayment = useCreateDiagnosticPayment();
   const estimateParams = vehicleId && problemType
     ? {
         vehicleId,
@@ -60,7 +62,7 @@ export default function EstimateScreen() {
   }, []);
 
   function handleRequestSocorro() {
-    if (!location || !problemType) return;
+    if (!location || !problemType || !pricing) return;
 
     createRequest.mutate({
       vehicleId,
@@ -70,11 +72,31 @@ export default function EstimateScreen() {
       triageAnswers: params.triageAnswers ? JSON.parse(params.triageAnswers) : {},
     },
     {
-      onSuccess: (data) => {
-        router.replace({
-          pathname: "/(service-flow)/searching",
-          params: { requestId: data.id },
-        });
+      onSuccess: async (data) => {
+        try {
+          // 2. Criar pagamento da taxa de diagnóstico
+          const payment = await createPayment.mutateAsync({
+            serviceRequestId: data.id,
+            estimatedPrice: pricing.estimatedPrice,
+          });
+
+          // 3. Ir para tela de pagamento
+          router.replace({
+            pathname: "/(service-flow)/payment",
+            params: { 
+              paymentId: payment.id,
+              requestId: data.id,
+              nextScreen: "searching"
+            },
+          });
+        } catch (err) {
+          console.error("[Estimate] Error creating diagnostic payment", err);
+          // Em caso de erro no pagamento, vai direto pra searching (fallback MVP)
+          router.replace({
+            pathname: "/(service-flow)/searching",
+            params: { requestId: data.id },
+          });
+        }
       },
     });
   }
@@ -144,8 +166,8 @@ export default function EstimateScreen() {
             <Button
               title="SOLICITAR SOCORRO AGORA"
               onPress={handleRequestSocorro}
-              disabled={!location || !problemType}
-              loading={createRequest.isPending}
+              disabled={!location || !problemType || !pricing}
+              loading={createRequest.isPending || createPayment.isPending}
               style={styles.cta}
             />
           </View>

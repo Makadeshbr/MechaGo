@@ -332,19 +332,20 @@ describe("ServiceRequestsService", () => {
   });
 
   describe("approvePrice", () => {
-    it("deve mudar status para completed", async () => {
+    it("deve aceitar aprovação sem mudar status (status muda no webhook do Pix)", async () => {
       repositoryFindById.mockResolvedValue(
         buildRequest({ status: "resolved", completionPhotoUrl: "https://cdn.mechago.com/photo.jpg" }) as never,
       );
       repositoryUpdate.mockResolvedValue(
-        buildRequest({ status: "completed" }) as never,
+        buildRequest({ status: "resolved" }) as never,
       );
 
       await ServiceRequestsService.approvePrice("user-client", "req-1");
 
+      // Agora não mudamos o status no approvePrice, o webhook é responsável
       expect(repositoryUpdate).toHaveBeenCalledWith(
         "req-1",
-        expect.objectContaining({ status: "completed" }),
+        expect.not.objectContaining({ status: "completed" }),
       );
     });
 

@@ -120,20 +120,32 @@ export default function CompletedScreen() {
       {/* Botões fixos */}
       <View style={styles.footer}>
         {professional && requestId ? (
-          <Button
-            onPress={() =>
-              router.push({
-                pathname: "/(tabs)/history",
-              })
-            }
-            title="VER HISTÓRICO"
-            variant="outline"
-          />
+          <>
+            <Button
+              onPress={() =>
+                router.push({
+                  pathname: "/(service-flow)/rating" as any,
+                  params: { requestId },
+                })
+              }
+              title="AVALIAR PROFISSIONAL"
+              variant="primary"
+            />
+            <Button
+              onPress={() =>
+                router.push({
+                  pathname: "/(tabs)/history",
+                })
+              }
+              title="VER HISTÓRICO"
+              variant="outline"
+            />
+          </>
         ) : null}
         <Button
           onPress={() => router.replace("/(tabs)")}
           title="VOLTAR PARA HOME"
-          variant="primary"
+          variant="outline"
         />
       </View>
     </SafeAreaView>

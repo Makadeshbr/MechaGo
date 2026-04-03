@@ -100,7 +100,7 @@ export default function ProfileScreen() {
           <View style={styles.avatarContainer}>
             <View style={styles.avatarWrap}>
               <View style={styles.avatar}>
-                <Ionicons name="person" size={40} color={colors.textSecondary} />
+                <Ionicons name="person" size={40} color={colors.onSurfaceVariant} />
               </View>
               <View style={styles.verifiedBadge}>
                 <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
@@ -201,11 +201,11 @@ export default function ProfileScreen() {
           <View style={styles.infoSection}>
             <Text style={styles.sectionTitle}>DADOS DA CONTA</Text>
             <View style={styles.infoCard}>
-              <Ionicons name="call-outline" size={20} color={colors.textSecondary} />
+              <Ionicons name="call-outline" size={20} color={colors.onSurfaceVariant} />
               <Text style={styles.infoText}>{user.phone}</Text>
             </View>
             <View style={styles.infoCard}>
-              <Ionicons name="card-outline" size={20} color={colors.textSecondary} />
+              <Ionicons name="card-outline" size={20} color={colors.onSurfaceVariant} />
               <Text style={styles.infoText}>{user.cpfCnpj}</Text>
             </View>
           </View>
@@ -228,7 +228,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+  safe: { flex: 1, backgroundColor: colors.surfaceLowest },
   header: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fonts.headline,
     fontSize: 28,
-    color: colors.text,
+    color: colors.onSurface,
     letterSpacing: -0.5,
   },
   editButton: {
@@ -267,39 +267,39 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceVariant,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: colors.outline,
+    borderColor: `${colors.outlineVariant}33`,
   },
   verifiedBadge: {
     position: "absolute",
     bottom: 0,
     right: 0,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surfaceLowest,
     borderRadius: 12,
     padding: 1,
   },
   userName: {
     fontFamily: fonts.headline,
     fontSize: 22,
-    color: colors.text,
+    color: colors.onSurface,
     marginBottom: 4,
   },
   userEmail: {
     fontFamily: fonts.body,
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
     marginBottom: spacing.lg,
   },
   statsRow: {
     flexDirection: "row",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceVariant,
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.outline,
+    borderColor: `${colors.outlineVariant}33`,
     width: "100%",
   },
   statItem: { flex: 1, alignItems: "center" },
@@ -311,10 +311,10 @@ const styles = StyleSheet.create({
   statLabel: {
     fontFamily: fonts.body,
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
     marginTop: 2,
   },
-  statDivider: { width: 1, backgroundColor: colors.outline },
+  statDivider: { width: 1, backgroundColor: `${colors.outlineVariant}33` },
   configSection: { gap: spacing.md },
   specialtiesGrid: {
     flexDirection: "row",
@@ -326,8 +326,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.full,
     borderWidth: 1,
-    borderColor: colors.outline,
-    backgroundColor: colors.surface,
+    borderColor: `${colors.outlineVariant}33`,
+    backgroundColor: colors.surfaceVariant,
   },
   specialtyBadgeActive: {
     backgroundColor: `${colors.primary}1A`,
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   specialtyText: {
     fontFamily: fonts.body,
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
   },
   specialtyTextActive: {
     color: colors.primary,
@@ -347,11 +347,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.xl,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceVariant,
     padding: spacing.lg,
     borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: colors.outline,
+    borderColor: `${colors.outlineVariant}33`,
   },
   radiusControl: {
     width: 44,
@@ -370,42 +370,42 @@ const styles = StyleSheet.create({
   radiusUnit: {
     fontFamily: fonts.headline,
     fontSize: 10,
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
   },
   infoSection: { gap: spacing.md },
   sectionTitle: {
     fontFamily: fonts.headline,
     fontSize: 11,
-    color: colors.textSecondary,
+    color: colors.onSurfaceVariant,
     letterSpacing: 2,
     marginBottom: spacing.xs,
   },
   infoCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceVariant,
     borderRadius: borderRadius.md,
     padding: spacing.lg,
     gap: spacing.md,
     borderWidth: 1,
-    borderColor: colors.outline,
+    borderColor: `${colors.outlineVariant}33`,
   },
   infoText: {
     fontFamily: fonts.body,
     fontSize: 15,
-    color: colors.text,
+    color: colors.onSurface,
   },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255, 68, 68, 0.08)",
+    backgroundColor: `${colors.error}14`,
     borderRadius: borderRadius.md,
     padding: spacing.lg,
     gap: spacing.sm,
     minHeight: 52,
     borderWidth: 1,
-    borderColor: "rgba(255, 68, 68, 0.15)",
+    borderColor: `${colors.error}26`,
   },
   logoutText: {
     fontFamily: fonts.body,

@@ -20,6 +20,7 @@ export default function ServiceFlowLayout() {
       <Stack.Screen name="tracking" />
       <Stack.Screen name="service-active" />
       <Stack.Screen name="price-approval" />
+      <Stack.Screen name="payment" />
       <Stack.Screen name="rating" />
       <Stack.Screen name="completed" />
       <Stack.Screen name="escalation" />
