@@ -48,6 +48,20 @@ export function useAuth() {
         data.tokens.refreshToken,
       );
       setUser(data.user);
+
+      // Profissional que já completou o onboarding e está fazendo re-login:
+      // verifica se o perfil existe e seta a flag para evitar redirecionamento
+      // indevido para o onboarding ao reabrir o app
+      if (!tokenStorage.isOnboardingComplete()) {
+        api.get("professionals/me/stats").json()
+          .then(() => {
+            tokenStorage.setOnboardingComplete();
+            console.log("[Auth] Onboarding flag setada após login — perfil profissional encontrado");
+          })
+          .catch(() => {
+            // Perfil não existe (usuário novo) — onboarding será tratado pelo index.tsx
+          });
+      }
     },
   });
 

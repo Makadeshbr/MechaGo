@@ -11,7 +11,8 @@ import { colors, spacing } from "@mechago/shared";
 
 // Estado do check de perfil — evita redirecionar para onboarding
 // quando o profissional já tem cadastro (ex: reinstalação ou refresh de token)
-type ProfileCheckState = "idle" | "checking" | "exists" | "not-found";
+// "error" = falha de rede/auth, diferente de "not-found" = perfil realmente não existe
+type ProfileCheckState = "idle" | "checking" | "exists" | "not-found" | "error";
 
 // Tela raiz do App Pro — Welcome screen para profissionais
 // Se autenticado, redireciona para Home. Se não, mostra landing pro.
@@ -42,8 +43,15 @@ export default function WelcomeScreen() {
         setProfileCheck("exists");
       })
       .catch((err) => {
-        console.log("[Welcome] Perfil nao encontrado ou erro na API:", err.message);
-        setProfileCheck("not-found");
+        // Distingue entre "perfil não existe" (404) e erro de rede/auth
+        const status = err?.response?.status;
+        if (status === 404) {
+          console.log("[Welcome] Perfil profissional nao encontrado (404).");
+          setProfileCheck("not-found");
+        } else {
+          console.warn("[Welcome] Erro ao verificar perfil (rede/auth):", err.message);
+          setProfileCheck("error");
+        }
       });
   }, [isAuthenticated, isLoading]);
 
@@ -64,10 +72,43 @@ if (isAuthenticated) {
     return <Redirect href="/(tabs)" />;
   }
 
-  // Só vai para onboarding se confirmado que não tem perfil
+  // Só vai para onboarding se confirmado via 404 que não tem perfil
   if (profileCheck === "not-found") {
     console.log("[Welcome] Usuário logado sem perfil profissional. Redirecionando para Onboarding.");
     return <Redirect href="/(onboarding)/professional-type" />;
+  }
+
+  // Erro de rede/auth: NÃO redireciona para onboarding — oferece retry
+  if (profileCheck === "error") {
+    return (
+      <View style={styles.loadingContainer}>
+        <Ionicons name="cloud-offline-outline" size={48} color={colors.textSecondary} />
+        <Text style={{ color: colors.textSecondary, marginTop: 12, fontFamily: "PlusJakartaSans_400Regular", textAlign: "center", paddingHorizontal: 32 }}>
+          Não foi possível verificar seu perfil.{"\n"}Verifique sua conexão.
+        </Text>
+        <Pressable
+          onPress={() => {
+            setProfileCheck("idle");
+            // Re-dispara o useEffect ao resetar para idle — forçamos re-check
+            // Definimos checking e chamamos a API diretamente
+            setProfileCheck("checking");
+            api.get("professionals/me/stats").json()
+              .then(() => { tokenStorage.setOnboardingComplete(); setProfileCheck("exists"); })
+              .catch((err: { response?: { status: number }; message?: string }) => {
+                if (err?.response?.status === 404) setProfileCheck("not-found");
+                else setProfileCheck("error");
+              });
+          }}
+          style={{ marginTop: 20, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: colors.primary, borderRadius: 12, minHeight: 44 }}
+          accessibilityRole="button"
+          accessibilityLabel="Tentar novamente"
+        >
+          <Text style={{ fontFamily: "PlusJakartaSans_600SemiBold", fontSize: 14, color: colors.bg }}>
+            TENTAR NOVAMENTE
+          </Text>
+        </Pressable>
+      </View>
+    );
   }
 
   // Enquanto checa ou se está em idle, mantém o loading
