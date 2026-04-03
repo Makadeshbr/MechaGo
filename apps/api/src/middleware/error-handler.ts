@@ -47,6 +47,7 @@ export const errorHandler: ErrorHandler = (err, c) => {
   }
 
   // Erro inesperado — log completo internamente, resposta genérica para cliente
+  console.error("🔥 CRITICAL ERROR:", err); // Log direto no stdout para visibilidade total no Railway
   logger.error(
     {
       requestId,
