@@ -11,9 +11,10 @@ const server = serve(
   {
     fetch: app.fetch,
     port: env.PORT,
+    hostname: "0.0.0.0", // OBRIGATÓRIO para Railway/Docker
   },
   (info) => {
-    logger.info(`MechaGo API running on http://localhost:${info.port}`);
+    logger.info(`MechaGo API running on http://0.0.0.0:${info.port}`);
     logger.info(`Docs: http://localhost:${info.port}/docs`);
     logger.info(`Health: http://localhost:${info.port}/health`);
   },
