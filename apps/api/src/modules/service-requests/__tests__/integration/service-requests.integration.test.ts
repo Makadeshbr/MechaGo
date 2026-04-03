@@ -33,6 +33,7 @@ describe("Service Requests Integration", () => {
     diagnosticFee: 35,
     roadwayPhone: null,
     roadwayName: null,
+    cityName: null,
     address: "Rua das Flores, 123",
     createdAt: new Date().toISOString(),
     clientLatitude: -23.5505,

@@ -30,6 +30,7 @@ describe("Auth Integration", () => {
       totalReviews: 0,
       isActive: true,
       isVerified: false,
+      fcmToken: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

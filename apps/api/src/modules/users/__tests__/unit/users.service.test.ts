@@ -24,6 +24,7 @@ const mockUser = {
   totalReviews: 10,
   isActive: true,
   isVerified: true,
+  fcmToken: null,
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01"),
 };

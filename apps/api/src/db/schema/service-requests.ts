@@ -8,6 +8,7 @@ import {
   timestamp,
   pgEnum,
   jsonb,
+  integer,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./users";
@@ -74,6 +75,11 @@ export const serviceRequests = pgTable("service_requests", {
   cityName: text("city_name"),
   roadwayName: text("roadway_name"),
   roadwayPhone: text("roadway_phone"),
+  // Rastreamento Profissional
+  professionalLatitude: decimal("professional_latitude", { precision: 10, scale: 7 }),
+  professionalLongitude: decimal("professional_longitude", { precision: 10, scale: 7 }),
+  distanceKm: decimal("distance_km", { precision: 10, scale: 2 }),
+  estimatedArrivalMinutes: integer("estimated_arrival_minutes"),
   // Triagem
   triageAnswers: jsonb("triage_answers"),
   // Preços

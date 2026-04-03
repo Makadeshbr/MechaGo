@@ -21,7 +21,6 @@ export interface ServiceRequestProfessionalSummary {
 }
 
 export interface ServiceRequestDetails extends SelectServiceRequest {
-  roadwayPhone?: string | null;
   professional: ServiceRequestProfessionalSummary | null;
 }
 

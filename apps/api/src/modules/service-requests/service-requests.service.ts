@@ -204,12 +204,12 @@ export class ServiceRequestsService {
     if (!distanceResult) return;
 
     const distanceKm = distanceResult.distanceMeters / 1000;
-    const etaMinutes = calculateEtaMinutes(distanceKm);
+    const etaMinutes = estimateArrivalMinutes(distanceKm);
 
     await ServiceRequestsRepository.update(requestId, {
-      professionalLatitude: lat,
-      professionalLongitude: lng,
-      distanceKm: distanceKm.toString(),
+      professionalLatitude: lat.toString(),
+      professionalLongitude: lng.toString(),
+      distanceKm: distanceKm.toFixed(2),
       estimatedArrivalMinutes: etaMinutes,
     });
   }

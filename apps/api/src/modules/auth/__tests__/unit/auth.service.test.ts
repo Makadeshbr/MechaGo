@@ -26,6 +26,7 @@ describe("AuthService", () => {
     type: "client",
     isActive: true,
     isVerified: false,
+    fcmToken: null,
     name: "Test User",
     phone: "11999999999",
     cpfCnpj: "12345678900",
