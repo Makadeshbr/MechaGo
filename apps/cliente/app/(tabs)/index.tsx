@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "@/hooks/queries/useUser";
 import { useVehicles } from "@/hooks/queries/useVehicles";
 import { useActiveServiceRequest } from "@/hooks/queries/useServiceRequest";
+import { useLocation } from "@/hooks/useLocation";
 import { LogoPin, VehicleCard, AmbientGlow } from "@/components/ui";
 import { colors, spacing, borderRadius } from "@mechago/shared";
 import { nav } from "@/lib/navigation";
@@ -21,6 +22,7 @@ export default function HomeSOS() {
   const { data: user, isLoading: userLoading } = useUser();
   const { data: vehicles, isLoading: vehiclesLoading } = useVehicles();
   const { data: activeRequest, isLoading: activeLoading } = useActiveServiceRequest();
+  const location = useLocation();
 
   const isLoading = userLoading || vehiclesLoading || activeLoading;
   const firstVehicle = vehicles?.[0];
@@ -99,16 +101,24 @@ export default function HomeSOS() {
           </Pressable>
         </View>
 
-        {/* Modo urbano indicator */}
+        {/* Modo indicator */}
         <View style={styles.modeIndicator}>
-          <View style={styles.modeGreenDot} />
-          <Text style={styles.modeText}>MODO URBANO</Text>
+          <View style={[styles.modeGreenDot, location.address?.toLowerCase().includes("rodovia") && { backgroundColor: colors.warning }]} />
+          <Text style={[styles.modeText, location.address?.toLowerCase().includes("rodovia") && { color: colors.warning }]}>
+            {location.address?.toLowerCase().includes("rodovia") ? "MODO RODOVIA" : "MODO URBANO"}
+          </Text>
         </View>
 
         {/* Localização */}
         <View style={styles.locationRow}>
           <Ionicons name="location-outline" size={16} color={colors.textSecondary} />
-          <Text style={styles.locationText}>São Paulo, SP</Text>
+          <Text style={styles.locationText}>
+            {location.loading 
+              ? "Obtendo localização..." 
+              : location.city 
+                ? `${location.city}, ${location.state || ""}` 
+                : "São Paulo, SP"}
+          </Text>
         </View>
 
         {/* Greeting */}
