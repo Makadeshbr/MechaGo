@@ -1,5 +1,4 @@
 import { logger } from "@/middleware/logger.middleware";
-import { getMessaging } from "@/lib/firebase";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -27,10 +26,11 @@ interface NewRequestNotificationPayload {
 }
 
 /**
- * Busca o FCM token de um usuário pelo userId.
+ * Busca o Expo Push Token de um usuário pelo userId.
+ * O campo fcmToken armazena o Expo Push Token (ExponentPushToken[...]).
  * Retorna null se o usuário não tiver token registrado.
  */
-async function getFcmToken(userId: string): Promise<string | null> {
+async function getExpoPushToken(userId: string): Promise<string | null> {
   const user = await db.query.users.findFirst({
     where: eq(users.id, userId),
     columns: { fcmToken: true },
@@ -39,8 +39,19 @@ async function getFcmToken(userId: string): Promise<string | null> {
 }
 
 /**
- * Envia uma notificação push FCM para um usuário específico.
+ * Verifica se é um token válido do Expo Push Service.
+ * Tokens válidos começam com "ExponentPushToken[" ou "ExpoPushToken[".
+ */
+function isValidExpoPushToken(token: string): boolean {
+  return token.startsWith("ExponentPushToken[") || token.startsWith("ExpoPushToken[");
+}
+
+/**
+ * Envia uma notificação push via Expo Push API para um usuário específico.
  * Opera em modo fire-and-forget: falhas de push NÃO abortam o fluxo principal.
+ *
+ * Usa a Expo Push API (https://exp.host/--/api/v2/push/send) que aceita
+ * ExponentPushTokens gerados pelo SDK do Expo nos apps mobile.
  *
  * @param userId - ID do destinatário
  * @param title - Título da notificação
@@ -53,33 +64,53 @@ export async function sendPushToUser(
   body: string,
   data: Record<string, string> = {},
 ): Promise<void> {
-  const messaging = getMessaging();
-  if (!messaging) {
-    // Firebase não configurado — silencioso em desenvolvimento
-    logger.debug({ userId, title }, "FCM não configurado, push ignorado");
+  const token = await getExpoPushToken(userId);
+  if (!token) {
+    logger.debug({ userId, title }, "Usuário sem push token registrado, push ignorado");
     return;
   }
 
-  const token = await getFcmToken(userId);
-  if (!token) {
-    logger.debug({ userId, title }, "Usuário sem FCM token registrado, push ignorado");
+  if (!isValidExpoPushToken(token)) {
+    logger.debug({ userId, title, token: token.slice(0, 20) }, "Token não é Expo Push Token, push ignorado");
     return;
   }
 
   try {
-    const messageId = await messaging.send({
-      token,
-      notification: { title, body },
-      data,
-      android: {
-        priority: "high",
-        notification: { channelId: "mechago_default", sound: "default" },
+    const response = await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Accept-Encoding": "gzip, deflate",
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        to: token,
+        title,
+        body,
+        data,
+        sound: "default",
+        channelId: "mechago_default",
+        priority: "high",
+      }),
     });
-    logger.info({ userId, messageId, title }, "FCM push enviado com sucesso");
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.warn({ userId, title, status: response.status, error: errorText }, "Expo Push API retornou erro");
+      return;
+    }
+
+    const result = await response.json() as { data?: { status: string; message?: string } };
+    const ticketStatus = result?.data?.status;
+
+    if (ticketStatus === "error") {
+      logger.warn({ userId, title, ticket: result?.data }, "Expo Push ticket com erro");
+    } else {
+      logger.info({ userId, title, ticketStatus }, "Expo Push enviado com sucesso");
+    }
   } catch (err) {
     // Push falhou mas NÃO deve quebrar a transação principal
-    logger.warn({ userId, title, error: err }, "Falha ao enviar FCM push");
+    logger.warn({ userId, title, error: err }, "Falha ao enviar Expo Push");
   }
 }
 

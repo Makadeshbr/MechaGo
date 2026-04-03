@@ -6,6 +6,7 @@ import {
   Pressable,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
@@ -54,7 +55,12 @@ export default function EstimateScreen() {
         }
       : null;
 
-  const { data: pricing, isLoading: isLoadingPricing } = useEstimatePrice(estimateParams);
+  const {
+    data: pricing,
+    isLoading: isLoadingPricing,
+    isError: isEstimateError,
+    refetch: refetchEstimate,
+  } = useEstimatePrice(estimateParams);
 
   // Obtém localização real + faz reverse geocoding para detectar cidade/rodovia
   useEffect(() => {
@@ -133,13 +139,20 @@ export default function EstimateScreen() {
             } satisfies ServiceFlowPaymentParams);
           } catch (err) {
             console.error("[Estimate] Erro ao criar pagamento diagnóstico", err);
-            // Fallback: vai direto para searching se pagamento falhar
-            const r = router as unknown as { replace: (href: unknown) => void };
-            r.replace({
-              pathname: "/(service-flow)/searching",
-              params: { requestId: data.id },
-            });
+            Alert.alert(
+              "Erro ao processar pagamento",
+              "Não foi possível iniciar o pagamento. Tente novamente.",
+              [{ text: "OK" }],
+            );
           }
+        },
+        onError: (err) => {
+          console.error("[Estimate] Erro ao criar chamado SOS", err);
+          Alert.alert(
+            "Erro ao solicitar socorro",
+            "Não foi possível criar o chamado. Verifique sua conexão e tente novamente.",
+            [{ text: "OK" }],
+          );
         },
       },
     );
@@ -190,6 +203,18 @@ export default function EstimateScreen() {
                 ? "Detectando sua localização..."
                 : "Calculando melhor preço..."}
             </Text>
+          </View>
+        ) : isEstimateError ? (
+          <View style={styles.loadingContainer}>
+            <Ionicons name="cloud-offline-outline" size={48} color={colors.error} />
+            <Text style={styles.errorFeedbackText}>
+              Não foi possível calcular a estimativa.{"\n"}Verifique sua conexão.
+            </Text>
+            <Button
+              title="TENTAR NOVAMENTE"
+              onPress={() => refetchEstimate()}
+              style={{ marginTop: spacing.lg }}
+            />
           </View>
         ) : (
           <View style={styles.content}>
@@ -432,4 +457,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   cta: { marginTop: spacing.lg },
+  errorFeedbackText: {
+    fontFamily: "PlusJakartaSans_400Regular",
+    fontSize: 15,
+    color: colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 22,
+    marginTop: spacing.md,
+  },
 });

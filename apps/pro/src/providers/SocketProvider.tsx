@@ -3,7 +3,6 @@ import { io, Socket } from "socket.io-client";
 import { AppState, AppStateStatus } from "react-native";
 import { useRouter, usePathname } from "expo-router";
 import { useAuthStore } from "@/stores/auth.store";
-import { useProfessionalStats } from "@/hooks/queries/useProfessional";
 import { tokenStorage } from "@/lib/storage";
 
 // Mesma lógica de fallback do api.ts — garante que OTAs sem o env var ainda conectem no Railway
@@ -61,21 +60,19 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const appState = useRef(AppState.currentState);
 
   const { isAuthenticated, user } = useAuthStore();
-  const { data: stats } = useProfessionalStats();
   const router = useRouter();
   const pathname = usePathname();
-
-  const isOnline = stats?.isOnline ?? false;
 
   const clearRequest = useCallback(() => {
     setRequestData(null);
   }, []);
 
   useEffect(() => {
-    // Só conecta se autenticado E online (conforme RULES.md - PostGIS matching)
-    if (!isAuthenticated || !isOnline) {
+    // Socket conecta sempre que autenticado — desconecta apenas ao fazer logout.
+    // O servidor filtra profissionais offline na query de matching (PostGIS).
+    if (!isAuthenticated) {
       if (socket) {
-        console.log("[Socket] Disconnecting due to offline/unauthenticated status");
+        console.log("[Socket] Disconnecting due to unauthenticated status");
         socket.disconnect();
         setSocket(null);
         setIsConnected(false);
@@ -173,7 +170,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       subscription.remove();
       newSocket.disconnect();
     };
-  }, [isAuthenticated, isOnline, user?.id]);
+  }, [isAuthenticated, user?.id]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected, requestData, clearRequest }}>

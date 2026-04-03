@@ -12,6 +12,7 @@
 import { useEffect } from "react";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { api } from "@/lib/api";
 
@@ -57,7 +58,9 @@ async function registerForPushNotifications(): Promise<string | null> {
     });
   }
 
-  const tokenData = await Notifications.getExpoPushTokenAsync();
+  // Obtém o Expo Push Token — projectId obrigatório no SDK 50+ para funcionar corretamente
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
+  const tokenData = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
   const token = tokenData.data;
 
   // Registra o token no backend — falha silenciosa para não interromper o startup
