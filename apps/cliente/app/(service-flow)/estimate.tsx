@@ -10,14 +10,22 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Location from "expo-location";
-import { Ionicons } from "@expo/vector-icons";
-import { 
-  useCreateServiceRequest, 
-  useEstimatePrice 
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  useCreateServiceRequest,
+  useEstimatePrice,
 } from "@/hooks/queries/useServiceRequest";
 import { useCreateDiagnosticPayment } from "@/hooks/queries/usePayments";
 import { Button, LogoPin, AmbientGlow } from "@/components/ui";
 import { borderRadius, colors, problemTypeSchema, spacing } from "@mechago/shared";
+import { nav, type ServiceFlowPaymentParams } from "@/lib/navigation";
+
+interface LocationContext {
+  address: string;
+  city: string | null;
+  street: string | null;
+  region: string | null;
+}
 
 export default function EstimateScreen() {
   const params = useLocalSearchParams<{
@@ -31,23 +39,24 @@ export default function EstimateScreen() {
   const vehicleId = params.vehicleId;
 
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [locationContext, setLocationContext] = useState<LocationContext | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const createRequest = useCreateServiceRequest();
   const createPayment = useCreateDiagnosticPayment();
-  const estimateParams = vehicleId && problemType
-    ? {
-        vehicleId,
-        problemType,
-        latitude: location?.coords.latitude,
-        longitude: location?.coords.longitude,
-      }
-    : null;
+  const estimateParams =
+    vehicleId && problemType
+      ? {
+          vehicleId,
+          problemType,
+          latitude: location?.coords.latitude,
+          longitude: location?.coords.longitude,
+        }
+      : null;
 
-  // Hook para buscar a estimativa real
   const { data: pricing, isLoading: isLoadingPricing } = useEstimatePrice(estimateParams);
 
-  // Pegar localização real para o Geofencing
+  // Obtém localização real + faz reverse geocoding para detectar cidade/rodovia
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -56,58 +65,102 @@ export default function EstimateScreen() {
         return;
       }
 
-      const loc = await Location.getCurrentPositionAsync({});
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
       setLocation(loc);
+
+      // Reverse geocoding para obter endereço completo e nome da cidade
+      try {
+        const [geo] = await Location.reverseGeocodeAsync({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        });
+
+        if (geo) {
+          // Monta o endereço no formato esperado pelo backend para extração de cidade
+          // Formato: "Rua X, 123 - Bairro, Cidade - UF, País"
+          const parts = [
+            geo.street && geo.streetNumber
+              ? `${geo.street}, ${geo.streetNumber}`
+              : geo.street ?? null,
+            geo.district ?? geo.subregion ?? null,
+            geo.city && geo.region
+              ? `${geo.city} - ${geo.region}`
+              : geo.city ?? geo.subregion ?? null,
+            geo.country ?? null,
+          ].filter(Boolean);
+
+          setLocationContext({
+            address: parts.join(", "),
+            city: geo.city ?? geo.subregion ?? null,
+            street: geo.street ?? null,
+            region: geo.region ?? null,
+          });
+        }
+      } catch {
+        // Reverse geocoding falhou: segue sem endereço (contexto detectado via PostGIS)
+      }
     })();
   }, []);
 
   function handleRequestSocorro() {
     if (!location || !problemType || !pricing) return;
 
-    createRequest.mutate({
-      vehicleId,
-      problemType,
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-      triageAnswers: params.triageAnswers ? JSON.parse(params.triageAnswers) : {},
-    },
-    {
-      onSuccess: async (data) => {
-        try {
-          // 2. Criar pagamento da taxa de diagnóstico
-          const payment = await createPayment.mutateAsync({
-            serviceRequestId: data.id,
-            estimatedPrice: pricing.estimatedPrice,
-          });
+    createRequest.mutate(
+      {
+        vehicleId,
+        problemType,
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        // Envia o endereço para o backend extrair a cidade e detectar rodovia
+        address: locationContext?.address,
+        triageAnswers: params.triageAnswers
+          ? JSON.parse(params.triageAnswers)
+          : {},
+      },
+      {
+        onSuccess: async (data) => {
+          try {
+            const payment = await createPayment.mutateAsync({
+              serviceRequestId: data.id,
+            });
 
-          // 3. Ir para tela de pagamento
-          router.replace({
-            pathname: "/(service-flow)/payment",
-            params: { 
+            nav.toPayment({
               paymentId: payment.id,
               requestId: data.id,
-              nextScreen: "searching"
-            },
-          });
-        } catch (err) {
-          console.error("[Estimate] Error creating diagnostic payment", err);
-          // Em caso de erro no pagamento, vai direto pra searching (fallback MVP)
-          router.replace({
-            pathname: "/(service-flow)/searching",
-            params: { requestId: data.id },
-          });
-        }
+              nextScreen: "searching",
+            } satisfies ServiceFlowPaymentParams);
+          } catch (err) {
+            console.error("[Estimate] Erro ao criar pagamento diagnóstico", err);
+            // Fallback: vai direto para searching se pagamento falhar
+            const r = router as unknown as { replace: (href: unknown) => void };
+            r.replace({
+              pathname: "/(service-flow)/searching",
+              params: { requestId: data.id },
+            });
+          }
+        },
       },
-    });
+    );
   }
 
   const isLoadingLocation = !location && !errorMsg;
   const isGlobalLoading = isLoadingLocation || isLoadingPricing;
   const hasInvalidParams = !vehicleId || !problemType;
 
-  // Formata moeda PT-BR
+  // Determina o contexto de localização para exibir ao usuário
+  // O contexto real (urban/highway) vem do backend via PostGIS
+  const locationLabel = locationContext?.city
+    ? `📍 ${locationContext.city}${locationContext.region ? ` - ${locationContext.region}` : ""}`
+    : location
+      ? "📍 Localização obtida"
+      : null;
+
   const formatCurrency = (val?: number) =>
-    val ? `R$ ${val.toFixed(2).replace(".", ",")}` : "R$ --,--";
+    val != null
+      ? val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+      : "R$ --,--";
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -122,36 +175,88 @@ export default function EstimateScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.title}>Estimativa de Preço</Text>
-        
+
         {hasInvalidParams ? (
           <View style={styles.loadingContainer}>
             <Text style={styles.loadingText}>
-              Nao foi possivel identificar os dados do chamado. Volte e tente novamente.
+              Não foi possível identificar os dados do chamado. Volte e tente novamente.
             </Text>
           </View>
         ) : isGlobalLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator color={colors.primary} size="large" />
             <Text style={styles.loadingText}>
-              {isLoadingLocation ? "Detectando localização..." : "Calculando melhor preço..."}
+              {isLoadingLocation
+                ? "Detectando sua localização..."
+                : "Calculando melhor preço..."}
             </Text>
           </View>
         ) : (
           <View style={styles.content}>
+            {/* Card de localização detectada */}
+            {locationLabel && (
+              <View style={styles.locationCard}>
+                <MaterialCommunityIcons
+                  name={pricing ? "city" : "map-marker"}
+                  size={18}
+                  color={colors.primary}
+                />
+                <Text style={styles.locationText}>{locationLabel}</Text>
+              </View>
+            )}
+
+            {errorMsg && (
+              <View style={styles.errorCard}>
+                <Ionicons name="warning-outline" size={18} color={colors.error} />
+                <Text style={styles.errorText}>{errorMsg}</Text>
+              </View>
+            )}
+
             <View style={styles.priceCard}>
               <Text style={styles.priceLabel}>VALOR TOTAL ESTIMADO</Text>
-              <Text style={styles.priceValue}>{formatCurrency(pricing?.estimatedPrice)}</Text>
-              <Text style={styles.priceSubtext}>O valor exato será confirmado pelo profissional após o diagnóstico.</Text>
+              <Text style={styles.priceValue}>
+                {formatCurrency(pricing?.estimatedPrice)}
+              </Text>
+              <Text style={styles.priceSubtext}>
+                O valor exato será confirmado pelo profissional após o diagnóstico.
+              </Text>
             </View>
 
             <View style={styles.breakdown}>
               <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownLabel}>Taxa de Diagnóstico (Pagar agora)</Text>
-                <Text style={styles.breakdownValue}>{formatCurrency(pricing?.diagnosticFee)}</Text>
+                <Text style={styles.breakdownLabel}>
+                  Taxa de Diagnóstico (Pagar agora)
+                </Text>
+                <Text style={styles.breakdownValue}>
+                  {formatCurrency(pricing?.diagnosticFee)}
+                </Text>
               </View>
               <Text style={styles.infoText}>
-                Esta taxa garante o deslocamento do profissional e o diagnóstico do problema. O valor é abatido do serviço final.
+                Esta taxa garante o deslocamento do profissional e o diagnóstico do
+                problema. O valor é abatido do serviço final.
               </Text>
+
+              {/* Detalhamento dos multiplicadores */}
+              {pricing?.multipliers && (
+                <View style={styles.multipliersContainer}>
+                  {pricing.multipliers.time > 1 && (
+                    <View style={styles.multiplierRow}>
+                      <Ionicons name="moon-outline" size={14} color={colors.textSecondary} />
+                      <Text style={styles.multiplierText}>
+                        Horário noturno (+{Math.round((pricing.multipliers.time - 1) * 100)}%)
+                      </Text>
+                    </View>
+                  )}
+                  {pricing.multipliers.location > 1 && (
+                    <View style={styles.multiplierRow}>
+                      <Ionicons name="navigate-outline" size={14} color={colors.textSecondary} />
+                      <Text style={styles.multiplierText}>
+                        Localização rodovia (+{Math.round((pricing.multipliers.location - 1) * 100)}%)
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
 
             <View style={styles.methodCard}>
@@ -159,7 +264,11 @@ export default function EstimateScreen() {
               <View style={styles.methodRow}>
                 <Ionicons name="qr-code-outline" size={24} color={colors.primary} />
                 <Text style={styles.methodName}>PIX (Copia e Cola)</Text>
-                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={colors.textSecondary}
+                />
               </View>
             </View>
 
@@ -195,9 +304,51 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: spacing.xl,
   },
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", marginTop: 100 },
-  loadingText: { color: colors.textSecondary, marginTop: spacing.md, fontFamily: "PlusJakartaSans_400Regular" },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 100,
+    gap: spacing.md,
+  },
+  loadingText: {
+    color: colors.textSecondary,
+    fontFamily: "PlusJakartaSans_400Regular",
+    textAlign: "center",
+  },
   content: { gap: spacing.xl },
+  locationCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    backgroundColor: `${colors.primary}15`,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: `${colors.primary}30`,
+  },
+  locationText: {
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    fontSize: 13,
+    color: colors.text,
+    flex: 1,
+  },
+  errorCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    backgroundColor: `${colors.error}15`,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+  },
+  errorText: {
+    fontFamily: "PlusJakartaSans_400Regular",
+    fontSize: 13,
+    color: colors.error,
+    flex: 1,
+  },
   priceCard: {
     backgroundColor: colors.surface,
     padding: spacing.xl,
@@ -239,6 +390,7 @@ const styles = StyleSheet.create({
     fontFamily: "PlusJakartaSans_600SemiBold",
     color: colors.text,
     fontSize: 14,
+    flex: 1,
   },
   breakdownValue: {
     fontFamily: "JetBrainsMono_500Medium",
@@ -250,6 +402,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     lineHeight: 18,
+  },
+  multipliersContainer: { gap: spacing.xs, marginTop: spacing.xs },
+  multiplierRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  multiplierText: {
+    fontFamily: "PlusJakartaSans_400Regular",
+    fontSize: 12,
+    color: colors.textSecondary,
   },
   methodCard: { gap: spacing.md },
   sectionTitle: {

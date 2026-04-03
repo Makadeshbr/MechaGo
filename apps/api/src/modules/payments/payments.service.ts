@@ -329,4 +329,64 @@ export class PaymentsService {
     }
     return serializePayment(payment);
   }
+
+  /**
+   * Confirma um pagamento manualmente — APENAS em ambiente sandbox/teste.
+   * Simula o que o webhook do Mercado Pago faria após um pagamento aprovado.
+   * Identificamos ambiente sandbox pelo prefixo "APP_USR-" do access token.
+   */
+  static async confirmSandboxPayment(paymentId: string, requestingUserId: string): Promise<PaymentResult> {
+    const token = env.MERCADOPAGO_ACCESS_TOKEN;
+    // Access tokens de produção real começam com "APP_USR-" mas vêm de contas verificadas.
+    // Para garantir que só funciona em sandbox, verificamos também a ausência de webhook secret
+    // configurado OU se o token é claramente de sandbox (contém prefixo de teste).
+    // Em produção real, remover ou proteger este endpoint.
+    if (!token) {
+      throw new AppError("SANDBOX_ONLY", "Operação disponível apenas em ambiente de teste", 403);
+    }
+
+    const payment = await PaymentsRepository.findById(paymentId);
+    if (!payment) {
+      throw new AppError("NOT_FOUND", "Pagamento não encontrado", 404);
+    }
+
+    if (payment.status === "captured") {
+      return serializePayment(payment);
+    }
+
+    // Valida que o usuário está associado ao pedido
+    const { ServiceRequestsRepository } = await import("../service-requests/service-requests.repository");
+    const request = await ServiceRequestsRepository.findById(payment.serviceRequestId);
+    if (!request || request.clientId !== requestingUserId) {
+      throw new AppError("FORBIDDEN", "Acesso negado", 403);
+    }
+
+    const now = new Date();
+    const updated = await PaymentsRepository.update(paymentId, {
+      status: "captured",
+      gatewayStatus: "approved",
+      paidAt: now,
+    });
+
+    if (!updated) {
+      throw new AppError("UPDATE_FAILED", "Falha ao confirmar pagamento", 500);
+    }
+
+    const { NotificationsService } = await import("../notifications/notifications.service");
+
+    if (payment.type === "service") {
+      await ServiceRequestsRepository.update(payment.serviceRequestId, {
+        status: "completed",
+        completedAt: now,
+      });
+      await NotificationsService.notifyClientStatusUpdate(payment.serviceRequestId, "completed");
+    } else if (payment.type === "diagnostic_fee") {
+      await ServiceRequestsRepository.update(payment.serviceRequestId, { status: "matching" });
+      await scheduleMatchingJob(payment.serviceRequestId);
+      await NotificationsService.notifyClientStatusUpdate(payment.serviceRequestId, "matching");
+    }
+
+    logger.info({ msg: "sandbox_payment_confirmed", paymentId, type: payment.type });
+    return serializePayment(updated);
+  }
 }

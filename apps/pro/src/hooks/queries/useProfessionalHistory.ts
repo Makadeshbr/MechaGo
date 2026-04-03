@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
-interface HistoryItem {
+export interface HistoryItem {
   id: string;
   problemType: string;
   status: string;
   finalPrice: number;
   diagnosticFee: number;
+  clientName: string | null;
   completedAt: string | null;
   createdAt: string;
 }

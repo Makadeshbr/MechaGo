@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ReviewsService } from "../../reviews.service";
 import { ReviewsRepository } from "../../reviews.repository";
 import { ServiceRequestsRepository } from "../../../service-requests/service-requests.repository";
+import { createReviewSchema } from "../../reviews.schemas";
 
 vi.mock("../../reviews.repository", () => ({
   ReviewsRepository: {
@@ -197,7 +198,7 @@ describe("ReviewsService", () => {
   // ─── Validação Zod (rating fora do range) ──────────────────────────────────
   describe("schema validation (rating bounds)", () => {
     it("deve rejeitar rating 0 (abaixo do mínimo)", () => {
-      const { createReviewSchema } = require("../../reviews.schemas");
+      // createReviewSchema importado no topo do arquivo
       const result = createReviewSchema.safeParse({
         serviceRequestId: "00000000-0000-0000-0000-000000000001",
         toUserId: "00000000-0000-0000-0000-000000000002",
@@ -212,7 +213,7 @@ describe("ReviewsService", () => {
     });
 
     it("deve rejeitar rating 6 (acima do máximo)", () => {
-      const { createReviewSchema } = require("../../reviews.schemas");
+      // createReviewSchema importado no topo do arquivo
       const result = createReviewSchema.safeParse({
         serviceRequestId: "00000000-0000-0000-0000-000000000001",
         toUserId: "00000000-0000-0000-0000-000000000002",
@@ -227,7 +228,7 @@ describe("ReviewsService", () => {
     });
 
     it("deve aceitar rating válido (1-5)", () => {
-      const { createReviewSchema } = require("../../reviews.schemas");
+      // createReviewSchema importado no topo do arquivo
       for (const rating of [1, 2, 3, 4, 5]) {
         const result = createReviewSchema.safeParse({
           serviceRequestId: "00000000-0000-0000-0000-000000000001",

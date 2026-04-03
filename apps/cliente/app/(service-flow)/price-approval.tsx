@@ -4,11 +4,21 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { colors, spacing, radii, fonts } from "@mechago/shared";
 import { useServiceRequest, useApprovePriceServiceRequest, useContestPriceServiceRequest } from "@/hooks/queries/useServiceRequest";
 import { useCreateServicePayment } from "@/hooks/queries/usePayments";
 import { Skeleton } from "@/components/ui";
 import { nav } from "@/lib/navigation";
+
+const contestSchema = z.object({
+  reason: z
+    .string({ required_error: "Informe o motivo da contestação" })
+    .min(10, "O motivo deve ter pelo menos 10 caracteres")
+    .max(500, "O motivo deve ter no máximo 500 caracteres"),
+});
 
 export default function PriceApprovalScreen() {
   const { requestId } = useLocalSearchParams<{ requestId: string }>();
@@ -17,8 +27,17 @@ export default function PriceApprovalScreen() {
   const contestMutation = useContestPriceServiceRequest();
   const createPayment = useCreateServicePayment();
 
-  const [contestReason, setContestReason] = useState("");
   const [isContesting, setIsContesting] = useState(false);
+
+  const {
+    control: contestControl,
+    handleSubmit: handleContestSubmit,
+    reset: resetContest,
+    formState: { errors: contestErrors },
+  } = useForm<z.infer<typeof contestSchema>>({
+    resolver: zodResolver(contestSchema),
+    mode: "onChange",
+  });
 
   const stats = useMemo(() => {
     if (!request) return null;
@@ -35,11 +54,9 @@ export default function PriceApprovalScreen() {
       // 1. Aprova o preço (notifica profissional)
       await approveMutation.mutateAsync(requestId as string);
       
-      // 2. Cria o pagamento final
+      // 2. Cria o pagamento final (finalPrice e diagnosticFee são lidos do banco pelo backend)
       const payment = await createPayment.mutateAsync({
         serviceRequestId: requestId as string,
-        finalPrice: request?.finalPrice ?? 0,
-        diagnosticFee: Number(request?.diagnosticFee ?? 0),
       });
 
       // 3. Vai para tela de pagamento
@@ -53,21 +70,16 @@ export default function PriceApprovalScreen() {
     }
   };
 
-  const handleContest = async () => {
-    if (!contestReason || contestReason.length < 10) {
-      Alert.alert("Atenção", "Por favor, explique o motivo da contestação (mínimo 10 caracteres).");
-      return;
-    }
-
+  const handleContest = handleContestSubmit(async ({ reason }) => {
     try {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      await contestMutation.mutateAsync({ requestId: requestId as string, reason: contestReason });
+      await contestMutation.mutateAsync({ requestId: requestId as string, reason });
       Alert.alert("Contestação Enviada", "Nossa equipe analisará seu caso em até 24h.");
       nav.toHome();
-    } catch (err) {
+    } catch {
       Alert.alert("Erro", "Não foi possível enviar a contestação.");
     }
-  };
+  });
 
   if (isLoading || !request || !stats) {
     return (
@@ -163,23 +175,55 @@ export default function PriceApprovalScreen() {
           ) : (
             <View style={styles.contestForm}>
               <Text style={styles.sectionTitle}>MOTIVO DA CONTESTAÇÃO</Text>
-              <TextInput
-                style={styles.contestInput}
-                placeholder="Explique por que você não concorda com este valor..."
-                placeholderTextColor={colors.onSurfaceVariant}
-                multiline
-                numberOfLines={4}
-                value={contestReason}
-                onChangeText={setContestReason}
-                textAlignVertical="top"
-                accessibilityLabel="Motivo da contestação de preço"
+              <Controller
+                control={contestControl}
+                name="reason"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <>
+                    <TextInput
+                      style={[
+                        styles.contestInput,
+                        !!contestErrors.reason && styles.contestInputError,
+                      ]}
+                      placeholder="Explique por que você não concorda com este valor..."
+                      placeholderTextColor={colors.onSurfaceVariant}
+                      multiline
+                      numberOfLines={4}
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      textAlignVertical="top"
+                      accessibilityLabel="Motivo da contestação de preço"
+                    />
+                    {contestErrors.reason && (
+                      <Text style={styles.fieldError}>
+                        {contestErrors.reason.message}
+                      </Text>
+                    )}
+                  </>
+                )}
               />
               <View style={styles.contestActions}>
-                <TouchableOpacity style={styles.cancelContest} onPress={() => setIsContesting(false)}>
+                <TouchableOpacity
+                  style={styles.cancelContest}
+                  onPress={() => { setIsContesting(false); resetContest(); }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Voltar sem contestar"
+                >
                   <Text style={styles.cancelContestText}>VOLTAR</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.confirmContest} onPress={handleContest}>
-                  <Text style={styles.confirmContestText}>ENVIAR</Text>
+                <TouchableOpacity
+                  style={[styles.confirmContest, contestMutation.isPending && { opacity: 0.6 }]}
+                  onPress={handleContest}
+                  disabled={contestMutation.isPending}
+                  accessibilityRole="button"
+                  accessibilityLabel="Enviar contestação"
+                >
+                  {contestMutation.isPending ? (
+                    <ActivityIndicator size="small" color={colors.bg} />
+                  ) : (
+                    <Text style={styles.confirmContestText}>ENVIAR</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
@@ -267,6 +311,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.outline,
     minHeight: 100,
+  },
+  contestInputError: {
+    borderColor: colors.error,
+  },
+  fieldError: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.error,
+    marginTop: spacing.xs,
   },
   contestActions: { flexDirection: "row", gap: spacing.md },
   cancelContest: { flex: 1, height: 48, borderRadius: radii.md, borderWidth: 1, borderColor: colors.outline, justifyContent: "center", alignItems: "center" },

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -14,17 +14,12 @@ import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { colors, fonts, spacing, borderRadius } from "@mechago/shared";
 import { Button, LogoPin, AmbientGlow } from "@/components/ui";
-import { api } from "@/lib/api";
 import { useServiceRequest } from "@/hooks/queries/useServiceRequest";
-
-interface PaymentData {
-  id: string;
-  amount: number;
-  type: "diagnostic_fee" | "service";
-  pixQrCode: string;
-  pixQrCodeBase64: string;
-  status: "pending" | "captured" | "failed";
-}
+import {
+  usePayment,
+  useConfirmSandboxPayment,
+} from "@/hooks/queries/usePayments";
+import { nav } from "@/lib/navigation";
 
 export default function PaymentScreen() {
   const { paymentId, requestId, nextScreen } = useLocalSearchParams<{
@@ -33,61 +28,61 @@ export default function PaymentScreen() {
     nextScreen: string;
   }>();
   const router = useRouter();
-  const [payment, setPayment] = useState<PaymentData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const { data: request } = useServiceRequest(requestId ?? "");
+  const hasNavigated = useRef(false);
 
-  const fetchPayment = useCallback(async () => {
-    try {
-      const response = await api.get(`payments/${paymentId}`);
-      const data = await response.json<PaymentData>();
-      setPayment(data);
+  // TanStack Query com refetchInterval — para quando capturado
+  const { data: payment, isLoading } = usePayment(paymentId);
 
-      if (data.status === "captured") {
-        handleSuccess();
-      }
-    } catch (err) {
-      console.error("[Payment] Error fetching payment", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [paymentId]);
+  // Confirmação sandbox — simula o webhook do MP em ambiente de teste
+  const confirmSandbox = useConfirmSandboxPayment(paymentId);
 
+  // Navega automaticamente quando o pagamento é capturado
   useEffect(() => {
-    fetchPayment();
-    // Poll a cada 5 segundos para verificar o status do pagamento
-    const interval = setInterval(fetchPayment, 5000);
-    return () => clearInterval(interval);
-  }, [fetchPayment]);
+    if (!payment || payment.status !== "captured" || hasNavigated.current) return;
+    hasNavigated.current = true;
 
-  const handleSuccess = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
-    // Pequeno delay para o usuário ver o "sucesso"
-    setTimeout(() => {
+
+    const timer = setTimeout(() => {
       if (nextScreen === "searching") {
-        router.replace({ pathname: "/(service-flow)/searching", params: { requestId } });
+        // Usa cast via nav helper para evitar erro de tipo com rotas dinâmicas
+        const r = router as unknown as { replace: (href: unknown) => void };
+        r.replace({ pathname: "/(service-flow)/searching", params: { requestId } });
       } else if (nextScreen === "rating") {
-        router.replace({
-          pathname: "/(service-flow)/rating",
-          params: {
-            requestId,
-            professionalUserId: request?.professional?.userId,
-            professionalName: request?.professional?.name,
-            finalPrice: String(request?.finalPrice),
-          },
+        nav.toRating({
+          requestId: requestId ?? "",
+          professionalUserId: request?.professional?.userId ?? "",
+          professionalName: request?.professional?.name ?? "",
+          finalPrice: String(request?.finalPrice ?? ""),
         });
       } else {
-        router.replace("/(tabs)");
+        nav.toHome();
       }
     }, 1500);
-  };
+
+    return () => clearTimeout(timer);
+  }, [payment?.status]);
 
   const copyToClipboard = () => {
     if (!payment?.pixQrCode) return;
     Clipboard.setString(payment.pixQrCode);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert("Sucesso", "Código Pix copiado para a área de transferência!");
+    Alert.alert("Copiado!", "Código Pix copiado para a área de transferência.");
+  };
+
+  const handleSandboxConfirm = () => {
+    Alert.alert(
+      "Simular Pagamento",
+      "Isto vai confirmar o pagamento automaticamente (apenas em ambiente de teste). Continuar?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Confirmar",
+          onPress: () => confirmSandbox.mutate(),
+        },
+      ],
+    );
   };
 
   if (isLoading || !payment) {
@@ -108,7 +103,12 @@ export default function PaymentScreen() {
     <SafeAreaView style={styles.safe}>
       <AmbientGlow />
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityLabel="Voltar"
+          accessibilityRole="button"
+        >
           <Ionicons name="arrow-back" size={24} color={colors.onSurface} />
         </Pressable>
         <LogoPin size="sm" />
@@ -145,25 +145,67 @@ export default function PaymentScreen() {
                 })}
               </Text>
 
-              <View style={styles.pixCodeContainer}>
-                <Text numberOfLines={1} style={styles.pixCodeText}>
-                  {payment.pixQrCode}
-                </Text>
-              </View>
+              {payment.pixQrCode ? (
+                <>
+                  <View style={styles.pixCodeContainer}>
+                    <Text numberOfLines={1} style={styles.pixCodeText}>
+                      {payment.pixQrCode}
+                    </Text>
+                  </View>
 
-              <Button
-                onPress={copyToClipboard}
-                title="COPIAR CÓDIGO PIX"
-                variant="primary"
-                style={styles.copyButton}
-                icon={<MaterialIcons name="content-copy" size={20} color={colors.onPrimary} />}
-              />
+                  <Button
+                    onPress={copyToClipboard}
+                    title="COPIAR CÓDIGO PIX"
+                    variant="primary"
+                    style={styles.copyButton}
+                  />
+                </>
+              ) : (
+                <View style={styles.noQrContainer}>
+                  <MaterialIcons
+                    name="info-outline"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                  <Text style={styles.noQrText}>
+                    Código Pix não disponível. Use o botão de teste abaixo.
+                  </Text>
+                </View>
+              )}
             </View>
 
+            {/* Botão de simulação — apenas em ambiente de desenvolvimento/teste */}
+            <Pressable
+              onPress={handleSandboxConfirm}
+              style={styles.sandboxButton}
+              disabled={confirmSandbox.isPending}
+              accessibilityLabel="Simular pagamento aprovado (sandbox)"
+              accessibilityRole="button"
+            >
+              {confirmSandbox.isPending ? (
+                <ActivityIndicator size="small" color={colors.textSecondary} />
+              ) : (
+                <>
+                  <MaterialIcons
+                    name="science"
+                    size={16}
+                    color={colors.textSecondary}
+                  />
+                  <Text style={styles.sandboxText}>
+                    Simular Pagamento Aprovado (Sandbox)
+                  </Text>
+                </>
+              )}
+            </Pressable>
+
             <View style={styles.infoBox}>
-              <MaterialIcons name="info-outline" size={20} color={colors.onSurfaceVariant} />
+              <MaterialIcons
+                name="info-outline"
+                size={20}
+                color={colors.onSurfaceVariant}
+              />
               <Text style={styles.infoText}>
-                Após o pagamento, esta tela será atualizada automaticamente em alguns segundos.
+                Após o pagamento, esta tela será atualizada automaticamente.
               </Text>
             </View>
           </>
@@ -175,7 +217,12 @@ export default function PaymentScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surfaceLowest },
-  center: { flex: 1, justifyContent: "center", alignItems: "center", gap: spacing.md },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: spacing.md,
+  },
   loadingText: { fontFamily: fonts.body, color: colors.onSurfaceVariant },
   header: {
     flexDirection: "row",
@@ -186,7 +233,12 @@ const styles = StyleSheet.create({
   },
   backButton: { width: 44, height: 44, justifyContent: "center" },
   headerSpacer: { width: 44 },
-  content: { flex: 1, paddingHorizontal: spacing.xl, gap: spacing.xxl, paddingTop: spacing.xl },
+  content: {
+    flex: 1,
+    paddingHorizontal: spacing.xl,
+    gap: spacing.xl,
+    paddingTop: spacing.xl,
+  },
   statusBox: { alignItems: "center", gap: spacing.md },
   iconCircle: {
     width: 80,
@@ -196,9 +248,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  iconCircleSuccess: {
-    backgroundColor: `${colors.success}1A`,
-  },
+  iconCircleSuccess: { backgroundColor: `${colors.success}1A` },
   title: {
     fontFamily: fonts.headline,
     fontSize: 24,
@@ -246,7 +296,37 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.onSurfaceVariant,
   },
+  noQrContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    padding: spacing.md,
+  },
+  noQrText: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textSecondary,
+    flex: 1,
+  },
   copyButton: { width: "100%", marginTop: spacing.sm },
+  sandboxButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: colors.outlineVariant,
+    opacity: 0.8,
+    minHeight: 44,
+  },
+  sandboxText: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
   infoBox: {
     flexDirection: "row",
     gap: spacing.sm,

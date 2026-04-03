@@ -140,6 +140,31 @@ paymentsApp.openapi(webhookRoute, async (c) => {
   return c.json({ received: true }, 200);
 });
 
+// ==================== POST /payments/:id/confirm-sandbox ====================
+// Simula aprovação de pagamento para testes. Disponível apenas em ambiente sandbox.
+const confirmSandboxRoute = createRoute({
+  method: "post",
+  path: "/{id}/confirm-sandbox",
+  tags: ["Payments"],
+  summary: "Confirmar pagamento manualmente (sandbox/teste apenas)",
+  middleware: [authMiddleware],
+  request: {
+    params: z.object({ id: z.string().uuid("ID inválido") }),
+  },
+  responses: {
+    200: { description: "Pagamento confirmado com sucesso" },
+    403: { description: "Apenas em ambiente sandbox" },
+    404: { description: "Pagamento não encontrado" },
+  },
+});
+
+paymentsApp.openapi(confirmSandboxRoute, async (c) => {
+  const { id } = c.req.valid("param");
+  const userId = c.get("userId");
+  const result = await PaymentsService.confirmSandboxPayment(id, userId);
+  return c.json(result, 200);
+});
+
 // ==================== GET /payments/:id ====================
 const getPaymentRoute = createRoute({
   method: "get",

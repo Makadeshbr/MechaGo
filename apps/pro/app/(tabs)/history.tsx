@@ -40,7 +40,7 @@ interface HistoryItem {
   problemType: string;
   status: string;
   finalPrice: number;
-  clientName?: string;
+  clientName?: string | null;
   completedAt: string | null;
   createdAt: string;
 }
