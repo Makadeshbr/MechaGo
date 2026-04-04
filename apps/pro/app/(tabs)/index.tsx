@@ -67,7 +67,6 @@ export default function DashboardScreen() {
         nav.toServiceResolved(id);
         break;
       case "resolved":
-      case "price_contested":
         // Aguardando cliente aprovar
         nav.toServiceCompleted({ 
           requestId: id, 
@@ -147,7 +146,7 @@ export default function DashboardScreen() {
   );
 
   // Formata valores para exibição em PT-BR — Blindagem contra undefined/null
-  const formatCurrency = (value: any) => {
+  const formatCurrency = (value: unknown) => {
     const num = Number(value ?? 0);
     return `R$ ${num.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
   };

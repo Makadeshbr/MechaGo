@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { payments } from "@/db/schema/payments";
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 export type SelectPayment = InferSelectModel<typeof payments>;
@@ -19,6 +19,25 @@ export class PaymentsRepository {
 
   static async findByServiceRequestId(serviceRequestId: string): Promise<SelectPayment[]> {
     return db.select().from(payments).where(eq(payments.serviceRequestId, serviceRequestId));
+  }
+
+  static async findLatestByServiceRequestIdAndType(
+    serviceRequestId: string,
+    type: string,
+  ): Promise<SelectPayment | null> {
+    const [payment] = await db
+      .select()
+      .from(payments)
+      .where(
+        and(
+          eq(payments.serviceRequestId, serviceRequestId),
+          eq(payments.type, type),
+        ),
+      )
+      .orderBy(desc(payments.createdAt))
+      .limit(1);
+
+    return payment ?? null;
   }
 
   static async findByGatewayId(gatewayId: string): Promise<SelectPayment | null> {

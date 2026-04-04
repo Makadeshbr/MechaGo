@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { apiReference } from "@scalar/hono-api-reference";
 import { loggerMiddleware } from "@/middleware/logger.middleware";
 import { errorHandler } from "@/middleware/error-handler";
+import { globalRateLimit } from "@/middleware/rate-limiter";
 import { env } from "@/env";
 import authRoutes from "@/modules/auth/auth.routes";
 import usersRoutes from "@/modules/users/users.routes";
@@ -42,6 +43,7 @@ export function createApp() {
     }),
   );
   app.use("*", loggerMiddleware);
+  app.use("/api/*", globalRateLimit);
   app.onError(errorHandler);
 
   // Health check — Railway usa para saber se o container está saudável

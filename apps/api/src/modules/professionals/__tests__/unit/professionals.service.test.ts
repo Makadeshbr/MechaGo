@@ -9,6 +9,7 @@ vi.mock("../../professionals.repository", () => ({
     findById: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    getStatsByUserId: vi.fn(),
   },
 }));
 
@@ -200,6 +201,8 @@ describe("ProfessionalsService", () => {
       vi.mocked(ProfessionalsRepository.findByUserId).mockResolvedValue(
         mockProfessional,
       );
+      // Profissional novo sem atendimentos concluídos
+      vi.mocked(ProfessionalsRepository.getStatsByUserId).mockResolvedValue(null);
 
       const stats = await ProfessionalsService.getStats(USER_ID);
 
@@ -207,6 +210,28 @@ describe("ProfessionalsService", () => {
       expect(stats.acceptanceRate).toBe("0");
       expect(stats.cancellationsThisMonth).toBe(0);
       expect(stats.isOnline).toBe(false);
+      expect(stats.totalServices).toBe(0);
+      expect(stats.averageRating).toBe(0);
+    });
+
+    it("deve retornar estatísticas reais quando profissional tem atendimentos", async () => {
+      vi.mocked(ProfessionalsRepository.findByUserId).mockResolvedValue({
+        ...mockProfessional,
+        totalEarnings: "1500.00",
+        acceptanceRate: "92.50",
+        isOnline: true,
+      });
+      vi.mocked(ProfessionalsRepository.getStatsByUserId).mockResolvedValue({
+        totalServices: 12,
+        averageRating: 4.8,
+      });
+
+      const stats = await ProfessionalsService.getStats(USER_ID);
+
+      expect(stats.totalEarnings).toBe("1500.00");
+      expect(stats.totalServices).toBe(12);
+      expect(stats.averageRating).toBe(4.8);
+      expect(stats.isOnline).toBe(true);
     });
 
     it("deve rejeitar getStats se perfil não existe", async () => {

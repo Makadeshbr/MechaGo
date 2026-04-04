@@ -50,6 +50,18 @@ export class ReviewsService {
       throw new AppError("FORBIDDEN", "Você não participou deste atendimento", 403);
     }
 
+    const expectedTargetUserId = isClient
+      ? request.professional?.userId ?? null
+      : request.clientId;
+
+    if (!expectedTargetUserId || input.toUserId !== expectedTargetUserId) {
+      throw new AppError(
+        "INVALID_REVIEW_TARGET",
+        "A avaliacao deve ser direcionada para a contraparte real do atendimento",
+        409,
+      );
+    }
+
     // Impede avaliação duplicada (um reviewer por request)
     const existing = await ReviewsRepository.findByServiceRequestAndReviewer(
       input.serviceRequestId,

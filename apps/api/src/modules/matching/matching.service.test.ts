@@ -33,6 +33,8 @@ vi.mock("../service-requests/service-requests.repository", () => ({
   ServiceRequestsRepository: {
     findById: vi.fn(),
     update: vi.fn(),
+    ensureWaitingQueueEntry: vi.fn(),
+    resolveWaitingQueueEntry: vi.fn(),
   },
 }));
 

@@ -8,6 +8,8 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
+    "test": "npm run test:run --workspace @mechago/api",
+    "typecheck": "npm run build --workspace @mechago/shared && npm run build --workspace @mechago/api && npx tsc -p apps/pro/tsconfig.json --noEmit && npx tsc -p apps/cliente/tsconfig.json --noEmit",
     "start": "npm run railway:start",
     "start:api": "npm run start:railway --workspace @mechago/api",
     "lint": "turbo lint",

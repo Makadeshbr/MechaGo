@@ -11,6 +11,8 @@ import {
   contestPriceBodySchema,
   arrivedBodySchema,
   cancelBodySchema,
+  serviceRequestHistoryQuerySchema,
+  serviceRequestHistoryResponseSchema,
 } from "./service-requests.schemas";
 import { ServiceRequestsService } from "./service-requests.service";
 import { ServiceRequestsRepository } from "./service-requests.repository";
@@ -112,8 +114,39 @@ const getRequestRoute = createRoute({
 
 app.openapi(getRequestRoute, async (c) => {
   const { id } = c.req.valid("param");
-  const result = await ServiceRequestsService.getById(id);
+  const userId = c.get("userId");
+  const userType = c.get("userType") as "client" | "professional" | "admin";
+  const result = await ServiceRequestsService.getById(id, userId, userType);
   return c.json(result, 200);
+});
+
+// ==================== GET /service-requests?role=client ====================
+const getHistoryRoute = createRoute({
+  method: "get",
+  path: "/",
+  tags: ["Service Requests"],
+  summary: "Buscar historico do cliente autenticado",
+  middleware: [authMiddleware],
+  request: {
+    query: serviceRequestHistoryQuerySchema,
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: serviceRequestHistoryResponseSchema,
+        },
+      },
+      description: "Historico retornado com sucesso",
+    },
+  },
+});
+
+app.openapi(getHistoryRoute, async (c) => {
+  const userId = c.get("userId");
+  c.req.valid("query");
+  const requests = await ServiceRequestsService.getClientHistory(userId);
+  return c.json({ requests }, 200);
 });
 
 // ==================== GET /service-requests/active ====================

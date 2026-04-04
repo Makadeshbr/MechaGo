@@ -62,7 +62,16 @@ const buildRequest = (overrides = {}) => ({
   resolvedOnSite: true,
   diagnosis: "Bateria descarregada",
   escalationDestination: null,
-  professional: null,
+  professional: {
+    id: "pro-internal-uuid",
+    userId: "pro-user-uuid",
+    name: "Profissional Teste",
+    avatarUrl: null,
+    rating: "4.8",
+    specialties: ["car_general"],
+    latitude: null,
+    longitude: null,
+  },
   roadwayPhone: null,
   ...overrides,
 });

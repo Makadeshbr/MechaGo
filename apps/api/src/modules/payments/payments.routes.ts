@@ -7,8 +7,13 @@ import {
   createDiagnosticPaymentSchema,
   createServicePaymentSchema,
 } from "./payments.schemas";
+import { paymentsRateLimit } from "@/middleware/rate-limiter";
 
 export const paymentsApp = new OpenAPIHono();
+
+// Proteção contra abuso de criação de pagamentos
+paymentsApp.use("/create-diagnostic", paymentsRateLimit);
+paymentsApp.use("/create-service", paymentsRateLimit);
 
 // ==================== POST /payments/create-diagnostic ====================
 const createDiagnosticRoute = createRoute({
@@ -31,22 +36,10 @@ const createDiagnosticRoute = createRoute({
 paymentsApp.openapi(createDiagnosticRoute, async (c) => {
   const input = c.req.valid("json");
 
-  // Buscar dados do pedido e do cliente para criar o pagamento
-  const { ServiceRequestsRepository } = await import("../service-requests/service-requests.repository");
-  const request = await ServiceRequestsRepository.findById(input.serviceRequestId);
-  if (!request) {
-    return c.json({ error: { code: "NOT_FOUND", message: "Pedido não encontrado" } }, 400 as never);
-  }
-
-  const { db } = await import("@/db");
-  const { users } = await import("@/db/schema/users");
-  const { eq } = await import("drizzle-orm");
-  const [client] = await db.select({ email: users.email }).from(users).where(eq(users.id, request.clientId)).limit(1);
-
-  const result = await PaymentsService.createDiagnosticPayment({
+  const userId = c.get("userId");
+  const result = await PaymentsService.createDiagnosticPaymentForClient({
     serviceRequestId: input.serviceRequestId,
-    estimatedPrice: Number(request.estimatedPrice ?? 0),
-    clientEmail: client?.email ?? "cliente@mechago.com",
+    clientUserId: userId,
     method: input.method,
   });
 
@@ -74,22 +67,10 @@ const createServiceRoute = createRoute({
 paymentsApp.openapi(createServiceRoute, async (c) => {
   const input = c.req.valid("json");
 
-  const { ServiceRequestsRepository } = await import("../service-requests/service-requests.repository");
-  const request = await ServiceRequestsRepository.findById(input.serviceRequestId);
-  if (!request) {
-    return c.json({ error: { code: "NOT_FOUND", message: "Pedido não encontrado" } }, 400 as never);
-  }
-
-  const { db } = await import("@/db");
-  const { users } = await import("@/db/schema/users");
-  const { eq } = await import("drizzle-orm");
-  const [client] = await db.select({ email: users.email }).from(users).where(eq(users.id, request.clientId)).limit(1);
-
-  const result = await PaymentsService.createServicePayment({
+  const userId = c.get("userId");
+  const result = await PaymentsService.createServicePaymentForClient({
     serviceRequestId: input.serviceRequestId,
-    finalPrice: Number(request.finalPrice ?? 0),
-    diagnosticFee: Number(request.diagnosticFee ?? 0),
-    clientEmail: client?.email ?? "cliente@mechago.com",
+    clientUserId: userId,
     method: input.method,
   });
 
@@ -183,6 +164,7 @@ const getPaymentRoute = createRoute({
 
 paymentsApp.openapi(getPaymentRoute, async (c) => {
   const { id } = c.req.valid("param");
-  const result = await PaymentsService.getById(id);
+  const userId = c.get("userId");
+  const result = await PaymentsService.getByIdForClient(id, userId);
   return c.json(result, 200);
 });

@@ -16,6 +16,14 @@ export const serviceRequestParamsSchema = z.object({
   id: z.string().uuid("ID do pedido invalido"),
 });
 
+export const serviceRequestHistoryQuerySchema = z.object({
+  role: z.enum(["client"]),
+});
+
+export const serviceRequestHistoryResponseSchema = z.object({
+  requests: z.array(serviceRequestResponseSchema),
+});
+
 export type CreateServiceRequestInput = z.infer<typeof createServiceRequestSchema>;
 export type EstimatePriceInput = z.infer<typeof estimatePriceSchema>;
 export type ServiceRequestResponse = z.infer<typeof serviceRequestResponseSchema>;

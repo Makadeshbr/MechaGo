@@ -7,6 +7,28 @@ import { PaymentsRepository } from "./payments.repository";
 import type { SelectPayment } from "./payments.repository";
 import { scheduleMatchingJob } from "../matching/matching.queue";
 
+async function getClientEmail(userId: string): Promise<string> {
+  const { db } = await import("@/db");
+  const { users } = await import("@/db/schema/users");
+  const { eq } = await import("drizzle-orm");
+
+  const [client] = await db
+    .select({ email: users.email })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  return client?.email ?? "cliente@mechago.com";
+}
+
+function isPendingOrCaptured(status: PaymentResult["status"]): boolean {
+  return status === "pending" || status === "captured";
+}
+
+function canUseSandboxConfirmation(): boolean {
+  return env.NODE_ENV !== "production";
+}
+
 // Comissão da plataforma — 0% no MVP fundador, 10% no V1.0
 const PLATFORM_COMMISSION_RATE = 0;
 
@@ -59,6 +81,101 @@ function serializePayment(payment: SelectPayment, pixData?: {
 }
 
 export class PaymentsService {
+  static async createDiagnosticPaymentForClient(params: {
+    serviceRequestId: string;
+    clientUserId: string;
+    method?: "pix" | "credit_card" | "debit_card";
+  }): Promise<PaymentResult> {
+    const { ServiceRequestsRepository } = await import("../service-requests/service-requests.repository");
+
+    const request = await ServiceRequestsRepository.findById(params.serviceRequestId);
+    if (!request) {
+      throw new AppError("NOT_FOUND", "Pedido não encontrado", 404);
+    }
+
+    if (request.clientId !== params.clientUserId) {
+      throw new AppError("FORBIDDEN", "Acesso negado", 403);
+    }
+
+    if (request.status !== "pending") {
+      throw new AppError(
+        "INVALID_STATUS",
+        "Pagamento de diagnostico so pode ser criado para chamados pendentes",
+        409,
+      );
+    }
+
+    const latest = await PaymentsRepository.findLatestByServiceRequestIdAndType(
+      params.serviceRequestId,
+      "diagnostic_fee",
+    );
+
+    if (latest && isPendingOrCaptured(latest.status)) {
+      return serializePayment(latest);
+    }
+
+    const clientEmail = await getClientEmail(params.clientUserId);
+
+    return PaymentsService.createDiagnosticPayment({
+      serviceRequestId: params.serviceRequestId,
+      estimatedPrice: Number(request.estimatedPrice ?? 0),
+      clientEmail,
+      method: params.method,
+    });
+  }
+
+  static async createServicePaymentForClient(params: {
+    serviceRequestId: string;
+    clientUserId: string;
+    method?: "pix" | "credit_card" | "debit_card";
+  }): Promise<PaymentResult> {
+    const { ServiceRequestsRepository } = await import("../service-requests/service-requests.repository");
+
+    const request = await ServiceRequestsRepository.findById(params.serviceRequestId);
+    if (!request) {
+      throw new AppError("NOT_FOUND", "Pedido não encontrado", 404);
+    }
+
+    if (request.clientId !== params.clientUserId) {
+      throw new AppError("FORBIDDEN", "Acesso negado", 403);
+    }
+
+    if (request.status !== "resolved") {
+      throw new AppError(
+        "INVALID_STATUS",
+        "Pagamento final so pode ser criado apos a resolucao do servico",
+        409,
+      );
+    }
+
+    if (!request.completionPhotoUrl) {
+      throw new AppError(
+        "PHOTO_REQUIRED",
+        "Foto de conclusao e obrigatoria para finalizar o servico",
+        422,
+      );
+    }
+
+    const latest = await PaymentsRepository.findLatestByServiceRequestIdAndType(
+      params.serviceRequestId,
+      "service",
+    );
+
+    if (latest && isPendingOrCaptured(latest.status)) {
+      return serializePayment(latest);
+    }
+
+    const clientEmail = await getClientEmail(params.clientUserId);
+
+    return PaymentsService.createServicePayment({
+      serviceRequestId: params.serviceRequestId,
+      finalPrice: Number(request.finalPrice ?? 0),
+      diagnosticFee: Number(request.diagnosticFee ?? 0),
+      clientEmail,
+      method: params.method,
+    });
+  }
+
   /**
    * Cria pagamento Pix para a taxa de diagnóstico (30% da estimativa).
    * Chamado quando o cliente confirma o pedido após ver a estimativa.
@@ -293,19 +410,48 @@ export class PaymentsService {
       if (internalStatus === "captured") {
         const { ServiceRequestsRepository } = await import("../service-requests/service-requests.repository");
         const { NotificationsService } = await import("../notifications/notifications.service");
+        const request = await ServiceRequestsRepository.findById(payment.serviceRequestId);
+
+        if (!request) {
+          logger.error({ msg: "webhook_request_not_found", paymentId: payment.id, requestId: payment.serviceRequestId });
+          return;
+        }
 
         if (payment.type === "service") {
+          if (request.status !== "resolved" || !request.completionPhotoUrl) {
+            logger.error({
+              msg: "webhook_invalid_service_request_state",
+              paymentId: payment.id,
+              requestId: request.id,
+              requestStatus: request.status,
+              hasCompletionPhoto: Boolean(request.completionPhotoUrl),
+            });
+            return;
+          }
+
           // Pagamento final: move para completed
           await ServiceRequestsRepository.update(payment.serviceRequestId, {
             status: "completed",
             completedAt: new Date(),
           });
+          await ServiceRequestsRepository.resolveWaitingQueueEntry(payment.serviceRequestId);
           await NotificationsService.notifyClientStatusUpdate(payment.serviceRequestId, "completed");
         } else if (payment.type === "diagnostic_fee") {
+          if (request.status !== "pending") {
+            logger.warn({
+              msg: "webhook_skipped_invalid_diagnostic_state",
+              paymentId: payment.id,
+              requestId: request.id,
+              requestStatus: request.status,
+            });
+            return;
+          }
+
           // Taxa de diagnóstico: move para matching e inicia busca
           await ServiceRequestsRepository.update(payment.serviceRequestId, {
             status: "matching",
           });
+          await ServiceRequestsRepository.resolveWaitingQueueEntry(payment.serviceRequestId);
           await scheduleMatchingJob(payment.serviceRequestId);
           await NotificationsService.notifyClientStatusUpdate(payment.serviceRequestId, "matching");
         }
@@ -330,18 +476,28 @@ export class PaymentsService {
     return serializePayment(payment);
   }
 
+  static async getByIdForClient(paymentId: string, clientUserId: string): Promise<PaymentResult> {
+    const payment = await PaymentsRepository.findById(paymentId);
+    if (!payment) {
+      throw new AppError("NOT_FOUND", "Pagamento não encontrado", 404);
+    }
+
+    const { ServiceRequestsRepository } = await import("../service-requests/service-requests.repository");
+    const request = await ServiceRequestsRepository.findById(payment.serviceRequestId);
+    if (!request || request.clientId !== clientUserId) {
+      throw new AppError("FORBIDDEN", "Acesso negado", 403);
+    }
+
+    return serializePayment(payment);
+  }
+
   /**
    * Confirma um pagamento manualmente — APENAS em ambiente sandbox/teste.
    * Simula o que o webhook do Mercado Pago faria após um pagamento aprovado.
    * Identificamos ambiente sandbox pelo prefixo "APP_USR-" do access token.
    */
   static async confirmSandboxPayment(paymentId: string, requestingUserId: string): Promise<PaymentResult> {
-    const token = env.MERCADOPAGO_ACCESS_TOKEN;
-    // Access tokens de produção real começam com "APP_USR-" mas vêm de contas verificadas.
-    // Para garantir que só funciona em sandbox, verificamos também a ausência de webhook secret
-    // configurado OU se o token é claramente de sandbox (contém prefixo de teste).
-    // Em produção real, remover ou proteger este endpoint.
-    if (!token) {
+    if (!canUseSandboxConfirmation()) {
       throw new AppError("SANDBOX_ONLY", "Operação disponível apenas em ambiente de teste", 403);
     }
 
@@ -359,6 +515,24 @@ export class PaymentsService {
     const request = await ServiceRequestsRepository.findById(payment.serviceRequestId);
     if (!request || request.clientId !== requestingUserId) {
       throw new AppError("FORBIDDEN", "Acesso negado", 403);
+    }
+
+    if (payment.type === "service") {
+      if (request.status !== "resolved" || !request.completionPhotoUrl) {
+        throw new AppError(
+          "INVALID_STATUS",
+          "Pagamento final so pode ser confirmado quando o servico estiver resolvido e com foto",
+          409,
+        );
+      }
+    }
+
+    if (payment.type === "diagnostic_fee" && request.status !== "pending") {
+      throw new AppError(
+        "INVALID_STATUS",
+        "Pagamento de diagnostico so pode ser confirmado para chamados pendentes",
+        409,
+      );
     }
 
     const now = new Date();
@@ -379,9 +553,11 @@ export class PaymentsService {
         status: "completed",
         completedAt: now,
       });
+      await ServiceRequestsRepository.resolveWaitingQueueEntry(payment.serviceRequestId);
       await NotificationsService.notifyClientStatusUpdate(payment.serviceRequestId, "completed");
     } else if (payment.type === "diagnostic_fee") {
       await ServiceRequestsRepository.update(payment.serviceRequestId, { status: "matching" });
+      await ServiceRequestsRepository.resolveWaitingQueueEntry(payment.serviceRequestId);
       await scheduleMatchingJob(payment.serviceRequestId);
       await NotificationsService.notifyClientStatusUpdate(payment.serviceRequestId, "matching");
     }

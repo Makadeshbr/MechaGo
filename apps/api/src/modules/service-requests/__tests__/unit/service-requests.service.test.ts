@@ -20,6 +20,9 @@ vi.mock("../../service-requests.repository", () => ({
     findById: vi.fn(),
     update: vi.fn(),
     calculateDistanceToRequest: vi.fn(),
+    resolveWaitingQueueEntry: vi.fn(),
+    ensureWaitingQueueEntry: vi.fn(),
+    findHistoryByClientId: vi.fn(),
   },
 }));
 

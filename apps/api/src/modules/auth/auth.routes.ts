@@ -10,8 +10,14 @@ import {
   messageResponseSchema,
 } from "./auth.schemas";
 import { authMiddleware } from "@/middleware/auth.middleware";
+import { authRateLimit, registerRateLimit } from "@/middleware/rate-limiter";
 
 const app = new OpenAPIHono();
+
+// Proteção contra brute-force e abuso de cadastro
+app.use("/login", authRateLimit);
+app.use("/register", registerRateLimit);
+app.use("/forgot-password", authRateLimit);
 
 // ==================== POST /register ====================
 const registerRoute = createRoute({

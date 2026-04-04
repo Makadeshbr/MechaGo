@@ -6,8 +6,8 @@ import {
   ActivityIndicator,
   Pressable,
   Alert,
-  Clipboard,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
@@ -66,7 +66,7 @@ export default function PaymentScreen() {
 
   const copyToClipboard = () => {
     if (!payment?.pixQrCode) return;
-    Clipboard.setString(payment.pixQrCode);
+    void Clipboard.setStringAsync(payment.pixQrCode);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Alert.alert("Copiado!", "Código Pix copiado para a área de transferência.");
   };

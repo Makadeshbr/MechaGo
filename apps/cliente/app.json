@@ -31,12 +31,7 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT"
-      ],
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyDolH1bMkYY7eHHYx_baKV31IxzWuz27s0"
-        }
-      }
+      ]
     },
     "plugins": [
       "expo-router",

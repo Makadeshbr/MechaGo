@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { professionals } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { professionals, serviceRequests, users } from "@/db/schema";
+import { and, count, eq } from "drizzle-orm";
 
 // Repository do módulo professionals — queries Drizzle tipadas.
 // Segue o mesmo padrão de VehiclesRepository: métodos estáticos, sem lógica de negócio.
@@ -39,5 +39,39 @@ export class ProfessionalsRepository {
       .where(eq(professionals.id, id))
       .returning();
     return updated;
+  }
+
+  static async getStatsByUserId(userId: string): Promise<{
+    totalServices: number;
+    averageRating: number;
+  } | null> {
+    const professional = await db.query.professionals.findFirst({
+      where: eq(professionals.userId, userId),
+    });
+
+    if (!professional) {
+      return null;
+    }
+
+    const [serviceStats] = await db
+      .select({ totalServices: count(serviceRequests.id) })
+      .from(serviceRequests)
+      .where(
+        and(
+          eq(serviceRequests.professionalId, professional.id),
+          eq(serviceRequests.status, "completed"),
+        ),
+      );
+
+    const [user] = await db
+      .select({ rating: users.rating })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    return {
+      totalServices: Number(serviceStats?.totalServices ?? 0),
+      averageRating: user?.rating ? Number(user.rating) : 0,
+    };
   }
 }

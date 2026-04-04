@@ -1,9 +1,10 @@
 import { db } from "@/db";
+import { queueEntries } from "@/db/schema/queue-entries";
 import { serviceRequests } from "@/db/schema/service-requests";
 import { roadwayInfo } from "@/db/schema/roadway-info";
 import { users } from "@/db/schema/users";
 import { professionals } from "@/db/schema/professionals";
-import { eq, sql, and } from "drizzle-orm";
+import { eq, sql, and, isNull, count, desc, asc } from "drizzle-orm";
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 export type SelectServiceRequest = InferSelectModel<typeof serviceRequests>;
@@ -26,6 +27,11 @@ export interface ServiceRequestDetails extends SelectServiceRequest {
 
 export interface CoordinateDistanceResult {
   distanceMeters: number;
+}
+
+export interface WaitingQueueSnapshot {
+  position: number;
+  estimatedWaitMinutes: number | null;
 }
 
 export class ServiceRequestsRepository {
@@ -103,17 +109,38 @@ export class ServiceRequestsRepository {
     lat: number,
     lng: number
   ): Promise<Roadway | null> {
-    // Busca rodovia cujo bounding box contém o ponto
+    // Considera o ponto dentro da area da rodovia OU ate 500m do bounding box.
     const [roadway] = await db
       .select()
       .from(roadwayInfo)
       .where(
         sql`
-          ${lat} >= bounds_min_lat AND 
-          ${lat} <= bounds_max_lat AND 
-          ${lng} >= bounds_min_lng AND 
-          ${lng} <= bounds_max_lng
+          ST_DWithin(
+            ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+            ST_SetSRID(
+              ST_MakePoint(
+                LEAST(GREATEST(${lng}, bounds_min_lng), bounds_max_lng),
+                LEAST(GREATEST(${lat}, bounds_min_lat), bounds_max_lat)
+              ),
+              4326
+            )::geography,
+            500
+          )
         `
+      )
+      .orderBy(
+        sql`
+          ST_Distance(
+            ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+            ST_SetSRID(
+              ST_MakePoint(
+                LEAST(GREATEST(${lng}, bounds_min_lng), bounds_max_lng),
+                LEAST(GREATEST(${lat}, bounds_min_lat), bounds_max_lat)
+              ),
+              4326
+            )::geography
+          )
+        `,
       )
       .limit(1);
 
@@ -135,7 +162,6 @@ export class ServiceRequestsRepository {
    * Retorna ordenado do mais recente para o mais antigo, com o nome do cliente.
    */
   static async findCompletedByProfessionalId(professionalId: string): Promise<(SelectServiceRequest & { clientName: string })[]> {
-    const { desc } = await import("drizzle-orm");
     const results = await db
       .select({
         request: serviceRequests,
@@ -157,6 +183,26 @@ export class ServiceRequestsRepository {
     }));
   }
 
+  static async findHistoryByClientId(clientId: string): Promise<
+    (SelectServiceRequest & { professionalName: string | null })[]
+  > {
+    const results = await db
+      .select({
+        request: serviceRequests,
+        professionalName: users.name,
+      })
+      .from(serviceRequests)
+      .leftJoin(professionals, eq(serviceRequests.professionalId, professionals.id))
+      .leftJoin(users, eq(professionals.userId, users.id))
+      .where(eq(serviceRequests.clientId, clientId))
+      .orderBy(desc(serviceRequests.createdAt));
+
+    return results.map((row) => ({
+      ...row.request,
+      professionalName: row.professionalName ?? null,
+    }));
+  }
+
   /**
    * Busca o chamado ativo (em andamento) de um usuário (cliente ou profissional).
    * Considera status não finalizados e 'completed' sem avaliação do solicitante.
@@ -166,13 +212,14 @@ export class ServiceRequestsRepository {
     role: "client" | "professional",
   ): Promise<SelectServiceRequest | null> {
     const activeStatuses = [
+      "pending",
       "matching",
+      "waiting_queue",
       "accepted",
       "professional_enroute",
       "professional_arrived",
       "diagnosing",
       "resolved",
-      "price_contested",
       "tow_requested",
       "escalated",
       "completed", // Incluímos completed para checar se já foi avaliado
@@ -234,5 +281,77 @@ export class ServiceRequestsRepository {
     return {
       distanceMeters: Number(row.distance_meters),
     };
+  }
+
+  static async getWaitingQueueSnapshot(
+    serviceRequestId: string,
+  ): Promise<WaitingQueueSnapshot | null> {
+    const [entry] = await db
+      .select({
+        position: queueEntries.position,
+        estimatedWaitMinutes: queueEntries.estimatedWaitMinutes,
+      })
+      .from(queueEntries)
+      .where(
+        and(
+          eq(queueEntries.serviceRequestId, serviceRequestId),
+          isNull(queueEntries.resolvedAt),
+        ),
+      )
+      .orderBy(asc(queueEntries.position))
+      .limit(1);
+
+    return entry
+      ? {
+          position: entry.position,
+          estimatedWaitMinutes: entry.estimatedWaitMinutes ?? null,
+        }
+      : null;
+  }
+
+  static async ensureWaitingQueueEntry(
+    serviceRequestId: string,
+  ): Promise<WaitingQueueSnapshot> {
+    const existing = await this.getWaitingQueueSnapshot(serviceRequestId);
+    if (existing) {
+      return existing;
+    }
+
+    const [aggregate] = await db
+      .select({ total: count(queueEntries.id) })
+      .from(queueEntries)
+      .where(isNull(queueEntries.resolvedAt));
+
+    const nextPosition = Number(aggregate?.total ?? 0) + 1;
+    const estimatedWaitMinutes = Math.max(10, nextPosition * 8);
+
+    const [entry] = await db
+      .insert(queueEntries)
+      .values({
+        serviceRequestId,
+        position: nextPosition,
+        estimatedWaitMinutes,
+      })
+      .returning({
+        position: queueEntries.position,
+        estimatedWaitMinutes: queueEntries.estimatedWaitMinutes,
+      });
+
+    return {
+      position: entry.position,
+      estimatedWaitMinutes: entry.estimatedWaitMinutes ?? null,
+    };
+  }
+
+  static async resolveWaitingQueueEntry(serviceRequestId: string): Promise<void> {
+    await db
+      .update(queueEntries)
+      .set({ resolvedAt: new Date() })
+      .where(
+        and(
+          eq(queueEntries.serviceRequestId, serviceRequestId),
+          isNull(queueEntries.resolvedAt),
+        ),
+      );
   }
 }

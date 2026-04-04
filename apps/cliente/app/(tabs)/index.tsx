@@ -48,7 +48,6 @@ export default function HomeSOS() {
         router.replace(`/(service-flow)/service-active?requestId=${id}` as `/(service-flow)/service-active?requestId=${string}`);
         break;
       case "resolved":
-      case "price_contested":
         nav.toPriceApproval(id);
         break;
       case "completed":

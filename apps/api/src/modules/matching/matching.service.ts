@@ -130,9 +130,12 @@ export class MatchingService {
 
     if (professionals.length === 0) {
       await ServiceRequestsRepository.update(requestId, { status: "waiting_queue" });
+      await ServiceRequestsRepository.ensureWaitingQueueEntry(requestId);
       logger.info({ requestId }, "No professionals found, moved to waiting_queue");
       return "waiting";
     }
+
+    await ServiceRequestsRepository.resolveWaitingQueueEntry(requestId);
 
     const { NotificationsService } = await import("../notifications/notifications.service");
     await NotificationsService.notifyProfessionals(
@@ -149,6 +152,7 @@ export class MatchingService {
     if (!request || request.status !== "matching") return;
     
     // Ninguem aceitou no prazo
+    await ServiceRequestsRepository.ensureWaitingQueueEntry(requestId);
     return ServiceRequestsRepository.update(requestId, { status: "waiting_queue" });
   }
 
@@ -200,6 +204,8 @@ export class MatchingService {
     if (!updatedRequest) {
       throw new AppError("ALREADY_ACCEPTED", "Este chamado já foi aceito por outro profissional", 409);
     }
+
+    await ServiceRequestsRepository.resolveWaitingQueueEntry(requestId);
 
     const refreshedRequest = await ServiceRequestsRepository.findById(requestId);
     const { NotificationsService } = await import("../notifications/notifications.service");

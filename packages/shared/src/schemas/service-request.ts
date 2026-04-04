@@ -9,6 +9,24 @@ export const problemTypeSchema = z.enum([
   "other",
 ]);
 
+export const serviceRequestStatusSchema = z.enum([
+  "pending",
+  "matching",
+  "waiting_queue",
+  "accepted",
+  "professional_enroute",
+  "professional_arrived",
+  "diagnosing",
+  "resolved",
+  "escalated",
+  "tow_requested",
+  "tow_enroute",
+  "delivered",
+  "completed",
+  "cancelled_client",
+  "cancelled_professional",
+]);
+
 export const createServiceRequestSchema = z.object({
   vehicleId: z.string().uuid("ID do veiculo invalido"),
   problemType: problemTypeSchema,
@@ -39,7 +57,7 @@ export const pricingResultSchema = z.object({
 
 export const serviceRequestSummarySchema = z.object({
   id: z.string().uuid(),
-  status: z.string(),
+  status: serviceRequestStatusSchema,
   context: z.enum(["urban", "highway"]),
   problemType: problemTypeSchema,
   estimatedPrice: z.number(),
@@ -77,6 +95,7 @@ export const serviceRequestSummarySchema = z.object({
 });
 
 export type ProblemType = z.infer<typeof problemTypeSchema>;
+export type ServiceRequestStatus = z.infer<typeof serviceRequestStatusSchema>;
 export type CreateServiceRequestInput = z.infer<typeof createServiceRequestSchema>;
 export type EstimatePriceInput = z.infer<typeof estimatePriceSchema>;
 export type PricingResult = z.infer<typeof pricingResultSchema>;

@@ -144,12 +144,14 @@ export class ProfessionalsService {
       throw Errors.notFound("Perfil profissional");
     }
 
+    const stats = await ProfessionalsRepository.getStatsByUserId(userId);
+
     return {
       totalEarnings: professional.totalEarnings,
       acceptanceRate: professional.acceptanceRate,
       cancellationsThisMonth: professional.cancellationsThisMonth,
-      totalServices: 0, // TODO: Implementar contagem real no repository futuramente
-      averageRating: 5.0, // TODO: Implementar média real no repository futuramente
+      totalServices: stats?.totalServices ?? 0,
+      averageRating: stats?.averageRating ?? 0,
       isOnline: professional.isOnline,
     };
   }

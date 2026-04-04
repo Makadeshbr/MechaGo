@@ -27,12 +27,7 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.CAMERA"
-      ],
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyDolH1bMkYY7eHHYx_baKV31IxzWuz27s0"
-        }
-      }
+      ]
     },
     "plugins": [
       "expo-router",

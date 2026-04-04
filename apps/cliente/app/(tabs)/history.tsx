@@ -35,26 +35,21 @@ import { useRouter } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { colors, spacing, borderRadius, fonts } from "@mechago/shared";
+import {
+  colors,
+  spacing,
+  borderRadius,
+  fonts,
+  type ServiceRequestStatus,
+} from "@mechago/shared";
 
 // ------------------------------------------------------------------
 // Tipos
 // ------------------------------------------------------------------
 
-type ServiceStatus =
-  | "pending"
-  | "matched"
-  | "in_transit"
-  | "arrived"
-  | "diagnosing"
-  | "negotiating"
-  | "in_progress"
-  | "completed"
-  | "cancelled";
-
 interface HistoryItem {
   id: string;
-  status: ServiceStatus;
+  status: ServiceRequestStatus;
   problemType: string;
   finalPrice: string | null;
   estimatedPrice: string | null;
@@ -67,16 +62,22 @@ interface HistoryItem {
 // Constantes de domínio
 // ------------------------------------------------------------------
 
-const STATUS_LABEL: Record<ServiceStatus, string> = {
-  pending:     "Aguardando",
-  matched:     "A caminho",
-  in_transit:  "Em trânsito",
-  arrived:     "Chegou",
-  diagnosing:  "Diagnosticando",
-  negotiating: "Orçamento",
-  in_progress: "Em serviço",
-  completed:   "Concluído",
-  cancelled:   "Cancelado",
+const STATUS_LABEL: Record<ServiceRequestStatus, string> = {
+  pending: "Pagamento pendente",
+  matching: "Buscando profissional",
+  waiting_queue: "Fila de espera",
+  accepted: "Aceito",
+  professional_enroute: "A caminho",
+  professional_arrived: "Chegou",
+  diagnosing: "Diagnosticando",
+  resolved: "Aguardando pagamento",
+  escalated: "Escalado",
+  tow_requested: "Guincho solicitado",
+  tow_enroute: "Guincho a caminho",
+  delivered: "Entregue",
+  completed: "Concluido",
+  cancelled_client: "Cancelado por voce",
+  cancelled_professional: "Cancelado pelo profissional",
 };
 
 /**
@@ -84,16 +85,22 @@ const STATUS_LABEL: Record<ServiceStatus, string> = {
  * tons escuros que não competem com o primário amarelo.
  * Apenas ativos usam amarelo; concluído usa verde muted; cancelado usa vermelho muted.
  */
-const STATUS_BADGE: Record<ServiceStatus, { bg: string; text: string; dot: string }> = {
-  pending:     { bg: "#1e1e1e", text: "#8A8A8A", dot: "#494847" },
-  matched:     { bg: "#0d1f0d", text: "#A8D5A8", dot: "#4CAF50" },
-  in_transit:  { bg: "#0d1f0d", text: "#A8D5A8", dot: "#4CAF50" },
-  arrived:     { bg: "#0d1f0d", text: "#A8D5A8", dot: "#81C784" },
-  diagnosing:  { bg: "#1f1a00", text: "#E8C200", dot: "#FDD404" },
-  negotiating: { bg: "#1f1200", text: "#E0A030", dot: "#F59E0B" },
-  in_progress: { bg: "#1f1a00", text: "#E8C200", dot: "#FDD404" },
-  completed:   { bg: "#0d1f10", text: "#C8E6C9", dot: "#81C784" },
-  cancelled:   { bg: "#1f0d0d", text: "#FFCDD2", dot: "#EF5350" },
+const STATUS_BADGE: Record<ServiceRequestStatus, { bg: string; text: string; dot: string }> = {
+  pending: { bg: colors.surfaceContainerHigh, text: colors.onSurfaceVariant, dot: colors.outlineVariant },
+  matching: { bg: "#1f1a00", text: "#E8C200", dot: colors.primary },
+  waiting_queue: { bg: "#1f1200", text: "#E0A030", dot: colors.warning },
+  accepted: { bg: "#0d1f0d", text: "#A8D5A8", dot: colors.success },
+  professional_enroute: { bg: "#0d1f0d", text: "#A8D5A8", dot: colors.success },
+  professional_arrived: { bg: "#0d1f10", text: "#C8E6C9", dot: "#81C784" },
+  diagnosing: { bg: "#1f1a00", text: "#E8C200", dot: colors.primary },
+  resolved: { bg: "#1f1200", text: "#E0A030", dot: colors.warning },
+  escalated: { bg: "#1f1200", text: "#E0A030", dot: colors.warning },
+  tow_requested: { bg: "#1f1200", text: "#E0A030", dot: colors.warning },
+  tow_enroute: { bg: "#0d1f0d", text: "#A8D5A8", dot: colors.success },
+  delivered: { bg: "#0d1f10", text: "#C8E6C9", dot: "#81C784" },
+  completed: { bg: "#0d1f10", text: "#C8E6C9", dot: "#81C784" },
+  cancelled_client: { bg: "#1f0d0d", text: "#FFCDD2", dot: colors.error },
+  cancelled_professional: { bg: "#1f0d0d", text: "#FFCDD2", dot: colors.error },
 };
 
 const PROBLEM_ICONS: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
@@ -114,10 +121,22 @@ const PROBLEM_LABELS: Record<string, string> = {
   other:    "Outro problema",
 };
 
-const IS_ACTIVE: Record<ServiceStatus, boolean> = {
-  pending: true, matched: true, in_transit: true, arrived: true,
-  diagnosing: true, negotiating: true, in_progress: true,
-  completed: false, cancelled: false,
+const IS_ACTIVE: Record<ServiceRequestStatus, boolean> = {
+  pending: true,
+  matching: true,
+  waiting_queue: true,
+  accepted: true,
+  professional_enroute: true,
+  professional_arrived: true,
+  diagnosing: true,
+  resolved: true,
+  escalated: true,
+  tow_requested: true,
+  tow_enroute: true,
+  delivered: false,
+  completed: false,
+  cancelled_client: false,
+  cancelled_professional: false,
 };
 
 // ------------------------------------------------------------------
@@ -217,6 +236,26 @@ function EmptyState() {
       <Text style={styles.emptyBody}>
         Seus atendimentos aparecerão aqui{"\n"}após a primeira solicitação SOS.
       </Text>
+    </Animated.View>
+  );
+}
+
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <Animated.View entering={FadeIn.delay(100).duration(400)} style={styles.emptyContainer}>
+      <View style={styles.emptyGlow} />
+      <View style={styles.emptyIconWrap}>
+        <Ionicons name="cloud-offline-outline" size={38} color={colors.warning} />
+      </View>
+
+      <Text style={styles.emptyTitle}>Nao foi possivel carregar</Text>
+      <Text style={styles.emptyBody}>
+        Verifique sua conexao e tente novamente para atualizar o historico.
+      </Text>
+
+      <Pressable onPress={onRetry} style={styles.retryButton} accessibilityRole="button">
+        <Text style={styles.retryButtonText}>TENTAR NOVAMENTE</Text>
+      </Pressable>
     </Animated.View>
   );
 }
@@ -369,7 +408,7 @@ function HistoryCard({ item, onPress, index }: {
 
 export default function HistoryScreen() {
   const router = useRouter();
-  const { data: requests, isLoading, refetch, isRefetching } = useClientHistory();
+  const { data: requests, isLoading, isError, refetch, isRefetching } = useClientHistory();
 
   const activeCount = requests?.filter((r) => IS_ACTIVE[r.status]).length ?? 0;
 
@@ -434,6 +473,8 @@ export default function HistoryScreen() {
 
       {isLoading ? (
         renderSkeleton()
+      ) : isError ? (
+        <ErrorState onRetry={() => void refetch()} />
       ) : (
         <FlatList
           data={requests ?? []}
@@ -702,5 +743,19 @@ const styles = StyleSheet.create({
     color: colors.onSurfaceVariant,
     textAlign: "center",
     lineHeight: 22,
+  },
+  retryButton: {
+    minHeight: 44,
+    paddingHorizontal: spacing.lg,
+    justifyContent: "center",
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary,
+    marginTop: spacing.sm,
+  },
+  retryButtonText: {
+    fontFamily: fonts.headline,
+    fontSize: 12,
+    color: colors.background,
+    letterSpacing: 0.8,
   },
 });

@@ -26,7 +26,7 @@ export default function TrackingScreen() {
   useEffect(() => {
     if (!request) return;
     const { status, id } = request;
-    if (status === "price_pending") {
+    if (status === "resolved") {
       nav.toPriceApproval(id);
     } else if (status === "cancelled_client" || status === "cancelled_professional") {
       nav.toHome();
@@ -49,7 +49,7 @@ export default function TrackingScreen() {
         if (data.status === "professional_arrived") {
           router.replace(`/(service-flow)/service-active?requestId=${requestId}` as `/(service-flow)/service-active?requestId=${string}`);
         }
-        if (data.status === "price_pending") {
+        if (data.status === "resolved") {
           nav.toPriceApproval(requestId as string);
         }
       });

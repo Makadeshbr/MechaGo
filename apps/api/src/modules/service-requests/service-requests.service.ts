@@ -1,7 +1,18 @@
-import { ServiceRequestsRepository } from "./service-requests.repository";
+import {
+  ServiceRequestsRepository,
+  type ServiceRequestDetails,
+} from "./service-requests.repository";
 import { PricingService } from "./pricing.service";
 import { VehiclesRepository } from "../vehicles/vehicles.repository";
-import { CreateServiceRequestInput, EstimatePriceInput, PricingResult, DEFAULT_ESTIMATE_DISTANCE_KM, ARRIVAL_DISTANCE_THRESHOLD_METERS } from "@mechago/shared";
+import { ProfessionalsRepository } from "../professionals/professionals.repository";
+import {
+  CreateServiceRequestInput,
+  EstimatePriceInput,
+  PricingResult,
+  DEFAULT_ESTIMATE_DISTANCE_KM,
+  ARRIVAL_DISTANCE_THRESHOLD_METERS,
+  type ServiceRequestStatus,
+} from "@mechago/shared";
 import { AppError } from "@/utils/errors";
 import { scheduleMatchingJob } from "../matching/matching.queue";
 import type { DiagnosisInput, ResolveInput, EscalateInput, ContestPriceInput, CancelInput } from "./service-requests.schemas";
@@ -71,7 +82,7 @@ function extractCity(address: string): string | null {
 
 function serializeServiceRequestSummary(params: {
   id: string;
-  status: string;
+  status: ServiceRequestStatus;
   context: "urban" | "highway";
   problemType: CreateServiceRequestInput["problemType"];
   estimatedPrice: number;
@@ -145,7 +156,32 @@ function serializeServiceRequestSummary(params: {
   };
 }
 
-function serializeServiceRequest(request: any) {
+async function assertUserCanAccessRequest(
+  request: ServiceRequestDetails,
+  userId: string,
+  userType: "client" | "professional" | "admin",
+): Promise<void> {
+  if (userType === "admin") {
+    return;
+  }
+
+  if (userType === "client") {
+    if (request.clientId !== userId) {
+      throw new AppError("FORBIDDEN", "Acesso negado", 403);
+    }
+
+    return;
+  }
+
+  const professional = await ProfessionalsRepository.findByUserId(userId);
+  if (!professional || request.professionalId !== professional.id) {
+    throw new AppError("FORBIDDEN", "Acesso negado", 403);
+  }
+}
+
+function serializeServiceRequest(
+  request: Omit<ServiceRequestDetails, "professional"> & { professional?: ServiceRequestDetails["professional"] },
+) {
   return serializeServiceRequestSummary({
     id: request.id,
     status: request.status,
@@ -258,6 +294,11 @@ export class ServiceRequestsService {
       await NotificationsService.notifyClientStatusUpdate(requestId, "cancelled_professional" as never);
 
       // Auto-rematch: coloca de volta na fila de matching
+      await ServiceRequestsRepository.update(requestId, {
+        status: "matching",
+        matchedAt: null,
+      });
+      await ServiceRequestsRepository.resolveWaitingQueueEntry(requestId);
       await scheduleMatchingJob(requestId);
 
       return { status: "cancelled_professional", refundPercent: 100, scenario: 4, autoRematch: true, cancelledBy: "professional" };
@@ -443,10 +484,24 @@ export class ServiceRequestsService {
   /**
    * Detalhes de um pedido
    */
-  static async getById(id: string) {
+  static async getById(
+    id: string,
+    userId: string,
+    userType: "client" | "professional" | "admin",
+  ) {
     const request = await ServiceRequestsRepository.findById(id);
     if (!request) {
       throw new AppError("NOT_FOUND", "Pedido não encontrado", 404);
+    }
+
+    await assertUserCanAccessRequest(request, userId, userType);
+
+    const queueSnapshot = request.status === "waiting_queue"
+      ? await ServiceRequestsRepository.ensureWaitingQueueEntry(request.id)
+      : null;
+
+    if (request.status !== "waiting_queue") {
+      await ServiceRequestsRepository.resolveWaitingQueueEntry(request.id);
     }
 
     const estimatedPrice = request.estimatedPrice ? Number(request.estimatedPrice) : 0;
@@ -498,7 +553,7 @@ export class ServiceRequestsService {
       clientLongitude: request.clientLongitude,
       professionalLatitude,
       professionalLongitude,
-      queuePosition: null,
+      queuePosition: queueSnapshot?.position ?? null,
       estimatedArrivalMinutes,
       distanceKm,
       queueLabel: request.status === "waiting_queue" ? "Aguardando profissional" : null,
@@ -805,7 +860,48 @@ export class ServiceRequestsService {
     }
 
     // Retorna os detalhes formatados
-    return this.getById(request.id);
+    return this.getById(request.id, userId, role);
+  }
+
+  static async getClientHistory(clientUserId: string) {
+    const history = await ServiceRequestsRepository.findHistoryByClientId(clientUserId);
+
+    return history.map((request) =>
+      serializeServiceRequestSummary({
+        id: request.id,
+        status: request.status,
+        context: request.context,
+        problemType: request.problemType,
+        estimatedPrice: request.estimatedPrice ? Number(request.estimatedPrice) : 0,
+        finalPrice: request.finalPrice,
+        diagnosticFee: Number(request.diagnosticFee),
+        roadwayPhone: request.roadwayPhone ?? null,
+        roadwayName: request.roadwayName ?? null,
+        cityName: request.cityName ?? null,
+        address: request.address,
+        createdAt: request.createdAt,
+        arrivedAt: request.arrivedAt,
+        completedAt: request.completedAt,
+        clientLatitude: request.clientLatitude,
+        clientLongitude: request.clientLongitude,
+        queueLabel: request.status === "waiting_queue" ? "Aguardando profissional" : null,
+        diagnosisPhotoUrl: request.diagnosisPhotoUrl,
+        completionPhotoUrl: request.completionPhotoUrl,
+        priceJustification: request.priceJustification,
+        resolvedOnSite: request.resolvedOnSite,
+        professionalId: request.professionalId,
+        clientId: request.clientId,
+        professional: request.professionalName
+          ? {
+              name: request.professionalName,
+              avatarUrl: null,
+              rating: null,
+              specialties: [],
+              userId: null,
+            }
+          : null,
+      }),
+    );
   }
 
   /**

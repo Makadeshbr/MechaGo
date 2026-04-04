@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -11,13 +11,27 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useUser } from "@/hooks/queries/useUser";
 import { useAuth } from "@/hooks/useAuth";
 import { useUpdateProfessional } from "@/hooks/queries/useProfessional";
-import { AmbientGlow, Button, MechaGoModal } from "@/components/ui";
+import { AmbientGlow, Button } from "@/components/ui";
 import { colors, spacing, borderRadius, fonts } from "@mechago/shared";
 
-type Specialty = "car_general" | "moto" | "diesel_truck" | "electronic_injection" | "suspension" | "brakes" | "air_conditioning" | "transmission";
+const specialtyValues = [
+  "car_general",
+  "moto",
+  "diesel_truck",
+  "electronic_injection",
+  "suspension",
+  "brakes",
+  "air_conditioning",
+  "transmission",
+] as const;
+
+type Specialty = (typeof specialtyValues)[number];
 
 const SPECIALTY_LABELS: Record<Specialty, string> = {
   car_general: "Mecânica Geral",
@@ -30,14 +44,47 @@ const SPECIALTY_LABELS: Record<Specialty, string> = {
   transmission: "Câmbio/Transmissão",
 };
 
+const profileFormSchema = z.object({
+  radiusKm: z.number().int().min(3).max(100),
+  specialties: z.array(z.enum(specialtyValues)).min(1, "Selecione ao menos uma especialidade"),
+});
+
+type ProfileFormInput = z.infer<typeof profileFormSchema>;
+
 export default function ProfileScreen() {
   const { data: user, isLoading } = useUser();
   const { logout } = useAuth();
   const updateProfessional = useUpdateProfessional();
 
   const [isEditing, setIsEditing] = useState(false);
-  const [editedRadius, setEditedRadius] = useState(user?.radiusKm ?? 10);
-  const [editedSpecialties, setEditedSpecialties] = useState<Specialty[]>(user?.specialties as Specialty[] ?? []);
+
+  const defaultValues = useMemo<ProfileFormInput>(
+    () => ({
+      radiusKm: user?.radiusKm ?? 10,
+      specialties: (user?.specialties?.filter((value): value is Specialty =>
+        specialtyValues.includes(value as Specialty),
+      ) ?? ["car_general"]),
+    }),
+    [user?.radiusKm, user?.specialties],
+  );
+
+  const {
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<ProfileFormInput>({
+    resolver: zodResolver(profileFormSchema),
+    defaultValues,
+  });
+
+  const editedRadius = watch("radiusKm");
+  const editedSpecialties = watch("specialties");
+
+  useEffect(() => {
+    reset(defaultValues);
+  }, [defaultValues, reset]);
 
   const ratingLabel = user?.rating ? Number(user.rating).toFixed(1) : "--";
   const reviewsLabel = user?.totalReviews ?? 0;
@@ -45,21 +92,18 @@ export default function ProfileScreen() {
 
   const handleToggleSpecialty = (spec: Specialty) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setEditedSpecialties(prev => 
-      prev.includes(spec) ? prev.filter(s => s !== spec) : [...prev, spec]
-    );
+    const nextValue = editedSpecialties.includes(spec)
+      ? editedSpecialties.filter((item) => item !== spec)
+      : [...editedSpecialties, spec];
+
+    setValue("specialties", nextValue, { shouldValidate: true });
   };
 
-  const handleSave = async () => {
-    if (editedSpecialties.length === 0) {
-      Alert.alert("Erro", "Selecione ao menos uma especialidade");
-      return;
-    }
-
+  const handleSave = handleSubmit(async (formData) => {
     try {
       await updateProfessional.mutateAsync({
-        radiusKm: editedRadius,
-        specialties: editedSpecialties,
+        radiusKm: formData.radiusKm,
+        specialties: formData.specialties,
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setIsEditing(false);
@@ -67,7 +111,7 @@ export default function ProfileScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert("Erro", "Não foi possível salvar as alterações");
     }
-  };
+  });
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -77,6 +121,9 @@ export default function ProfileScreen() {
         <Pressable 
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            if (isEditing) {
+              reset(defaultValues);
+            }
             setIsEditing(!isEditing);
           }}
           style={styles.editButton}
@@ -164,7 +211,9 @@ export default function ProfileScreen() {
             {isEditing ? (
               <View style={styles.radiusEditor}>
                 <Pressable 
-                  onPress={() => setEditedRadius(Math.max(3, editedRadius - 1))}
+                  onPress={() =>
+                    setValue("radiusKm", Math.max(3, editedRadius - 1), { shouldValidate: true })
+                  }
                   style={styles.radiusControl}
                 >
                   <Ionicons name="remove" size={24} color={colors.primary} />
@@ -174,7 +223,9 @@ export default function ProfileScreen() {
                   <Text style={styles.radiusUnit}>KM</Text>
                 </View>
                 <Pressable 
-                  onPress={() => setEditedRadius(Math.min(100, editedRadius + 1))}
+                  onPress={() =>
+                    setValue("radiusKm", Math.min(100, editedRadius + 1), { shouldValidate: true })
+                  }
                   style={styles.radiusControl}
                 >
                   <Ionicons name="add" size={24} color={colors.primary} />
@@ -186,6 +237,10 @@ export default function ProfileScreen() {
                 <Text style={styles.infoText}>Atendendo em até {user.radiusKm}km</Text>
               </View>
             )}
+
+            {errors.specialties?.message ? (
+              <Text style={styles.errorText}>{errors.specialties.message}</Text>
+            ) : null}
           </View>
 
           {isEditing && (
@@ -394,6 +449,11 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 15,
     color: colors.onSurface,
+  },
+  errorText: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
   },
   logoutButton: {
     flexDirection: "row",
