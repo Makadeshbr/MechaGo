@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions } from "react-native";
+import React, { useCallback, useEffect, useState, useRef } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
@@ -9,9 +9,16 @@ import * as Haptics from "expo-haptics";
 import { colors, spacing, radii, fonts } from "@mechago/shared";
 import { useSocket } from "@/providers/SocketProvider";
 import { useServiceRequest, useArrivedServiceRequest } from "@/hooks/queries/useServiceRequest";
-import { Skeleton } from "@/components/ui";
+import { Skeleton, MechaGoModal } from "@/components/ui";
 
 const { width, height } = Dimensions.get("window");
+
+interface ModalState {
+  visible: boolean;
+  title: string;
+  description: string;
+  type: "info" | "danger" | "success";
+}
 
 export default function NavigationScreen() {
   const { requestId } = useLocalSearchParams<{ requestId: string }>();
@@ -22,6 +29,23 @@ export default function NavigationScreen() {
 
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const mapRef = useRef<MapView>(null);
+  const [modal, setModal] = useState<ModalState>({
+    visible: false,
+    title: "",
+    description: "",
+    type: "info",
+  });
+
+  const closeModal = useCallback(() => {
+    setModal((m) => ({ ...m, visible: false }));
+  }, []);
+
+  const showModal = useCallback(
+    (title: string, description: string, type: ModalState["type"] = "info") => {
+      setModal({ visible: true, title, description, type });
+    },
+    [],
+  );
 
   // 1. Join request room com cleanup
   useEffect(() => {
@@ -44,15 +68,19 @@ export default function NavigationScreen() {
     const startTracking = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Permissão negada", "Precisamos da sua localização para o rastreamento.");
+        showModal(
+          "Permissão necessária",
+          "Para confirmar chegada precisamos da sua localização. Habilite o GPS nas configurações.",
+          "danger",
+        );
         return;
       }
 
       subscription = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
-          timeInterval: 10000, // 10 seconds
-          distanceInterval: 10, // 10 meters
+          timeInterval: 10000,
+          distanceInterval: 10,
         },
         (newLocation) => {
           setLocation(newLocation);
@@ -63,22 +91,24 @@ export default function NavigationScreen() {
               lng: newLocation.coords.longitude,
             });
           }
-        }
+        },
       );
     };
 
     startTracking();
 
     return () => {
-      if (subscription) {
-        subscription.remove();
-      }
+      if (subscription) subscription.remove();
     };
-  }, [socket, requestId]);
+  }, [socket, requestId, showModal]);
 
-  const handleArrived = async () => {
+  const handleArrived = useCallback(async () => {
     if (!location) {
-      Alert.alert("Erro", "Aguardando sinal de GPS...");
+      showModal(
+        "GPS não disponível",
+        "Aguardando sinal de GPS. Vá para um local aberto e tente novamente.",
+        "info",
+      );
       return;
     }
 
@@ -89,23 +119,26 @@ export default function NavigationScreen() {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
-      
-      // Se sucesso, navega para diagnóstico
-      router.replace(`/(service-flow)/diagnosis?requestId=${requestId}` as `/(service-flow)/diagnosis?requestId=${string}`);
+
+      router.replace(
+        `/(service-flow)/diagnosis?requestId=${requestId}` as `/(service-flow)/diagnosis?requestId=${string}`,
+      );
     } catch (err: unknown) {
+      const error = err as { response?: { json: () => Promise<{ error?: { message?: string } }> } };
+      let message = "Não foi possível confirmar chegada. Verifique sua conexão.";
+
       try {
-        const error = err as { response?: Response };
         if (error?.response) {
-          const body = await error.response.json() as { error?: { message?: string } };
-          Alert.alert("Atenção", body?.error?.message || "Não foi possível confirmar chegada.");
-        } else {
-          Alert.alert("Atenção", "Não foi possível confirmar chegada. Verifique sua conexão.");
+          const body = await error.response.json();
+          message = body?.error?.message ?? message;
         }
       } catch {
-        Alert.alert("Atenção", "Não foi possível confirmar chegada.");
+        // ignora erro ao parsear — usa mensagem padrão
       }
+
+      showModal("Atenção", message, "danger");
     }
-  };
+  }, [location, arrivedMutation, requestId, router, showModal]);
 
   if (isLoading || !request) {
     return (
@@ -141,6 +174,16 @@ export default function NavigationScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <MechaGoModal
+        visible={modal.visible}
+        title={modal.title}
+        description={modal.description}
+        type={modal.type}
+        confirmText="ENTENDI"
+        hideCancel
+        onClose={closeModal}
+        onConfirm={closeModal}
+      />
       <View style={styles.container}>
         {/* Header Noir */}
         <View style={styles.header}>
@@ -209,7 +252,7 @@ export default function NavigationScreen() {
             </View>
             <TouchableOpacity
               style={styles.callButton}
-              onPress={() => Alert.alert("Ligar", "Funcionalidade de chamada será implementada com integração telefônica.")}
+              onPress={() => showModal("Em breve", "Chamada telefônica integrada estará disponível na V1.0.", "info")}
               accessibilityRole="button"
               accessibilityLabel="Ligar para o cliente"
             >
