@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,7 +16,7 @@ import { z } from "zod";
 import { useUser } from "@/hooks/queries/useUser";
 import { useAuth } from "@/hooks/useAuth";
 import { useUpdateProfessional } from "@/hooks/queries/useProfessional";
-import { AmbientGlow, Button } from "@/components/ui";
+import { AmbientGlow, Button, MechaGoModal } from "@/components/ui";
 import { colors, spacing, borderRadius, fonts } from "@mechago/shared";
 
 const specialtyValues = [
@@ -86,6 +85,10 @@ export default function ProfileScreen() {
     reset(defaultValues);
   }, [defaultValues, reset]);
 
+  const [modalVisible, setModalVisible] = useState(false);
+  const showError = useCallback(() => setModalVisible(true), []);
+  const closeError = useCallback(() => setModalVisible(false), []);
+
   const ratingLabel = user?.rating ? Number(user.rating).toFixed(1) : "--";
   const reviewsLabel = user?.totalReviews ?? 0;
   const levelLabel = user?.isVerified ? "Verificado" : "Pendente";
@@ -109,12 +112,22 @@ export default function ProfileScreen() {
       setIsEditing(false);
     } catch {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert("Erro", "Não foi possível salvar as alterações");
+      showError();
     }
   });
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
+      <MechaGoModal
+        visible={modalVisible}
+        title="Erro"
+        description="Não foi possível salvar as alterações. Tente novamente."
+        type="danger"
+        confirmText="ENTENDI"
+        hideCancel
+        onClose={closeError}
+        onConfirm={closeError}
+      />
       <AmbientGlow />
       <View style={styles.header}>
         <Text style={styles.title}>Perfil</Text>

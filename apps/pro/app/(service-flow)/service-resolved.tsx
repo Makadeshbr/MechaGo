@@ -1,7 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -23,6 +22,7 @@ import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { colors, fonts, radii, spacing } from "@mechago/shared";
 import { useResolveServiceRequest, useServiceRequest } from "@/hooks/queries/useServiceRequest";
+import { MechaGoModal } from "@/components/ui";
 import { uploadFile } from "@/lib/upload";
 
 const resolvedFormSchema = z.object({
@@ -63,6 +63,14 @@ async function extractErrorMessage(error: unknown): Promise<string> {
   return "Não foi possível finalizar o serviço.";
 }
 
+interface ModalState {
+  visible: boolean;
+  title: string;
+  description: string;
+  type: "info" | "danger" | "success";
+  onConfirm?: () => void;
+}
+
 export default function ServiceResolvedScreen() {
   const { requestId } = useLocalSearchParams<{ requestId: string }>();
   const router = useRouter();
@@ -70,6 +78,29 @@ export default function ServiceResolvedScreen() {
   const resolveMutation = useResolveServiceRequest();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [modal, setModal] = useState<ModalState>({
+    visible: false,
+    title: "",
+    description: "",
+    type: "info",
+  });
+
+  const closeModal = useCallback(() => {
+    setModal((m) => ({ ...m, visible: false }));
+  }, []);
+
+  const showModal = useCallback(
+    (title: string, description: string, type: ModalState["type"] = "info", onConfirm?: () => void) => {
+      setModal({ visible: true, title, description, type, onConfirm });
+    },
+    [],
+  );
+
+  const handleModalConfirm = useCallback(() => {
+    const callback = modal.onConfirm;
+    closeModal();
+    callback?.();
+  }, [modal.onConfirm, closeModal]);
 
   const {
     control,
@@ -107,11 +138,12 @@ export default function ServiceResolvedScreen() {
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (permissionResponse.status !== "granted") {
-      Alert.alert(
+      showModal(
         "Permissão necessária",
         mode === "camera"
           ? "Precisamos da câmera para registrar o serviço concluído."
           : "Precisamos acessar sua galeria para anexar a foto do serviço.",
+        "danger",
       );
       return;
     }
@@ -133,16 +165,17 @@ export default function ServiceResolvedScreen() {
 
   const onSubmit = handleSubmit(async (values) => {
     if (!imageUri) {
-      Alert.alert("Foto obrigatória", "Envie a foto do serviço concluído para continuar.");
+      showModal("Foto obrigatória", "Envie a foto do serviço concluído para continuar.", "danger");
       return;
     }
 
     const finalPrice = Number(values.finalPrice.replace(",", "."));
 
     if (isOutOfRange && (!values.priceJustification || values.priceJustification.trim().length < 10)) {
-      Alert.alert(
+      showModal(
         "Justificativa necessária",
         "Explique o motivo do desvio maior que 25% em pelo menos 10 caracteres.",
+        "danger",
       );
       return;
     }
@@ -167,11 +200,14 @@ export default function ServiceResolvedScreen() {
       });
 
       const clientUserId = request?.clientId ?? "";
-      Alert.alert("Sucesso", "Serviço enviado para aprovação do cliente.", [
-        { text: "OK", onPress: () => nav.toServiceCompleted({ requestId: requestId as string, clientUserId }) },
-      ]);
+      showModal(
+        "Sucesso",
+        "Serviço enviado para aprovação do cliente.",
+        "success",
+        () => nav.toServiceCompleted({ requestId: requestId as string, clientUserId }),
+      );
     } catch (error) {
-      Alert.alert("Erro", await extractErrorMessage(error));
+      showModal("Erro", await extractErrorMessage(error), "danger");
     } finally {
       setIsUploading(false);
     }
@@ -187,6 +223,16 @@ export default function ServiceResolvedScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <MechaGoModal
+        visible={modal.visible}
+        title={modal.title}
+        description={modal.description}
+        type={modal.type}
+        confirmText="ENTENDI"
+        hideCancel
+        onClose={closeModal}
+        onConfirm={handleModalConfirm}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardArea}

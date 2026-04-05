@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -22,6 +21,7 @@ import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { colors, fonts, radii, spacing } from "@mechago/shared";
 import { useEscalateServiceRequest, useServiceRequest } from "@/hooks/queries/useServiceRequest";
+import { MechaGoModal } from "@/components/ui";
 import { uploadFile } from "@/lib/upload";
 
 const destinationOptions = [
@@ -79,6 +79,14 @@ async function extractErrorMessage(error: unknown): Promise<string> {
   return "Não foi possível escalar o caso.";
 }
 
+interface ModalState {
+  visible: boolean;
+  title: string;
+  description: string;
+  type: "info" | "danger" | "success";
+  onConfirm?: () => void;
+}
+
 export default function EscalationScreen() {
   const { requestId } = useLocalSearchParams<{ requestId: string }>();
   const router = useRouter();
@@ -86,6 +94,26 @@ export default function EscalationScreen() {
   const escalateMutation = useEscalateServiceRequest();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [modal, setModal] = useState<ModalState>({
+    visible: false, title: "", description: "", type: "info",
+  });
+
+  const closeModal = useCallback(() => {
+    setModal((m) => ({ ...m, visible: false }));
+  }, []);
+
+  const showModal = useCallback(
+    (title: string, description: string, type: ModalState["type"] = "info", onConfirm?: () => void) => {
+      setModal({ visible: true, title, description, type, onConfirm });
+    },
+    [],
+  );
+
+  const handleModalConfirm = useCallback(() => {
+    const callback = modal.onConfirm;
+    closeModal();
+    callback?.();
+  }, [modal.onConfirm, closeModal]);
 
   const {
     control,
@@ -113,11 +141,12 @@ export default function EscalationScreen() {
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (permissionResponse.status !== "granted") {
-      Alert.alert(
+      showModal(
         "Permissão necessária",
         mode === "camera"
           ? "Precisamos da câmera para registrar a evidência do defeito."
           : "Precisamos acessar sua galeria para anexar a evidência do defeito.",
+        "danger",
       );
       return;
     }
@@ -139,7 +168,7 @@ export default function EscalationScreen() {
 
   const onSubmit = handleSubmit(async (values) => {
     if (!imageUri) {
-      Alert.alert("Registro visual obrigatório", "Anexe a foto do defeito antes de escalar o caso.");
+      showModal("Registro visual obrigatório", "Anexe a foto do defeito antes de escalar o caso.", "danger");
       return;
     }
 
@@ -163,13 +192,14 @@ export default function EscalationScreen() {
         diagnosisNotes: values.diagnosisNotes,
       });
 
-      Alert.alert(
+      showModal(
         "Caso escalado",
         "O cliente foi notificado e poderá seguir com guincho ou oficina especializada.",
-        [{ text: "OK", onPress: () => router.replace("/(tabs)") }],
+        "success",
+        () => router.replace("/(tabs)"),
       );
     } catch (error) {
-      Alert.alert("Erro", await extractErrorMessage(error));
+      showModal("Erro", await extractErrorMessage(error), "danger");
     } finally {
       setIsUploading(false);
     }
@@ -185,6 +215,16 @@ export default function EscalationScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <MechaGoModal
+        visible={modal.visible}
+        title={modal.title}
+        description={modal.description}
+        type={modal.type}
+        confirmText="ENTENDI"
+        hideCancel
+        onClose={closeModal}
+        onConfirm={handleModalConfirm}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardArea}

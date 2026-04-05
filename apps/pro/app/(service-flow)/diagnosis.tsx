@@ -1,7 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -22,6 +21,7 @@ import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { colors, fonts, radii, spacing } from "@mechago/shared";
 import { useDiagnosisServiceRequest, useServiceRequest } from "@/hooks/queries/useServiceRequest";
+import { MechaGoModal } from "@/components/ui";
 import { uploadFile } from "@/lib/upload";
 
 const diagnosisFormSchema = z.object({
@@ -55,6 +55,13 @@ async function extractErrorMessage(error: unknown): Promise<string> {
   return "Erro inesperado ao salvar o diagnóstico.";
 }
 
+interface ModalState {
+  visible: boolean;
+  title: string;
+  description: string;
+  type: "info" | "danger" | "success";
+}
+
 export default function DiagnosisScreen() {
   const { requestId } = useLocalSearchParams<{ requestId: string }>();
   const router = useRouter();
@@ -62,6 +69,20 @@ export default function DiagnosisScreen() {
   const diagnosisMutation = useDiagnosisServiceRequest();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [modal, setModal] = useState<ModalState>({
+    visible: false, title: "", description: "", type: "info",
+  });
+
+  const closeModal = useCallback(() => {
+    setModal((m) => ({ ...m, visible: false }));
+  }, []);
+
+  const showModal = useCallback(
+    (title: string, description: string, type: ModalState["type"] = "info") => {
+      setModal({ visible: true, title, description, type });
+    },
+    [],
+  );
 
   const {
     control,
@@ -104,11 +125,12 @@ export default function DiagnosisScreen() {
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (permissionResponse.status !== "granted") {
-      Alert.alert(
+      showModal(
         "Permissão necessária",
         mode === "camera"
           ? "Precisamos da câmera para registrar o diagnóstico."
           : "Precisamos acessar sua galeria para anexar a foto.",
+        "danger",
       );
       return;
     }
@@ -134,7 +156,7 @@ export default function DiagnosisScreen() {
 
   const onSubmit = handleSubmit(async (values) => {
     if (!imageUri) {
-      Alert.alert("Foto obrigatória", "O MechaGo exige a foto do diagnóstico para continuar.");
+      showModal("Foto obrigatória", "O MechaGo exige a foto do diagnóstico para continuar.", "danger");
       return;
     }
 
@@ -164,7 +186,7 @@ export default function DiagnosisScreen() {
 
       router.replace(`/(service-flow)/escalation?requestId=${requestId}` as never);
     } catch (error) {
-      Alert.alert("Erro", await extractErrorMessage(error));
+      showModal("Erro", await extractErrorMessage(error), "danger");
     } finally {
       setIsUploading(false);
     }
@@ -180,6 +202,16 @@ export default function DiagnosisScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <MechaGoModal
+        visible={modal.visible}
+        title={modal.title}
+        description={modal.description}
+        type={modal.type}
+        confirmText="ENTENDI"
+        hideCancel
+        onClose={closeModal}
+        onConfirm={closeModal}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardArea}
