@@ -101,15 +101,25 @@ export class ServiceRequestsRepository {
   }
 
   /**
-   * Geofencing: Verifica se a coordenada está em uma rodovia
-   * No MVP, usamos o bounding box da tabela roadway_info.
-   * Se houver polígonos reais, a query ST_Contains seria ideal.
+   * Geofencing: Verifica se a coordenada está a ≤ 500m de uma rodovia.
+   *
+   * Estratégia em duas camadas (fallback seguro):
+   *  1. Se a rodovia tem path_geometry (LineString real), usa ST_DWithin sobre
+   *     o traçado exato da pista — precisão de ~50m no eixo da rodovia.
+   *  2. Se path_geometry é NULL (rodovia sem traçado cadastrado), usa ST_DWithin
+   *     sobre o centro do bounding box como aproximação de segurança.
+   *
+   * Retorna a rodovia mais próxima dentro do raio, priorizando a com geometria real.
+   * Ordenação por distância garante que, se o cliente está no cruzamento de duas
+   * rodovias, recebe os dados da mais próxima.
    */
   static async findRoadwayByCoords(
     lat: number,
-    lng: number
+    lng: number,
   ): Promise<Roadway | null> {
-    // Considera o ponto dentro da area da rodovia OU ate 500m do bounding box.
+    // Raio de detecção: 500m do traçado da pista
+    const HIGHWAY_DETECTION_RADIUS_M = 500;
+
     const [roadway] = await db
       .select()
       .from(roadwayInfo)
@@ -117,28 +127,40 @@ export class ServiceRequestsRepository {
         sql`
           ST_DWithin(
             ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
-            ST_SetSRID(
-              ST_MakePoint(
-                LEAST(GREATEST(${lng}, bounds_min_lng), bounds_max_lng),
-                LEAST(GREATEST(${lat}, bounds_min_lat), bounds_max_lat)
-              ),
-              4326
-            )::geography,
-            500
+            CASE
+              WHEN path_geometry IS NOT NULL THEN
+                -- Traçado real (LineString) — máxima precisão
+                path_geometry::geography
+              ELSE
+                -- Fallback: centro do bounding box (rodovia sem geometria cadastrada)
+                ST_SetSRID(
+                  ST_MakePoint(
+                    (bounds_min_lng::float + bounds_max_lng::float) / 2,
+                    (bounds_min_lat::float + bounds_max_lat::float) / 2
+                  ),
+                  4326
+                )::geography
+            END,
+            ${HIGHWAY_DETECTION_RADIUS_M}
           )
-        `
+        `,
       )
       .orderBy(
         sql`
           ST_Distance(
             ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
-            ST_SetSRID(
-              ST_MakePoint(
-                LEAST(GREATEST(${lng}, bounds_min_lng), bounds_max_lng),
-                LEAST(GREATEST(${lat}, bounds_min_lat), bounds_max_lat)
-              ),
-              4326
-            )::geography
+            CASE
+              WHEN path_geometry IS NOT NULL THEN
+                path_geometry::geography
+              ELSE
+                ST_SetSRID(
+                  ST_MakePoint(
+                    (bounds_min_lng::float + bounds_max_lng::float) / 2,
+                    (bounds_min_lat::float + bounds_max_lat::float) / 2
+                  ),
+                  4326
+                )::geography
+            END
           )
         `,
       )

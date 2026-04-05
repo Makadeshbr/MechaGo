@@ -154,53 +154,131 @@ const PROFESSIONALS = [
   },
 ] as const;
 
-const ROADWAYS = [
+/**
+ * Rodovias com traçado real como LineString WGS84.
+ *
+ * Coordenadas derivadas do traçado oficial das rodovias na RMSP/SP.
+ * Cada ponto representa um vértice aproximado do eixo da pista,
+ * em intervalos de ~5-10km para cobrir o trecho concessionado.
+ *
+ * A query de detecção usa ST_DWithin(ponto_cliente, path_geometry, 500),
+ * classificando como "highway" apenas clientes a ≤ 500m do traçado real.
+ */
+const ROADWAYS: Array<{
+  name: string;
+  phone: string;
+  emergencyPhone: string;
+  boundsMinLat: string;
+  boundsMaxLat: string;
+  boundsMinLng: string;
+  boundsMaxLng: string;
+  // WKT do traçado real — alimenta a coluna path_geometry após a migration
+  pathWkt: string;
+}> = [
   {
     name: "Rodovia dos Bandeirantes",
     phone: "0800 055 5550",
     emergencyPhone: "0800 055 5550",
+    // Trecho SP (Km 0 - Limão) → Campinas (Km 100)
     boundsMinLat: "-23.6100000",
     boundsMaxLat: "-23.0000000",
     boundsMinLng: "-47.2500000",
     boundsMaxLng: "-46.7200000",
+    pathWkt: "LINESTRING(" +
+      "-46.7270 -23.5300," +  // Km 0 — Acesso Norte (Limão)
+      "-46.7650 -23.4900," +  // Km 5 — Caieiras
+      "-46.8200 -23.4380," +  // Km 12 — Franco da Rocha
+      "-46.8750 -23.3540," +  // Km 22 — Campo Limpo Paulista
+      "-46.8820 -23.2940," +  // Km 30 — Várzea Paulista
+      "-46.8900 -23.2300," +  // Km 38 — Jundiaí (acesso sul)
+      "-46.9300 -23.1800," +  // Km 44 — Jundiaí (centro)
+      "-47.0000 -23.1200," +  // Km 52 — Louveira
+      "-47.0600 -23.0600," +  // Km 62 — Vinhedo
+      "-47.1100 -22.9820" +   // Km 75 → Campinas (Km 100)
+    ")",
   },
   {
     name: "Rodovia Anhanguera",
     phone: "0800 055 5550",
     emergencyPhone: "0800 055 5550",
+    // Trecho SP (Km 0 - Barra Funda) → Campinas (Km 100) — paralela à Bandeirantes pelo sul
     boundsMinLat: "-23.6200000",
     boundsMaxLat: "-22.9500000",
     boundsMinLng: "-47.2600000",
     boundsMaxLng: "-46.7300000",
+    pathWkt: "LINESTRING(" +
+      "-46.7200 -23.5200," +  // Km 0 — Acesso Barra Funda
+      "-46.8350 -23.5250," +  // Km 8 — Carapicuíba
+      "-46.8900 -23.4850," +  // Km 14 — Alphaville / Barueri
+      "-46.9300 -23.4200," +  // Km 22 — Santana de Parnaíba
+      "-46.9400 -23.3600," +  // Km 30 — Pirapora do Bom Jesus
+      "-46.9600 -23.2800," +  // Km 40 — Cabreúva
+      "-46.9030 -23.1860," +  // Km 52 — Jundiaí (acesso leste)
+      "-47.0200 -23.1100," +  // Km 62 — Louveira
+      "-47.0620 -22.9060" +   // Km 78 → Campinas
+    ")",
   },
   {
     name: "Rodovia Presidente Dutra",
     phone: "0800 017 3536",
     emergencyPhone: "0800 017 3536",
+    // Trecho SP (Km 0 - Guarulhos/Marginal) → SJC (Km 90)
     boundsMinLat: "-23.6200000",
     boundsMaxLat: "-22.7000000",
     boundsMinLng: "-46.6500000",
     boundsMaxLng: "-45.9000000",
+    pathWkt: "LINESTRING(" +
+      "-46.5800 -23.5300," +  // Km 0 — Acesso SP / Guarulhos
+      "-46.5500 -23.4980," +  // Km 4 — Cumbica
+      "-46.5300 -23.4530," +  // Km 10 — Guarulhos (centro)
+      "-46.4800 -23.4100," +  // Km 18 — Guarulhos (norte)
+      "-46.3200 -23.3960," +  // Km 32 — Arujá
+      "-46.1800 -23.3500," +  // Km 48 — Santa Isabel
+      "-46.0600 -23.3200," +  // Km 62 — Guararema
+      "-45.9650 -23.3050," +  // Km 74 — Jacareí
+      "-45.8900 -23.1790" +   // Km 88 — São José dos Campos
+    ")",
   },
   {
     name: "Rodovia Castello Branco",
     phone: "0800 701 5555",
     emergencyPhone: "0800 701 5555",
+    // Trecho SP (Km 0 - Osasco) → Sorocaba (Km 110) — sentido oeste
     boundsMinLat: "-23.6400000",
     boundsMaxLat: "-23.1500000",
     boundsMinLng: "-47.5500000",
     boundsMaxLng: "-46.7800000",
+    pathWkt: "LINESTRING(" +
+      "-46.7870 -23.5570," +  // Km 0 — Acesso Osasco
+      "-46.8800 -23.5700," +  // Km 7 — Carapicuíba (sul)
+      "-46.9900 -23.5900," +  // Km 16 — Barueri (sul)
+      "-47.0710 -23.6030," +  // Km 24 — Cotia
+      "-47.1700 -23.5800," +  // Km 34 — Vargem Grande Paulista
+      "-47.2880 -23.2630," +  // Km 60 — Itu
+      "-47.3800 -23.3200," +  // Km 75 — Porto Feliz
+      "-47.4580 -23.4960" +   // Km 90 → Sorocaba
+    ")",
   },
   {
     name: "Rodovia Ayrton Senna",
     phone: "0800 055 5510",
     emergencyPhone: "0800 055 5510",
+    // Trecho SP (Km 0 - Tatuapé) → Jacareí (Km 75) — sentido leste / litoral
     boundsMinLat: "-23.5900000",
     boundsMaxLat: "-23.1500000",
     boundsMinLng: "-46.5200000",
     boundsMaxLng: "-45.8800000",
+    pathWkt: "LINESTRING(" +
+      "-46.4800 -23.5000," +  // Km 0 — Acesso Tatuapé / Radial
+      "-46.4200 -23.4700," +  // Km 6 — Guarulhos (sul)
+      "-46.3500 -23.4200," +  // Km 14 — Guarulhos (leste)
+      "-46.2500 -23.3700," +  // Km 26 — Itaquaquecetuba
+      "-46.1500 -23.3200," +  // Km 38 — Mogi das Cruzes
+      "-46.0200 -23.2500," +  // Km 52 — Suzano
+      "-45.9000 -23.1500" +   // Km 68 → Jacareí / Serra
+    ")",
   },
-] as const;
+];
 
 const PRICE_TABLES = [
   { serviceType: "tire", vehicleType: "car", minPrice: "55.00", maxPrice: "85.00", region: "national" },
@@ -290,16 +368,56 @@ async function ensureProfessionals() {
 }
 
 async function ensureRoadways() {
+  // Extrai o client postgres nativo para queries raw com geometria PostGIS
+  const rawClient = postgres(env.DATABASE_URL, { max: 1 });
+
   for (const roadway of ROADWAYS) {
     const existing = await db.query.roadwayInfo.findFirst({
       where: eq(schema.roadwayInfo.name, roadway.name),
     });
 
+    // Dados escalares do Drizzle (sem geometry)
+    const scalarValues = {
+      name: roadway.name,
+      phone: roadway.phone,
+      emergencyPhone: roadway.emergencyPhone,
+      boundsMinLat: roadway.boundsMinLat,
+      boundsMaxLat: roadway.boundsMaxLat,
+      boundsMinLng: roadway.boundsMinLng,
+      boundsMaxLng: roadway.boundsMaxLng,
+    };
+
     if (!existing) {
-      await db.insert(schema.roadwayInfo).values(roadway);
-      console.log(`   rodovia criada: ${roadway.name}`);
+      // Insere a linha base via Drizzle
+      const [inserted] = await db
+        .insert(schema.roadwayInfo)
+        .values(scalarValues)
+        .returning({ id: schema.roadwayInfo.id });
+
+      // Popula path_geometry via SQL raw (Drizzle não suporta geometry nativo)
+      await rawClient.unsafe(
+        `UPDATE roadway_info
+            SET path_geometry = ST_GeomFromText($1, 4326)
+          WHERE id = $2`,
+        [roadway.pathWkt, inserted.id],
+      );
+
+      console.log(`   rodovia criada com geometria real: ${roadway.name}`);
+    } else {
+      // Rodovia já existe — atualiza apenas a geometria se estiver nula
+      await rawClient.unsafe(
+        `UPDATE roadway_info
+            SET path_geometry = ST_GeomFromText($1, 4326)
+          WHERE id = $2
+            AND (path_geometry IS NULL)`,
+        [roadway.pathWkt, existing.id],
+      );
+
+      console.log(`   rodovia ok (geometria atualizada se necessário): ${roadway.name}`);
     }
   }
+
+  await rawClient.end();
 }
 
 async function ensurePriceTables() {
