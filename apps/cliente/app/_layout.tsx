@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -22,13 +22,19 @@ import { SocketProvider } from "@/providers/SocketProvider";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { colors } from "@mechago/shared";
 
-// Manter splash visível até fontes carregarem
-SplashScreen.preventAutoHideAsync();
+// Timeout máximo para carregamento de fontes (ms).
+// Previne splash presa em redes lentas ou CDN indisponível após EAS update.
+const FONT_LOAD_TIMEOUT_MS = 5000;
+
+// Manter splash visível até fontes carregarem (ou timeout)
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const hydrate = useAuthStore((s) => s.hydrate);
+  const [appReady, setAppReady] = useState(false);
+  const splashHidden = useRef(false);
 
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontsError] = useFonts({
     SpaceGrotesk_700Bold,
     PlusJakartaSans_400Regular,
     PlusJakartaSans_600SemiBold,
@@ -38,15 +44,31 @@ export default function RootLayout() {
     JetBrainsMono_700Bold,
   });
 
+  // Esconde splash quando fontes carregam OU quando há erro/timeout
   useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
+    if (splashHidden.current) return;
+
+    if (fontsLoaded || fontsError) {
+      splashHidden.current = true;
+      SplashScreen.hideAsync().catch(() => {});
       hydrate();
+      setAppReady(true);
+      return;
     }
-  }, [fontsLoaded, hydrate]);
+
+    // Timeout de segurança: se fontes não carregarem, continua mesmo assim
+    const timer = setTimeout(() => {
+      if (splashHidden.current) return;
+      splashHidden.current = true;
+      SplashScreen.hideAsync().catch(() => {});
+      hydrate();
+      setAppReady(true);
+    }, FONT_LOAD_TIMEOUT_MS);
+
+    return () => clearTimeout(timer);
+  }, [fontsLoaded, fontsError, hydrate]);
 
   // Escuta eventos de force-logout do interceptor HTTP (api.ts)
-  // para navegar dentro do React tree em vez de chamar router fora do lifecycle
   useEffect(() => {
     return authEvents.onForceLogout(() => {
       router.replace("/(auth)/login");
@@ -54,10 +76,9 @@ export default function RootLayout() {
   }, []);
 
   // Registra push notifications após conexão do app
-  // O hook opera em modo fire-and-forget — nunca bloqueante
   usePushNotifications();
 
-  if (!fontsLoaded) {
+  if (!appReady) {
     return null;
   }
 
