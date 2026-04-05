@@ -13,9 +13,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { AmbientGlow } from "@/components/ui";
 import { colors, spacing, borderRadius } from "@mechago/shared";
 
-// Tela básica de perfil — mostra dados do usuário e botão de logout
 export default function ProfileScreen() {
-  const { data: user, isLoading } = useUser();
+  const { data: user, isLoading, isError, refetch } = useUser();
   const { logout } = useAuth();
 
   return (
@@ -29,7 +28,36 @@ export default function ProfileScreen() {
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      ) : user ? (
+      ) : isError || !user ? (
+        <View style={styles.content}>
+          {/* Estado de erro — mostra mensagem + retry + logout */}
+          <View style={styles.errorContainer}>
+            <Ionicons name="cloud-offline-outline" size={48} color={colors.textSecondary} />
+            <Text style={styles.errorTitle}>Não foi possível carregar seu perfil</Text>
+            <Text style={styles.errorSubtitle}>Verifique sua conexão com a internet</Text>
+            <Pressable
+              onPress={() => refetch()}
+              style={({ pressed }) => [styles.retryButton, pressed && { opacity: 0.7 }]}
+              accessibilityLabel="Tentar carregar perfil novamente"
+              accessibilityRole="button"
+            >
+              <Ionicons name="refresh" size={18} color={colors.primary} />
+              <Text style={styles.retryText}>Tentar novamente</Text>
+            </Pressable>
+          </View>
+
+          {/* Logout sempre acessível, mesmo sem dados */}
+          <Pressable
+            onPress={() => logout.mutate()}
+            style={({ pressed }) => [styles.logoutButton, pressed && { opacity: 0.7 }]}
+            accessibilityLabel="Sair da conta"
+            accessibilityRole="button"
+          >
+            <Ionicons name="log-out-outline" size={20} color={colors.error} />
+            <Text style={styles.logoutText}>Sair da conta</Text>
+          </Pressable>
+        </View>
+      ) : (
         <View style={styles.content}>
           {/* Avatar */}
           <View style={styles.avatarContainer}>
@@ -53,10 +81,7 @@ export default function ProfileScreen() {
           {/* Logout */}
           <Pressable
             onPress={() => logout.mutate()}
-            style={({ pressed }) => [
-              styles.logoutButton,
-              pressed && { opacity: 0.7 },
-            ]}
+            style={({ pressed }) => [styles.logoutButton, pressed && { opacity: 0.7 }]}
             accessibilityLabel="Sair da conta"
             accessibilityRole="button"
           >
@@ -64,7 +89,7 @@ export default function ProfileScreen() {
             <Text style={styles.logoutText}>Sair da conta</Text>
           </Pressable>
         </View>
-      ) : null}
+      )}
     </SafeAreaView>
   );
 }
@@ -91,6 +116,41 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.xl,
     gap: spacing.md,
+  },
+  errorContainer: {
+    alignItems: "center",
+    paddingVertical: spacing.xxl,
+    gap: spacing.sm,
+  },
+  errorTitle: {
+    fontFamily: "SpaceGrotesk_700Bold",
+    fontSize: 18,
+    color: colors.text,
+    textAlign: "center",
+    marginTop: spacing.md,
+  },
+  errorSubtitle: {
+    fontFamily: "PlusJakartaSans_400Regular",
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: "center",
+  },
+  retryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    minHeight: 48,
+  },
+  retryText: {
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    fontSize: 14,
+    color: colors.primary,
   },
   avatarContainer: {
     alignItems: "center",

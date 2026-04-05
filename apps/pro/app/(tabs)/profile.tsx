@@ -51,7 +51,7 @@ const profileFormSchema = z.object({
 type ProfileFormInput = z.infer<typeof profileFormSchema>;
 
 export default function ProfileScreen() {
-  const { data: user, isLoading } = useUser();
+  const { data: user, isLoading, isError, refetch } = useUser();
   const { logout } = useAuth();
   const updateProfessional = useUpdateProfessional();
 
@@ -290,7 +290,44 @@ export default function ProfileScreen() {
             <Text style={styles.logoutText}>Sair da conta</Text>
           </Pressable>
         </ScrollView>
-      ) : null}
+      ) : (
+        <View style={{ paddingHorizontal: spacing.xl, gap: spacing.md }}>
+          <View style={{ alignItems: "center", paddingVertical: spacing.xxl, gap: spacing.sm }}>
+            <Ionicons name="cloud-offline-outline" size={48} color={colors.onSurfaceVariant} />
+            <Text style={{ fontFamily: "SpaceGrotesk_700Bold", fontSize: 18, color: colors.onSurface, textAlign: "center", marginTop: spacing.md }}>
+              Não foi possível carregar seu perfil
+            </Text>
+            <Text style={{ fontFamily: "PlusJakartaSans_400Regular", fontSize: 14, color: colors.onSurfaceVariant, textAlign: "center" }}>
+              Verifique sua conexão com a internet
+            </Text>
+            <Pressable
+              onPress={() => refetch()}
+              style={({ pressed }) => [{
+                flexDirection: "row" as const, alignItems: "center" as const, justifyContent: "center" as const,
+                backgroundColor: colors.surfaceContainerHigh, borderRadius: borderRadius.md,
+                paddingVertical: spacing.md, paddingHorizontal: spacing.xl, gap: spacing.sm,
+                marginTop: spacing.md, minHeight: 48,
+              }, pressed && { opacity: 0.7 }]}
+              accessibilityLabel="Tentar carregar perfil novamente"
+              accessibilityRole="button"
+            >
+              <Ionicons name="refresh" size={18} color={colors.primary} />
+              <Text style={{ fontFamily: "PlusJakartaSans_600SemiBold", fontSize: 14, color: colors.primary }}>
+                Tentar novamente
+              </Text>
+            </Pressable>
+          </View>
+          <Pressable
+            onPress={() => logout.mutate()}
+            style={({ pressed }) => [styles.logoutButton, pressed && { opacity: 0.7 }]}
+            accessibilityLabel="Sair da conta"
+            accessibilityRole="button"
+          >
+            <Ionicons name="log-out-outline" size={20} color={colors.error} />
+            <Text style={styles.logoutText}>Sair da conta</Text>
+          </Pressable>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
