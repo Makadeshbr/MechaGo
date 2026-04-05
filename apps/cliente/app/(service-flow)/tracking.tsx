@@ -1,16 +1,23 @@
-import React, { useEffect, useState, useRef } from "react";
-import { Alert, View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from "react-native";
+import React, { useCallback, useEffect, useState, useRef } from "react";
+import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { colors, spacing, radii, fonts } from "@mechago/shared";
+import { colors, spacing, radii, fonts, darkMapStyle } from "@mechago/shared";
 import { useSocket } from "@/providers/SocketProvider";
 import { useServiceRequest } from "@/hooks/queries/useServiceRequest";
-import { Skeleton } from "@/components/ui";
+import { Skeleton, MechaGoModal } from "@/components/ui";
 import { nav } from "@/lib/navigation";
 
 const { width } = Dimensions.get("window");
+
+interface ModalState {
+  visible: boolean;
+  title: string;
+  description: string;
+  type: "info" | "danger" | "success";
+}
 
 export default function TrackingScreen() {
   const { requestId } = useLocalSearchParams<{ requestId: string }>();
@@ -21,8 +28,25 @@ export default function TrackingScreen() {
   const [proLocation, setProLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [realtimeEta, setRealtimeEta] = useState<number | null>(null);
   const mapRef = useRef<MapView>(null);
+  const [modal, setModal] = useState<ModalState>({
+    visible: false,
+    title: "",
+    description: "",
+    type: "info",
+  });
 
-  // 2. Polling fallback: navega por status quando o Socket.IO não entrega o evento
+  const closeModal = useCallback(() => {
+    setModal((m) => ({ ...m, visible: false }));
+  }, []);
+
+  const showModal = useCallback(
+    (title: string, description: string, type: ModalState["type"] = "info") => {
+      setModal({ visible: true, title, description, type });
+    },
+    [],
+  );
+
+  // Polling fallback: navega por status quando o Socket.IO não entrega o evento
   useEffect(() => {
     if (!request) return;
     const { status, id } = request;
@@ -33,7 +57,7 @@ export default function TrackingScreen() {
     }
   }, [request?.status, request?.id]);
 
-  // 1. Listen for professional location updates
+  // Escuta localização do profissional e status updates via socket
   useEffect(() => {
     if (socket && requestId) {
       socket.emit("join_request", { requestId });
@@ -59,13 +83,27 @@ export default function TrackingScreen() {
       if (socket) {
         socket.off("professional_location");
         socket.off("status_update");
-        // Limpa a sala ao sair da tela para evitar memory leak
         if (requestId) {
           socket.emit("leave_request", { requestId });
         }
       }
     };
-  }, [socket, requestId]);
+  }, [socket, requestId, router]);
+
+  // Sincroniza localização do profissional via polling (fallback do socket)
+  useEffect(() => {
+    if (
+      request?.professionalLatitude !== null &&
+      request?.professionalLatitude !== undefined &&
+      request?.professionalLongitude !== null &&
+      request?.professionalLongitude !== undefined
+    ) {
+      setProLocation({
+        lat: request.professionalLatitude,
+        lng: request.professionalLongitude,
+      });
+    }
+  }, [request?.professionalLatitude, request?.professionalLongitude]);
 
   if (isLoading || !request) {
     return (
@@ -74,9 +112,7 @@ export default function TrackingScreen() {
           <View style={{ width: 44, height: 44 }} />
           <Skeleton width={200} height={18} style={{ marginLeft: spacing.sm }} />
         </View>
-        {/* Placeholder para o mapa */}
         <View style={{ flex: 1, backgroundColor: colors.surface }} />
-        {/* Placeholder para o card do profissional */}
         <View style={[styles.bottomCard, { position: "relative", width: "100%" }]}>
           <View style={styles.proInfoRow}>
             <Skeleton width={56} height={56} style={{ borderRadius: radii.full }} />
@@ -105,27 +141,12 @@ export default function TrackingScreen() {
   const clientLat = Number(request.clientLatitude);
   const clientLng = Number(request.clientLongitude);
 
-  // Proteção contra coordenadas inválidas
   const clientCoords = {
     latitude: isNaN(clientLat) ? 0 : clientLat,
     longitude: isNaN(clientLng) ? 0 : clientLng,
   };
 
   const professional = request.professional;
-
-  useEffect(() => {
-    if (
-      request.professionalLatitude !== null &&
-      request.professionalLatitude !== undefined &&
-      request.professionalLongitude !== null &&
-      request.professionalLongitude !== undefined
-    ) {
-      setProLocation({
-        lat: request.professionalLatitude,
-        lng: request.professionalLongitude,
-      });
-    }
-  }, [request.professionalLatitude, request.professionalLongitude]);
 
   const professionalFallback = (
     <View style={styles.avatarFallback}>
@@ -135,8 +156,18 @@ export default function TrackingScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <MechaGoModal
+        visible={modal.visible}
+        title={modal.title}
+        description={modal.description}
+        type={modal.type}
+        confirmText="ENTENDI"
+        hideCancel
+        onClose={closeModal}
+        onConfirm={closeModal}
+      />
       <View style={styles.container}>
-        {/* Header Focado */}
+        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <MaterialIcons name="arrow-back" size={24} color={colors.onSurface} />
@@ -160,7 +191,7 @@ export default function TrackingScreen() {
             latitudeDelta: 0.02,
             longitudeDelta: 0.02,
           }}
-          customMapStyle={mapStyle}
+          customMapStyle={darkMapStyle}
         >
           <Marker coordinate={clientCoords} title="Você">
             <View style={styles.clientMarker}>
@@ -183,7 +214,7 @@ export default function TrackingScreen() {
           )}
         </MapView>
 
-        {/* Card do Profissional Noir */}
+        {/* Card do Profissional */}
         <View style={styles.bottomCard}>
           <View style={styles.proInfoRow}>
             {professional?.avatarUrl ? (
@@ -194,12 +225,12 @@ export default function TrackingScreen() {
             <View style={styles.proText}>
               <Text style={styles.proName}>{professional?.name || "Profissional"}</Text>
               <Text style={styles.proDetails}>
-                ★ {professional?.rating || "5.0"} • {professional?.specialties?.[0] || "Mecânica"}
+                {"\u2605"} {professional?.rating || "5.0"} {"\u2022"} {professional?.specialties?.[0] || "Mecânica"}
               </Text>
             </View>
             <TouchableOpacity
               style={styles.callButton}
-              onPress={() => Alert.alert("Ligar", "Funcionalidade de chamada será implementada com integração telefônica.")}
+              onPress={() => showModal("Em breve", "Chamada telefônica integrada estará disponível na V1.0.", "info")}
               accessibilityRole="button"
               accessibilityLabel="Ligar para o profissional"
             >
@@ -217,7 +248,7 @@ export default function TrackingScreen() {
             <View style={styles.statusItem}>
               <Text style={styles.labelSmall}>Chegada em</Text>
                 <Text style={styles.etaValue}>
-                 {realtimeEta !== null 
+                 {realtimeEta !== null
                    ? `${realtimeEta} min`
                    : request.estimatedArrivalMinutes !== null && request.estimatedArrivalMinutes !== undefined
                    ? `${request.estimatedArrivalMinutes} min`
@@ -231,21 +262,9 @@ export default function TrackingScreen() {
   );
 }
 
-const mapStyle = [
-  { "elementType": "geometry", "stylers": [{ "color": "#212121" }] },
-  { "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
-  { "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
-  { "elementType": "labels.text.stroke", "stylers": [{ "color": "#212121" }] },
-  { "featureType": "administrative", "elementType": "geometry", "stylers": [{ "color": "#757575" }] },
-  { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#181818" }] },
-  { "featureType": "road", "elementType": "geometry.fill", "stylers": [{ "color": "#2c2c2c" }] },
-  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#000000" }] }
-];
-
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   container: { flex: 1 },
-  loading: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.bg },
   header: {
     flexDirection: "row",
     alignItems: "center",

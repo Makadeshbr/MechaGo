@@ -6,12 +6,12 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
-import { colors, spacing, radii, fonts } from "@mechago/shared";
+import { colors, spacing, radii, fonts, darkMapStyle } from "@mechago/shared";
 import { useSocket } from "@/providers/SocketProvider";
 import { useServiceRequest, useArrivedServiceRequest } from "@/hooks/queries/useServiceRequest";
 import { Skeleton, MechaGoModal } from "@/components/ui";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 interface ModalState {
   visible: boolean;
@@ -51,7 +51,6 @@ export default function NavigationScreen() {
   useEffect(() => {
     if (socket && requestId) {
       socket.emit("join_request", { requestId });
-      console.log(`[Navigation] Joined room request:${requestId}`);
     }
 
     return () => {
@@ -124,16 +123,18 @@ export default function NavigationScreen() {
         `/(service-flow)/diagnosis?requestId=${requestId}` as `/(service-flow)/diagnosis?requestId=${string}`,
       );
     } catch (err: unknown) {
-      const error = err as { response?: { json: () => Promise<{ error?: { message?: string } }> } };
       let message = "Não foi possível confirmar chegada. Verifique sua conexão.";
 
+      // Extrai mensagem da API de forma resiliente (compatível com ky, fetch, axios)
       try {
-        if (error?.response) {
-          const body = await error.response.json();
-          message = body?.error?.message ?? message;
+        const httpErr = err as Record<string, unknown>;
+        const response = httpErr?.response as { json?: () => Promise<unknown> } | undefined;
+        if (response?.json) {
+          const body = (await response.json()) as { error?: { message?: string } };
+          if (body?.error?.message) message = body.error.message;
         }
       } catch {
-        // ignora erro ao parsear — usa mensagem padrão
+        // Falha no parse — usa mensagem padrão
       }
 
       showModal("Atenção", message, "danger");
@@ -206,7 +207,7 @@ export default function NavigationScreen() {
             latitudeDelta: 0.02,
             longitudeDelta: 0.02,
           }}
-          customMapStyle={mapStyle}
+          customMapStyle={darkMapStyle}
         >
           {location && (
             <Marker
@@ -298,21 +299,9 @@ export default function NavigationScreen() {
   );
 }
 
-const mapStyle = [
-  { "elementType": "geometry", "stylers": [{ "color": "#212121" }] },
-  { "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
-  { "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
-  { "elementType": "labels.text.stroke", "stylers": [{ "color": "#212121" }] },
-  { "featureType": "administrative", "elementType": "geometry", "stylers": [{ "color": "#757575" }] },
-  { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#181818" }] },
-  { "featureType": "road", "elementType": "geometry.fill", "stylers": [{ "color": "#2c2c2c" }] },
-  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#000000" }] }
-];
-
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   container: { flex: 1 },
-  loading: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.bg },
   header: {
     flexDirection: "row",
     alignItems: "center",

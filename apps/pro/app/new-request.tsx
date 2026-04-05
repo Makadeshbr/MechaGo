@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { colors, spacing, radii, fonts } from "@mechago/shared";
+import { colors, spacing, radii, fonts, darkMapStyle } from "@mechago/shared";
 import { api } from "@/lib/api";
 import { useSocket } from "@/providers/SocketProvider";
 import { MechaGoModal } from "@/components/ui";
@@ -118,11 +118,9 @@ export default function NewRequestScreen() {
   // Efeito para entrar/sair da sala de matching no Socket
   useEffect(() => {
     if (socket && request?.requestId) {
-      console.log("[Socket] Joining matching room for:", request.requestId);
       socket.emit("join_matching", { requestId: request.requestId });
 
       return () => {
-        console.log("[Socket] Leaving matching room for:", request.requestId);
         socket.emit("leave_matching", { requestId: request.requestId });
       };
     }
@@ -280,7 +278,7 @@ export default function NewRequestScreen() {
               }}
               scrollEnabled={false}
               zoomEnabled={false}
-              customMapStyle={mapStyle} // Estilo Noir
+              customMapStyle={darkMapStyle}
             >
               <Marker
                 coordinate={{
@@ -383,17 +381,6 @@ export default function NewRequestScreen() {
     </SafeAreaView>
   );
 }
-
-const mapStyle = [
-  { "elementType": "geometry", "stylers": [{ "color": "#212121" }] },
-  { "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
-  { "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
-  { "elementType": "labels.text.stroke", "stylers": [{ "color": "#212121" }] },
-  { "featureType": "administrative", "elementType": "geometry", "stylers": [{ "color": "#757575" }] },
-  { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#181818" }] },
-  { "featureType": "road", "elementType": "geometry.fill", "stylers": [{ "color": "#2c2c2c" }] },
-  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#000000" }] }
-];
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
