@@ -103,6 +103,15 @@ export default function PaymentScreen() {
                   nav.toHome();
                 }
               },
+              onError: (err) => {
+                // Exibe mensagem clara de erro — antes era silencioso
+                const message =
+                  err instanceof Error ? err.message : "Erro desconhecido ao confirmar pagamento.";
+                Alert.alert(
+                  "Erro ao simular pagamento",
+                  `Não foi possível confirmar o pagamento.\n\n${message}\n\nVerifique se a variável MERCADOPAGO_ACCESS_TOKEN começa com TEST- no servidor.`,
+                );
+              },
             }),
         },
       ],

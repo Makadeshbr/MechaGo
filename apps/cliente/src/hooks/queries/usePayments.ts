@@ -72,5 +72,7 @@ export function useConfirmSandboxPayment(paymentId: string | undefined) {
       // Força revalidação do status do pagamento após confirmação sandbox
       queryClient.invalidateQueries({ queryKey: paymentKeys.detail(paymentId ?? "") });
     },
+    // Não faz retry automático — confirm-sandbox é idempotente e erros devem aparecer imediatamente
+    retry: false,
   });
 }
