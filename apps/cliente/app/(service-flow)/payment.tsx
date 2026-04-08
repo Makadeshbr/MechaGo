@@ -79,7 +79,31 @@ export default function PaymentScreen() {
         { text: "Cancelar", style: "cancel" },
         {
           text: "Confirmar",
-          onPress: () => confirmSandbox.mutate(),
+          onPress: () =>
+            confirmSandbox.mutate(undefined, {
+              onSuccess: () => {
+                // Navegação imediata após sucesso da mutação sandbox
+                // Isso evita esperar o refetch interval de 5s do usePayment
+                if (hasNavigated.current) return;
+                hasNavigated.current = true;
+
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+                if (nextScreen === "searching") {
+                  const r = router as unknown as { replace: (href: unknown) => void };
+                  r.replace({ pathname: "/(service-flow)/searching", params: { requestId } });
+                } else if (nextScreen === "rating") {
+                  nav.toRating({
+                    requestId: requestId ?? "",
+                    professionalUserId: request?.professional?.userId ?? "",
+                    professionalName: request?.professional?.name ?? "",
+                    finalPrice: String(request?.finalPrice ?? ""),
+                  });
+                } else {
+                  nav.toHome();
+                }
+              },
+            }),
         },
       ],
     );

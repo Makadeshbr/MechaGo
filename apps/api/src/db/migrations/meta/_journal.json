@@ -43,6 +43,13 @@
       "when": 1775224501980,
       "tag": "0005_fine_riptide",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1775403296937,
+      "tag": "0006_robust_master_mold",
+      "breakpoints": true
     }
   ]
 }

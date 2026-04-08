@@ -54,9 +54,29 @@ uploadsApp.openapi(uploadRoute, async (c) => {
     c.req.header("x-forwarded-proto"),
   );
 
+  // Distinguir "ausente" (default seguro = diagnosis) de "presente porém inválido"
+  // (rejeitar com 400). Antes, qualquer string desconhecida caía no fallback silencioso,
+  // o que escondia bugs de typo no frontend e abria espaço pra confusão de namespace
+  // de armazenamento.
   const contextParam = c.req.query("context");
-  const contextResult = uploadContextSchema.safeParse(contextParam ?? "diagnosis");
-  const context = contextResult.success ? contextResult.data : ("diagnosis" as const);
+  let context: "diagnosis" | "completion" | "avatar";
+  if (contextParam === undefined) {
+    context = "diagnosis";
+  } else {
+    const parsed = uploadContextSchema.safeParse(contextParam);
+    if (!parsed.success) {
+      return c.json(
+        {
+          error: {
+            code: "INVALID_CONTEXT",
+            message: `Context inválido: '${contextParam}'. Valores aceitos: diagnosis, completion, avatar.`,
+          },
+        },
+        400,
+      );
+    }
+    context = parsed.data;
+  }
 
   const body = await c.req.parseBody();
   const file = body.file;

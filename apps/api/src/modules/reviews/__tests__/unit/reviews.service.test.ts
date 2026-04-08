@@ -106,7 +106,6 @@ describe("ReviewsService", () => {
 
       const result = await ReviewsService.create("client-uuid-1", {
         serviceRequestId: "req-uuid-1",
-        toUserId: "pro-user-uuid",
         rating: 5,
         tags: ["pontual", "competente"],
         comment: "Excelente!",
@@ -124,8 +123,7 @@ describe("ReviewsService", () => {
       await expect(
         ReviewsService.create("client-uuid-1", {
           serviceRequestId: "req-uuid-1",
-          toUserId: "pro-user-uuid",
-          rating: 4,
+            rating: 4,
           tags: [],
         }),
       ).rejects.toThrow("Você já avaliou este atendimento");
@@ -139,8 +137,7 @@ describe("ReviewsService", () => {
       await expect(
         ReviewsService.create("client-uuid-1", {
           serviceRequestId: "req-uuid-1",
-          toUserId: "pro-user-uuid",
-          rating: 5,
+            rating: 5,
           tags: [],
         }),
       ).rejects.toThrow("Avaliação só é permitida após o serviço ser concluído");
@@ -153,8 +150,7 @@ describe("ReviewsService", () => {
       await expect(
         ReviewsService.create("outro-usuario", {
           serviceRequestId: "req-uuid-1",
-          toUserId: "pro-user-uuid",
-          rating: 3,
+            rating: 3,
           tags: [],
         }),
       ).rejects.toThrow("Você não participou deste atendimento");
@@ -166,8 +162,7 @@ describe("ReviewsService", () => {
       await expect(
         ReviewsService.create("client-uuid-1", {
           serviceRequestId: "inexistente",
-          toUserId: "pro-user-uuid",
-          rating: 5,
+            rating: 5,
           tags: [],
         }),
       ).rejects.toThrow("Pedido não encontrado");

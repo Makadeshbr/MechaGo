@@ -355,7 +355,7 @@ describe("MatchingService", () => {
       });
 
       await expect(MatchingService.acceptRequest("user-prof", "req-1"))
-        .rejects.toThrow("Chamado já foi aceito");
+        .rejects.toThrow("Chamado já aceito por outro profissional");
     });
 
     it("deve rejeitar se profissional nao existe", async () => {

@@ -21,9 +21,11 @@ export const PRO_TO_CLIENT_TAGS = [
 
 export const ALL_TAGS = [...CLIENT_TO_PRO_TAGS, ...PRO_TO_CLIENT_TAGS] as const;
 
+// O `toUserId` é DERIVADO no backend a partir do serviceRequestId — o cliente não conhece
+// (e não deveria conhecer) o userId do profissional. Antes o schema exigia esse campo,
+// o que forçava um GET extra antes de toda avaliação e era propenso a race conditions.
 export const createReviewSchema = z.object({
   serviceRequestId: z.string().uuid("ID do pedido inválido"),
-  toUserId: z.string().uuid("ID do avaliado inválido"),
   rating: z
     .number()
     .int("Nota deve ser número inteiro")

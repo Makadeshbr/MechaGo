@@ -50,14 +50,15 @@ export class ReviewsService {
       throw new AppError("FORBIDDEN", "Você não participou deste atendimento", 403);
     }
 
-    const expectedTargetUserId = isClient
+    // toUserId derivado do request — o cliente não precisa nem conhece o userId do pro
+    const targetUserId = isClient
       ? request.professional?.userId ?? null
       : request.clientId;
 
-    if (!expectedTargetUserId || input.toUserId !== expectedTargetUserId) {
+    if (!targetUserId) {
       throw new AppError(
         "INVALID_REVIEW_TARGET",
-        "A avaliacao deve ser direcionada para a contraparte real do atendimento",
+        "Não foi possível identificar a contraparte deste atendimento",
         409,
       );
     }
@@ -78,18 +79,18 @@ export class ReviewsService {
     const review = await ReviewsRepository.create({
       serviceRequestId: input.serviceRequestId,
       fromUserId,
-      toUserId: input.toUserId,
+      toUserId: targetUserId,
       rating: input.rating,
       tags: input.tags,
       comment: input.comment,
     });
 
     // Recalcula nota média do avaliado
-    await ReviewsRepository.recalculateUserRating(input.toUserId);
+    await ReviewsRepository.recalculateUserRating(targetUserId);
 
     // Verifica suspensão temporária se profissional ficou abaixo do mínimo
     if (isClient) {
-      await ReviewsService.checkProfessionalSuspension(input.toUserId);
+      await ReviewsService.checkProfessionalSuspension(targetUserId);
     }
 
     return serializeReview(review);

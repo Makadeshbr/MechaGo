@@ -17,7 +17,11 @@ import {
 import { ServiceRequestsService } from "./service-requests.service";
 import { ServiceRequestsRepository } from "./service-requests.repository";
 import { MatchingService } from "../matching/matching.service";
-import { authMiddleware } from "../../middleware/auth.middleware";
+import { authMiddleware, requireType } from "../../middleware/auth.middleware";
+
+// Aliases para deixar a intenção das rotas explícita
+const requireClient = requireType("client");
+const requireProfessional = requireType("professional");
 
 const app = new OpenAPIHono();
 
@@ -61,7 +65,7 @@ const createRequestRoute = createRoute({
   path: "/",
   tags: ["Service Requests"],
   summary: "Solicitar novo socorro automotivo",
-  middleware: [authMiddleware],
+  middleware: [authMiddleware, requireClient],
   request: {
     body: {
       content: {
@@ -90,33 +94,34 @@ app.openapi(createRequestRoute, async (c) => {
   return c.json(result, 201);
 });
 
-// ==================== GET /service-requests/:id ====================
-const getRequestRoute = createRoute({
+// IMPORTANTE: rotas literais (/active) DEVEM ser registradas ANTES de rotas com
+// parâmetro dinâmico (/{id}), senão Hono casa "active" como UUID e devolve 400
+// "ID inválido" — quebrava a tela de chamado ativo silenciosamente.
+
+// ==================== GET /service-requests/active ====================
+const getActiveRequestRoute = createRoute({
   method: "get",
-  path: "/{id}",
+  path: "/active",
   tags: ["Service Requests"],
-  summary: "Buscar resumo de um pedido de socorro",
+  summary: "Buscar chamado ativo do usuário autenticado (cliente ou pro)",
   middleware: [authMiddleware],
-  request: {
-    params: serviceRequestParamsSchema,
-  },
   responses: {
     200: {
       content: {
         "application/json": {
-          schema: serviceRequestResponseSchema,
+          schema: serviceRequestResponseSchema.nullable(),
         },
       },
-      description: "Resumo do pedido retornado com sucesso",
+      description: "Chamado ativo retornado ou null",
     },
   },
 });
 
-app.openapi(getRequestRoute, async (c) => {
-  const { id } = c.req.valid("param");
+app.openapi(getActiveRequestRoute, async (c) => {
   const userId = c.get("userId");
-  const userType = c.get("userType") as "client" | "professional" | "admin";
-  const result = await ServiceRequestsService.getById(id, userId, userType);
+  const userType = c.get("userType") as "client" | "professional";
+
+  const result = await ServiceRequestsService.getActiveRequest(userId, userType);
   return c.json(result, 200);
 });
 
@@ -149,30 +154,33 @@ app.openapi(getHistoryRoute, async (c) => {
   return c.json({ requests }, 200);
 });
 
-// ==================== GET /service-requests/active ====================
-const getActiveRequestRoute = createRoute({
+// ==================== GET /service-requests/:id ====================
+const getRequestRoute = createRoute({
   method: "get",
-  path: "/active",
+  path: "/{id}",
   tags: ["Service Requests"],
-  summary: "Buscar chamado ativo do usuário autenticado (cliente ou pro)",
+  summary: "Buscar resumo de um pedido de socorro",
   middleware: [authMiddleware],
+  request: {
+    params: serviceRequestParamsSchema,
+  },
   responses: {
     200: {
       content: {
         "application/json": {
-          schema: serviceRequestResponseSchema.nullable(),
+          schema: serviceRequestResponseSchema,
         },
       },
-      description: "Chamado ativo retornado ou null",
+      description: "Resumo do pedido retornado com sucesso",
     },
   },
 });
 
-app.openapi(getActiveRequestRoute, async (c) => {
+app.openapi(getRequestRoute, async (c) => {
+  const { id } = c.req.valid("param");
   const userId = c.get("userId");
-  const userType = c.get("userType") as "client" | "professional";
-  
-  const result = await ServiceRequestsService.getActiveRequest(userId, userType);
+  const userType = c.get("userType") as "client" | "professional" | "admin";
+  const result = await ServiceRequestsService.getById(id, userId, userType);
   return c.json(result, 200);
 });
 
@@ -182,7 +190,7 @@ const acceptRequestRoute = createRoute({
   path: "/{id}/accept",
   tags: ["Service Requests"],
   summary: "Profissional aceita um chamado",
-  middleware: [authMiddleware],
+  middleware: [authMiddleware, requireProfessional],
   request: {
     params: serviceRequestParamsSchema,
   },
@@ -207,7 +215,7 @@ const arrivedRequestRoute = createRoute({
   path: "/{id}/arrived",
   tags: ["Service Requests"],
   summary: "Profissional chegou ao local do cliente",
-  middleware: [authMiddleware],
+  middleware: [authMiddleware, requireProfessional],
   request: {
     params: serviceRequestParamsSchema,
     body: {
@@ -269,7 +277,7 @@ const diagnosisRoute = createRoute({
   path: "/{id}/diagnosis",
   tags: ["Service Requests"],
   summary: "Profissional registra diagnóstico do serviço",
-  middleware: [authMiddleware],
+  middleware: [authMiddleware, requireProfessional],
   request: {
     params: serviceRequestParamsSchema,
     body: {
@@ -302,7 +310,7 @@ const resolveRoute = createRoute({
   path: "/{id}/resolve",
   tags: ["Service Requests"],
   summary: "Profissional marca serviço como resolvido",
-  middleware: [authMiddleware],
+  middleware: [authMiddleware, requireProfessional],
   request: {
     params: serviceRequestParamsSchema,
     body: {
@@ -335,7 +343,7 @@ const escalateRoute = createRoute({
   path: "/{id}/escalate",
   tags: ["Service Requests"],
   summary: "Profissional escala caso para guincho/oficina",
-  middleware: [authMiddleware],
+  middleware: [authMiddleware, requireProfessional],
   request: {
     params: serviceRequestParamsSchema,
     body: {
@@ -368,7 +376,7 @@ const approvePriceRoute = createRoute({
   path: "/{id}/approve-price",
   tags: ["Service Requests"],
   summary: "Cliente aprova o preço do serviço",
-  middleware: [authMiddleware],
+  middleware: [authMiddleware, requireClient],
   request: {
     params: serviceRequestParamsSchema,
   },
@@ -393,7 +401,7 @@ const contestPriceRoute = createRoute({
   path: "/{id}/contest-price",
   tags: ["Service Requests"],
   summary: "Cliente contesta o preço do serviço",
-  middleware: [authMiddleware],
+  middleware: [authMiddleware, requireClient],
   request: {
     params: serviceRequestParamsSchema,
     body: {
@@ -426,7 +434,7 @@ const professionalHistoryRoute = createRoute({
   path: "/professional/history",
   tags: ["Service Requests"],
   summary: "Histórico de atendimentos concluídos do profissional autenticado",
-  middleware: [authMiddleware],
+  middleware: [authMiddleware, requireProfessional],
   responses: {
     200: { description: "Lista de atendimentos concluídos" },
   },

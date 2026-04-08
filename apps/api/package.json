@@ -10,6 +10,9 @@
     "start:railway": "tsx src/index.ts",
     "test": "vitest",
     "test:run": "vitest run",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:gis": "tsx scripts/enable-postgis.ts",
+    "db:setup": "npm run db:gis && npm run db:migrate",
     "db:seed": "tsx --env-file=.env scripts/seed.ts"
   },
   "dependencies": {

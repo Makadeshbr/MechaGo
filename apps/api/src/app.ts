@@ -1,4 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
+import type { Context } from "hono";
 import { cors } from "hono/cors";
 import { apiReference } from "@scalar/hono-api-reference";
 import { loggerMiddleware } from "@/middleware/logger.middleware";
@@ -46,13 +47,17 @@ export function createApp() {
   app.use("/api/*", globalRateLimit);
   app.onError(errorHandler);
 
-  // Health check — Railway usa para saber se o container está saudável
-  app.get("/health", (c) =>
-    c.json({ status: "ok", timestamp: new Date().toISOString() }),
-  );
-  app.get("/ready", (c) =>
-    c.json({ status: "ready", timestamp: new Date().toISOString() }),
-  );
+  // Health check — Railway usa para saber se o container está saudável.
+  // Disponível na raiz (compatibilidade com Railway/probes externos) e também
+  // dentro do prefixo /api/v1 para clientes que assumem o versionamento padrão.
+  const healthHandler = (c: Context) =>
+    c.json({ status: "ok", timestamp: new Date().toISOString() });
+  const readyHandler = (c: Context) =>
+    c.json({ status: "ready", timestamp: new Date().toISOString() });
+  app.get("/health", healthHandler);
+  app.get("/ready", readyHandler);
+  app.get("/api/v1/health", healthHandler);
+  app.get("/api/v1/ready", readyHandler);
 
   // OpenAPI spec
   app.doc("/openapi.json", {

@@ -11,12 +11,14 @@ import {
   PricingResult,
   DEFAULT_ESTIMATE_DISTANCE_KM,
   ARRIVAL_DISTANCE_THRESHOLD_METERS,
+  MATCHING_RADIUS,
   type ServiceRequestStatus,
 } from "@mechago/shared";
 import { AppError } from "@/utils/errors";
 import { scheduleMatchingJob } from "../matching/matching.queue";
 import type { DiagnosisInput, ResolveInput, EscalateInput, ContestPriceInput, CancelInput } from "./service-requests.schemas";
 import { env } from "@/env";
+import { logger } from "@/middleware/logger.middleware";
 
 // MVP: permite override via env var para testes com dispositivos em locais diferentes
 // Em produção, definir MAX_ARRIVAL_DISTANCE_METERS=200 (ou remover a env var)
@@ -441,10 +443,29 @@ export class ServiceRequestsService {
     );
     const context = roadway ? "highway" : "urban";
 
+    // 2b. Pré-checagem de cobertura: garante que existe pelo menos 1 profissional
+    // online no raio antes de cobrar a taxa de diagnóstico. Sem isso o cliente paga,
+    // entra em fila vazia e fica esperando — péssima UX numa emergência.
+    const { MatchingService } = await import("../matching/matching.service");
+    const radiusMeters = context === "highway" ? MATCHING_RADIUS.HIGHWAY : MATCHING_RADIUS.URBAN;
+    const nearby = await MatchingService.findNearbyProfessionals({
+      lat: input.latitude,
+      lng: input.longitude,
+      radiusMeters,
+      vehicleType: vehicle.type,
+    });
+    if (nearby.length === 0) {
+      throw new AppError(
+        "NO_PROFESSIONALS_NEARBY",
+        "Nenhum profissional disponível na sua região no momento. Tente novamente mais tarde.",
+        422,
+      );
+    }
+
     // 3. Horário e Calendário (MVP: Simples)
     const hour = new Date().getHours();
     const isNight = hour >= 22 || hour < 6;
-    
+
     // 4. Calcular Preço (Fórmula V3)
     // No MVP a distância é calculada pelo frontend ou 5km default se não vier
     const estimate = PricingService.calculateEstimate({
@@ -645,13 +666,14 @@ export class ServiceRequestsService {
     requestId: string,
     input: DiagnosisInput,
   ) {
+    logger.info({ requestId, professionalUserId, input }, "Recebido POST /diagnosis");
     const request = await ServiceRequestsRepository.findById(requestId);
     if (!request) throw new AppError("NOT_FOUND", "Pedido não encontrado", 404);
 
-    if (request.status !== "professional_arrived") {
+    if (request.status !== "professional_arrived" && request.status !== "diagnosing") {
       throw new AppError(
         "INVALID_STATUS",
-        "Chamado não está no status de chegada",
+        `Chamado em status inválido para diagnóstico: ${request.status}`,
         409,
       );
     }

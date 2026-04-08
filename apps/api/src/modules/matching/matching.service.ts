@@ -159,9 +159,27 @@ export class MatchingService {
   static async acceptRequest(professionalUserId: string, requestId: string) {
     const request = await ServiceRequestsRepository.findById(requestId);
     if (!request) throw new AppError("NOT_FOUND", "Chamado não encontrado", 404);
-    
+
+    // Mensagem específica por status — antes devolvia "Chamado já foi aceito"
+    // mesmo para status pending/cancelled, mascarando o problema real e enganando o
+    // profissional que via "já aceito" quando na verdade a chamada nem tinha entrado em matching.
     if (request.status !== "matching") {
-      throw new AppError("INVALID_STATUS", "Chamado já foi aceito", 409);
+      const messageByStatus: Record<string, string> = {
+        pending: "Chamado ainda aguarda pagamento da taxa de diagnóstico",
+        accepted: "Chamado já aceito por outro profissional",
+        professional_enroute: "Chamado já está em atendimento",
+        professional_arrived: "Chamado já está em atendimento",
+        diagnosis: "Chamado já está em atendimento",
+        resolved: "Chamado já foi resolvido",
+        completed: "Chamado já foi concluído",
+        cancelled_client: "Chamado foi cancelado pelo cliente",
+        cancelled_pro: "Chamado foi cancelado",
+        cancelled_system: "Chamado foi cancelado pelo sistema",
+        waiting_queue: "Chamado está na fila de espera — aguarde reprocessamento",
+        escalated: "Chamado foi escalado para guincho",
+      };
+      const message = messageByStatus[request.status] ?? `Chamado em status '${request.status}' — não pode ser aceito`;
+      throw new AppError("INVALID_STATUS", message, 409);
     }
 
     const professional = await ProfessionalsRepository.findByUserId(professionalUserId);

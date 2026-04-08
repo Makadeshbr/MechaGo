@@ -9,7 +9,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "build:dev": "eas build --profile development --platform all",
-    "update": "eas update",
+    "update:preview": "eas update --channel preview",
+    "update:production": "eas update --channel production",
     "lint": "echo 'no linter configured yet'"
   },
   "dependencies": {

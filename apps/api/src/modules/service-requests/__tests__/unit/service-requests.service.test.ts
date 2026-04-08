@@ -216,7 +216,7 @@ describe("ServiceRequestsService", () => {
           diagnosisPhotoUrl: "https://cdn.mechago.com/diagnosis.jpg",
           canResolveOnSite: true,
         }),
-      ).rejects.toThrow("Chamado não está no status de chegada");
+      ).rejects.toThrow("Chamado em status inválido para diagnóstico: accepted");
     });
   });
 
