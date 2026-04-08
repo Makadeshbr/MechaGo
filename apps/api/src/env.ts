@@ -55,6 +55,9 @@ const envSchema = z
     // Mercado Pago — Pagamentos
     MERCADOPAGO_ACCESS_TOKEN: z.string().optional(),
     MERCADOPAGO_WEBHOOK_SECRET: z.string().optional(),
+    // Habilita confirmação manual de pagamento (sandbox/testes).
+    // Setar como "true" em ambientes de teste, mesmo com NODE_ENV=production.
+    SANDBOX_PAYMENT_ENABLED: z.string().optional(),
 
     // Firebase Admin SDK — Push Notifications (FCM)
     // Opcionais: em ambientes sem credenciais, o push é desabilitado graciosamente
@@ -84,6 +87,7 @@ const envSchema = z
     R2_PUBLIC_URL: data.R2_PUBLIC_URL,
     MERCADOPAGO_ACCESS_TOKEN: data.MERCADOPAGO_ACCESS_TOKEN,
     MERCADOPAGO_WEBHOOK_SECRET: data.MERCADOPAGO_WEBHOOK_SECRET,
+    SANDBOX_PAYMENT_ENABLED: data.SANDBOX_PAYMENT_ENABLED,
     FIREBASE_PROJECT_ID: data.FIREBASE_PROJECT_ID,
     FIREBASE_CLIENT_EMAIL: data.FIREBASE_CLIENT_EMAIL,
     FIREBASE_PRIVATE_KEY: data.FIREBASE_PRIVATE_KEY,

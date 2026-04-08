@@ -28,13 +28,12 @@ function isPendingOrCaptured(status: PaymentResult["status"]): boolean {
 /**
  * Permite confirmação sandbox se:
  * - O ambiente NÃO é produção, OU
- * - O token do MP é de teste (prefixo "TEST-")
- * Isso permite testar o fluxo em produção com token de teste sem alterar NODE_ENV.
+ * - A variável SANDBOX_PAYMENT_ENABLED está definida como "true"
+ * Isso permite testar o fluxo com NODE_ENV=production sem alterar configurações de segurança.
  */
 function canUseSandboxConfirmation(): boolean {
   if (env.NODE_ENV !== "production") return true;
-  const token = env.MERCADOPAGO_ACCESS_TOKEN ?? "";
-  return token.startsWith("TEST-");
+  return env.SANDBOX_PAYMENT_ENABLED === "true";
 }
 
 // Comissão da plataforma — 0% no MVP fundador, 10% no V1.0
