@@ -563,10 +563,19 @@ export class PaymentsService {
       await ServiceRequestsRepository.resolveWaitingQueueEntry(payment.serviceRequestId);
       await NotificationsService.notifyClientStatusUpdate(payment.serviceRequestId, "completed");
     } else if (payment.type === "diagnostic_fee") {
+      // Atualização de status e resolução da fila são críticas — devem ser awaited
       await ServiceRequestsRepository.update(payment.serviceRequestId, { status: "matching" });
       await ServiceRequestsRepository.resolveWaitingQueueEntry(payment.serviceRequestId);
-      await scheduleMatchingJob(payment.serviceRequestId);
-      await NotificationsService.notifyClientStatusUpdate(payment.serviceRequestId, "matching");
+
+      // Job de matching e notificação são melhor-esforço (fire-and-forget):
+      // falhas não devem bloquear a confirmação do pagamento nem retornar 500 ao cliente.
+      scheduleMatchingJob(payment.serviceRequestId).catch((err) =>
+        logger.error({ msg: "matching_job_schedule_error", err, requestId: payment.serviceRequestId }, "Falha ao agendar matching job"),
+      );
+
+      NotificationsService.notifyClientStatusUpdate(payment.serviceRequestId, "matching").catch((err) =>
+        logger.warn({ msg: "notify_client_error", err, requestId: payment.serviceRequestId }, "Falha ao notificar cliente"),
+      );
     }
 
     logger.info({ msg: "sandbox_payment_confirmed", paymentId, type: payment.type });
