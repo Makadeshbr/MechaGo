@@ -48,6 +48,8 @@ export function useArrivedServiceRequest() {
 export function useDiagnosisServiceRequest() {
   const queryClient = useQueryClient();
   return useMutation({
+    // Sem retry para falhas de diagnóstico — feedback imediato é essencial
+    retry: false,
     mutationFn: async ({ 
       requestId, 
       diagnosisNotes, 

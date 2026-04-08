@@ -670,7 +670,14 @@ export class ServiceRequestsService {
     const request = await ServiceRequestsRepository.findById(requestId);
     if (!request) throw new AppError("NOT_FOUND", "Pedido não encontrado", 404);
 
-    if (request.status !== "professional_arrived" && request.status !== "diagnosing") {
+    // Aceita professional_arrived, diagnosing (re-envio) e accepted (MVP: profissional
+    // pode ter pulado o passo de "cheguei" ou o step foi processado fora do fluxo normal)
+    const allowedDiagnosisStatuses = ["professional_arrived", "diagnosing", "accepted"];
+    if (!allowedDiagnosisStatuses.includes(request.status)) {
+      logger.error(
+        { requestId, currentStatus: request.status, professionalUserId },
+        "diagnosis_invalid_status",
+      );
       throw new AppError(
         "INVALID_STATUS",
         `Chamado em status inválido para diagnóstico: ${request.status}`,
