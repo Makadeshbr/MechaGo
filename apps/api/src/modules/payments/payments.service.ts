@@ -37,6 +37,7 @@ function canUseSandboxConfirmation(): boolean {
 }
 
 // Comissão da plataforma — 0% no MVP fundador, 10% no V1.0
+// v2.1 — sandbox fix: canUseSandboxConfirmation usa SANDBOX_PAYMENT_ENABLED
 const PLATFORM_COMMISSION_RATE = 0;
 
 // Taxa de diagnóstico = 30% da estimativa
